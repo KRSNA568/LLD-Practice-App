@@ -1,0 +1,1335 @@
+{
+  "id": "parking-lot",
+  "version": "2.0.0",
+  "rubricId": "lld-core",
+  "rubricVersion": "2.0.0",
+  "title": "Parking Lot",
+  "tier": 1,
+  "minutes": 35,
+  "domain": "physical-operations",
+  "brief": "Design the class structure for a multi-floor parking lot. Vehicles arrive, are assigned a spot, park, and later leave and pay. You are designing the object model — not the UI, not the database schema.",
+  "requirements": [
+    {
+      "id": "r1",
+      "text": "A vehicle can enter, be assigned a spot, and later exit",
+      "conceptHints": [
+        "state-modeling",
+        "domain-modeling"
+      ],
+      "keywords": [
+        "park",
+        "enter",
+        "entry",
+        "exit",
+        "leave",
+        "arriv",
+        "depart"
+      ]
+    },
+    {
+      "id": "r2",
+      "text": "Three vehicle types are supported: motorcycle, car, truck",
+      "conceptHints": [
+        "polymorphism",
+        "domain-modeling"
+      ],
+      "keywords": [
+        "motorcycl",
+        "car",
+        "truck",
+        "type",
+        "categor",
+        "kind"
+      ]
+    },
+    {
+      "id": "r3",
+      "text": "Spots come in sizes; a vehicle only fits certain sizes",
+      "conceptHints": [
+        "association-modeling",
+        "domain-modeling"
+      ],
+      "keywords": [
+        "size",
+        "fit",
+        "small",
+        "large",
+        "compact",
+        "medium"
+      ]
+    },
+    {
+      "id": "r4",
+      "text": "Fees are charged by duration, and the hourly rate differs by vehicle type",
+      "conceptHints": [
+        "open-closed",
+        "immutability"
+      ],
+      "keywords": [
+        "fee",
+        "price",
+        "pricing",
+        "rate",
+        "tariff",
+        "charge",
+        "bill",
+        "cost",
+        "hourly"
+      ]
+    },
+    {
+      "id": "r5",
+      "text": "On entry, the system finds an available spot for the vehicle",
+      "conceptHints": [
+        "open-closed",
+        "srp"
+      ],
+      "keywords": [
+        "allocat",
+        "assign",
+        "find",
+        "select",
+        "choos",
+        "locat",
+        "availab",
+        "freespot",
+        "placement"
+      ]
+    },
+    {
+      "id": "r6",
+      "text": "Entry is refused when no suitable spot is free",
+      "conceptHints": [
+        "error-modeling"
+      ],
+      "keywords": [
+        "refus",
+        "reject",
+        "full",
+        "unavailab",
+        "denied",
+        "cannot",
+        "exception",
+        "error",
+        "nospot"
+      ]
+    }
+  ],
+  "constraints": [
+    "A single lot with multiple floors",
+    "Cash payment only, for now",
+    "Single-threaded — ignore concurrent entry for this problem"
+  ],
+  "variationPoints": [
+    {
+      "id": "v1",
+      "name": "pricing strategy",
+      "why": "Rate rules change constantly in the real world — hourly, daily cap, weekend, EV, validation stamps",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract"
+      ],
+      "nameHints": [
+        "pricing",
+        "rate",
+        "fee",
+        "tariff",
+        "charge",
+        "billing"
+      ]
+    },
+    {
+      "id": "v2",
+      "name": "spot allocation strategy",
+      "why": "Nearest-to-entrance, floor-fill, and reserved-first are all legitimate and swappable",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract"
+      ],
+      "nameHints": [
+        "allocat",
+        "assign",
+        "spotfinder",
+        "selection",
+        "placement"
+      ]
+    },
+    {
+      "id": "v3",
+      "name": "vehicle type",
+      "why": "New categories (EV, oversized, disabled-permit) arrive regularly",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract",
+        "enum"
+      ],
+      "nameHints": [
+        "vehicle",
+        "cartype",
+        "vehicletype",
+        "category"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "sc-enter",
+      "title": "A car arrives and parks",
+      "description": "A car pulls up to the entrance. Walk through how it ends up in a spot with a ticket.",
+      "expectsFailurePath": false,
+      "mustInvolve": [
+        "allocat",
+        "assign",
+        "find",
+        "spot"
+      ]
+    },
+    {
+      "id": "sc-exit-pay",
+      "title": "A car leaves and pays",
+      "description": "Three hours later the same car leaves. Walk through how the fee is worked out and the spot freed.",
+      "expectsFailurePath": false,
+      "mustInvolve": [
+        "pricing",
+        "rate",
+        "fee",
+        "tariff",
+        "charge",
+        "billing"
+      ]
+    },
+    {
+      "id": "sc-full",
+      "title": "A motorcycle arrives and nothing suitable is free",
+      "description": "Every motorcycle spot is taken. Walk through what happens — and how it ends.",
+      "expectsFailurePath": true,
+      "mustInvolve": []
+    }
+  ],
+  "hiddenChanges": [
+    {
+      "id": "hc-ev",
+      "prompt": "The lot is adding electric-vehicle charging spots. A charging spot is billed per kilowatt-hour consumed, not by time parked. Revise your design so it handles this — and say what you touched and why.",
+      "targetsConcept": "open-closed",
+      "mustIntroduce": [
+        "kwh",
+        "kilowatt",
+        "energy",
+        "charg",
+        "electric",
+        "ev"
+      ],
+      "expectedSeam": "v1",
+      "goodSignal": [
+        "adds a new class implementing an existing pricing abstraction",
+        "no edit to existing fee-calculation code",
+        "recognises spot capability as data, not a new subclass of Spot"
+      ],
+      "badSignal": [
+        "adds a boolean flag such as isElectric",
+        "adds a conditional branch inside existing fee logic",
+        "adds a subclass of the concrete pricing class rather than the interface"
+      ]
+    },
+    {
+      "id": "hc-reserved",
+      "prompt": "The lot is introducing monthly passes. A pass holder must always be given a reserved spot on the ground floor if one is free; walk-in drivers never get a reserved spot. Revise your design so it handles this — and say what you touched and why.",
+      "targetsConcept": "open-closed",
+      "mustIntroduce": [
+        "reserv",
+        "pass",
+        "member",
+        "permit",
+        "subscri"
+      ],
+      "expectedSeam": "v2",
+      "goodSignal": [
+        "adds a new allocation strategy behind the existing allocator abstraction",
+        "the lot itself does not change",
+        "reserved is a property of a spot, not a new spot subclass"
+      ],
+      "badSignal": [
+        "adds an isReserved branch inside the existing allocation method",
+        "adds a passHolder flag to Vehicle and checks it in the lot"
+      ]
+    }
+  ],
+  "probes": [
+    {
+      "id": "p-pricing",
+      "prompt": "Weekend rates start next month. Which method in {{class}} changes, and which other classes have to know about it?",
+      "targetsConcept": "open-closed",
+      "triggerWhen": {
+        "criterionId": "abstraction-use",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names a single class or a new implementation",
+        "says nothing else changes",
+        "explains why"
+      ],
+      "badSignal": [
+        "adds a branch or a flag",
+        "cannot name the method",
+        "several classes have to change"
+      ]
+    },
+    {
+      "id": "p-split",
+      "prompt": "{{class}} describes more than one job. If you had to split it into two classes tonight, where is the cut — and which of the two does Ticket talk to?",
+      "targetsConcept": "srp",
+      "triggerWhen": {
+        "criterionId": "class-responsibilities",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names two responsibilities and the boundary between them",
+        "says which class Ticket depends on"
+      ],
+      "badSignal": [
+        "says it is fine as is",
+        "splits by data rather than by job"
+      ]
+    },
+    {
+      "id": "p-refusal",
+      "prompt": "A motorcycle arrives and every motorcycle spot is taken. Which class says no, and what exactly does the caller receive — a null, an exception, a result type?",
+      "targetsConcept": "error-modeling",
+      "triggerWhen": {
+        "criterionId": "behaviour",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names the class that decides",
+        "names a concrete result the caller must handle",
+        "explains the choice"
+      ],
+      "badSignal": [
+        "returns null",
+        "does not name a class",
+        "the caller is not mentioned"
+      ]
+    },
+    {
+      "id": "p-spot-size",
+      "prompt": "Spot size and vehicle size: are they a value, an enum, or a class hierarchy in your design? What would make you change that choice?",
+      "targetsConcept": "composition-over-inheritance",
+      "goodSignal": [
+        "justifies the choice in terms of what varies",
+        "names a condition that would change it"
+      ],
+      "badSignal": [
+        "no reason given",
+        "subclasses per size with no behavioural difference"
+      ]
+    },
+    {
+      "id": "p-fee-owner",
+      "prompt": "Ticket knows the entry time. Who computes the fee — Ticket, the lot, or something else — and why there rather than the other two?",
+      "targetsConcept": "srp",
+      "goodSignal": [
+        "names the owner",
+        "rejects at least one of the alternatives with a reason"
+      ],
+      "badSignal": [
+        "the lot does it because it has the data",
+        "no alternative considered"
+      ]
+    }
+  ],
+  "conceptTags": [
+    "srp",
+    "open-closed",
+    "polymorphism",
+    "association-modeling"
+  ],
+  "commonFailureModes": [
+    {
+      "id": "f1",
+      "name": "The ParkingLotManager god class",
+      "description": "One class owning allocation, pricing, ticketing, payment and exit.",
+      "concept": "srp",
+      "frequency": "very-high"
+    },
+    {
+      "id": "f2",
+      "name": "Pricing baked into the manager",
+      "description": "Fee calculation as a private method with a switch on vehicle type.",
+      "concept": "open-closed",
+      "frequency": "very-high"
+    },
+    {
+      "id": "f3",
+      "name": "Spot subclassed per vehicle type",
+      "description": "MotorcycleSpot, CarSpot, TruckSpot — inheritance used to vary a single value.",
+      "concept": "composition-over-inheritance",
+      "frequency": "medium"
+    },
+    {
+      "id": "f4",
+      "name": "Ticket as a dumb struct",
+      "description": "Ticket holds fields but the manager computes everything about it.",
+      "concept": "encapsulation",
+      "frequency": "medium"
+    },
+    {
+      "id": "f5",
+      "name": "Silent failure on full lot",
+      "description": "Returning null from findSpot with no modelling of the refused case.",
+      "concept": "error-modeling",
+      "frequency": "high"
+    }
+  ],
+  "goldDesigns": {
+    "strong": {
+      "assumptions": [
+        "One vehicle occupies exactly one spot",
+        "Fees are calculated on exit, not entry",
+        "Entry is refused when no suitable spot is free"
+      ],
+      "classes": [
+        {
+          "name": "ParkingLot",
+          "stereotype": "class",
+          "responsibility": "Coordinates a stay by delegating spot choice and pricing to collaborators",
+          "attributes": [
+            "floors"
+          ],
+          "methods": [
+            "park",
+            "exit"
+          ]
+        },
+        {
+          "name": "Spot",
+          "stereotype": "class",
+          "responsibility": "A single space that knows its size and whether it is taken",
+          "attributes": [
+            "size",
+            "occupant"
+          ],
+          "methods": [
+            "fits",
+            "occupy",
+            "release"
+          ]
+        },
+        {
+          "name": "Vehicle",
+          "stereotype": "abstract",
+          "responsibility": "A vehicle with a plate and a size",
+          "attributes": [
+            "plate"
+          ],
+          "methods": [
+            "size"
+          ]
+        },
+        {
+          "name": "Car",
+          "stereotype": "class",
+          "responsibility": "A car",
+          "attributes": [],
+          "methods": []
+        },
+        {
+          "name": "Motorcycle",
+          "stereotype": "class",
+          "responsibility": "A motorcycle",
+          "attributes": [],
+          "methods": []
+        },
+        {
+          "name": "Truck",
+          "stereotype": "class",
+          "responsibility": "A truck",
+          "attributes": [],
+          "methods": []
+        },
+        {
+          "name": "Ticket",
+          "stereotype": "class",
+          "responsibility": "Records entry time and the assigned spot",
+          "attributes": [
+            "entryTime",
+            "spot"
+          ],
+          "methods": [
+            "issue",
+            "duration"
+          ]
+        },
+        {
+          "name": "PricingStrategy",
+          "stereotype": "interface",
+          "responsibility": "Calculates the fee for a completed stay",
+          "attributes": [],
+          "methods": [
+            "feeFor"
+          ]
+        },
+        {
+          "name": "HourlyPricing",
+          "stereotype": "class",
+          "responsibility": "Prices a stay by duration and vehicle type",
+          "attributes": [
+            "ratesByType"
+          ],
+          "methods": [
+            "feeFor"
+          ]
+        },
+        {
+          "name": "SpotAllocator",
+          "stereotype": "interface",
+          "responsibility": "Chooses a fitting free spot for a vehicle or refuses",
+          "attributes": [],
+          "methods": [
+            "allocate"
+          ]
+        },
+        {
+          "name": "NearestFirstAllocator",
+          "stereotype": "class",
+          "responsibility": "Allocates the nearest free spot that fits",
+          "attributes": [],
+          "methods": [
+            "allocate"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "ParkingLot",
+          "to": "Spot",
+          "kind": "has-a"
+        },
+        {
+          "from": "ParkingLot",
+          "to": "SpotAllocator",
+          "kind": "uses"
+        },
+        {
+          "from": "ParkingLot",
+          "to": "PricingStrategy",
+          "kind": "uses"
+        },
+        {
+          "from": "ParkingLot",
+          "to": "Ticket",
+          "kind": "uses"
+        },
+        {
+          "from": "Spot",
+          "to": "Vehicle",
+          "kind": "has-a"
+        },
+        {
+          "from": "Car",
+          "to": "Vehicle",
+          "kind": "extends"
+        },
+        {
+          "from": "Motorcycle",
+          "to": "Vehicle",
+          "kind": "extends"
+        },
+        {
+          "from": "Truck",
+          "to": "Vehicle",
+          "kind": "extends"
+        },
+        {
+          "from": "Ticket",
+          "to": "Spot",
+          "kind": "uses"
+        },
+        {
+          "from": "HourlyPricing",
+          "to": "PricingStrategy",
+          "kind": "implements"
+        },
+        {
+          "from": "NearestFirstAllocator",
+          "to": "SpotAllocator",
+          "kind": "implements"
+        }
+      ],
+      "tradeoffs": "I put pricing behind an interface rather than a method on ParkingLot because rate rules change far more often than the lot structure does. I chose composition over subclassing Spot per vehicle type, because size is a value rather than a behaviour.",
+      "decisions": [
+        {
+          "what": "Pricing lives behind PricingStrategy",
+          "alternative": "A calculateFee method on ParkingLot with a switch on vehicle type",
+          "why": "Rates change monthly; the lot layout does not. The seam goes where the change is."
+        },
+        {
+          "what": "Spot size is a value, not a subclass",
+          "alternative": "MotorcycleSpot, CarSpot, TruckSpot",
+          "why": "The three differ by one number and no behaviour. Subclasses would be inheritance for a lookup."
+        },
+        {
+          "what": "Refusal is the allocator's decision",
+          "alternative": "ParkingLot checks capacity itself",
+          "why": "Whoever chooses the spot is the only one who knows there is none."
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-enter",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "ParkingLot",
+              "method": "park",
+              "note": "receives the vehicle"
+            },
+            {
+              "className": "SpotAllocator",
+              "method": "allocate",
+              "note": "asked for a spot that fits"
+            },
+            {
+              "className": "NearestFirstAllocator",
+              "method": "allocate",
+              "note": "scans floors nearest first"
+            },
+            {
+              "className": "Spot",
+              "method": "occupy",
+              "note": ""
+            },
+            {
+              "className": "Ticket",
+              "method": "issue",
+              "note": "stamps entry time and spot"
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-exit-pay",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "ParkingLot",
+              "method": "exit",
+              "note": "given the ticket"
+            },
+            {
+              "className": "Ticket",
+              "method": "duration",
+              "note": ""
+            },
+            {
+              "className": "PricingStrategy",
+              "method": "feeFor",
+              "note": ""
+            },
+            {
+              "className": "HourlyPricing",
+              "method": "feeFor",
+              "note": "rate by vehicle type × hours"
+            },
+            {
+              "className": "Spot",
+              "method": "release",
+              "note": ""
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-full",
+          "outcome": "refused",
+          "steps": [
+            {
+              "className": "ParkingLot",
+              "method": "park",
+              "note": ""
+            },
+            {
+              "className": "SpotAllocator",
+              "method": "allocate",
+              "note": ""
+            },
+            {
+              "className": "NearestFirstAllocator",
+              "method": "allocate",
+              "note": "finds nothing that fits — returns a refusal, not null"
+            }
+          ]
+        }
+      ]
+    },
+    "god-class": {
+      "assumptions": [],
+      "classes": [
+        {
+          "name": "ParkingLotManager",
+          "stereotype": "class",
+          "responsibility": "Handles parking, pricing, exit, payment and ticket generation",
+          "attributes": [
+            "spots",
+            "tickets",
+            "rates"
+          ],
+          "methods": [
+            "park",
+            "exit",
+            "calculateFee",
+            "issueTicket",
+            "findSpot"
+          ]
+        },
+        {
+          "name": "Spot",
+          "stereotype": "class",
+          "responsibility": "A parking space",
+          "attributes": [
+            "id",
+            "size"
+          ],
+          "methods": []
+        },
+        {
+          "name": "Vehicle",
+          "stereotype": "class",
+          "responsibility": "A vehicle",
+          "attributes": [
+            "plate",
+            "type"
+          ],
+          "methods": []
+        },
+        {
+          "name": "Ticket",
+          "stereotype": "class",
+          "responsibility": "A ticket",
+          "attributes": [
+            "entryTime"
+          ],
+          "methods": []
+        }
+      ],
+      "relationships": [
+        {
+          "from": "ParkingLotManager",
+          "to": "Spot",
+          "kind": "uses"
+        },
+        {
+          "from": "ParkingLotManager",
+          "to": "Vehicle",
+          "kind": "uses"
+        },
+        {
+          "from": "ParkingLotManager",
+          "to": "Ticket",
+          "kind": "uses"
+        }
+      ],
+      "tradeoffs": "Kept it simple.",
+      "decisions": [],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-enter",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "ParkingLotManager",
+              "method": "park",
+              "note": ""
+            },
+            {
+              "className": "ParkingLotManager",
+              "method": "findSpot",
+              "note": ""
+            },
+            {
+              "className": "ParkingLotManager",
+              "method": "issueTicket",
+              "note": ""
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-exit-pay",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "ParkingLotManager",
+              "method": "exit",
+              "note": ""
+            },
+            {
+              "className": "ParkingLotManager",
+              "method": "calculateFee",
+              "note": "switch on vehicle type"
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-full",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "ParkingLotManager",
+              "method": "park",
+              "note": ""
+            },
+            {
+              "className": "ParkingLotManager",
+              "method": "findSpot",
+              "note": "returns null"
+            }
+          ]
+        }
+      ]
+    },
+    "over-patterned": {
+      "assumptions": [
+        "Fees are calculated on exit"
+      ],
+      "classes": [
+        {
+          "name": "ParkingLot",
+          "stereotype": "class",
+          "responsibility": "Coordinates entry and exit",
+          "attributes": [],
+          "methods": [
+            "park",
+            "exit"
+          ]
+        },
+        {
+          "name": "ParkingLotFactory",
+          "stereotype": "class",
+          "responsibility": "Builds a ParkingLot",
+          "attributes": [],
+          "methods": [
+            "create"
+          ]
+        },
+        {
+          "name": "Spot",
+          "stereotype": "class",
+          "responsibility": "A parking space with a size",
+          "attributes": [
+            "size"
+          ],
+          "methods": [
+            "occupy",
+            "release"
+          ]
+        },
+        {
+          "name": "Vehicle",
+          "stereotype": "abstract",
+          "responsibility": "A vehicle with a size",
+          "attributes": [
+            "plate"
+          ],
+          "methods": []
+        },
+        {
+          "name": "VehicleFactory",
+          "stereotype": "class",
+          "responsibility": "Creates vehicles from a type string",
+          "attributes": [],
+          "methods": [
+            "create"
+          ]
+        },
+        {
+          "name": "Ticket",
+          "stereotype": "class",
+          "responsibility": "Records entry time",
+          "attributes": [
+            "entryTime"
+          ],
+          "methods": []
+        },
+        {
+          "name": "PricingStrategy",
+          "stereotype": "interface",
+          "responsibility": "Prices a stay",
+          "attributes": [],
+          "methods": [
+            "feeFor"
+          ]
+        },
+        {
+          "name": "SpotAllocator",
+          "stereotype": "interface",
+          "responsibility": "Finds a spot",
+          "attributes": [],
+          "methods": [
+            "allocate"
+          ]
+        },
+        {
+          "name": "ParkingObserver",
+          "stereotype": "interface",
+          "responsibility": "Notified of parking events",
+          "attributes": [],
+          "methods": [
+            "onEvent"
+          ]
+        },
+        {
+          "name": "ParkingEventBus",
+          "stereotype": "class",
+          "responsibility": "Dispatches events to observers",
+          "attributes": [],
+          "methods": [
+            "publish"
+          ]
+        },
+        {
+          "name": "ParkingLotSingleton",
+          "stereotype": "class",
+          "responsibility": "Provides global access to the lot",
+          "attributes": [],
+          "methods": [
+            "instance"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "ParkingLotFactory",
+          "to": "ParkingLot",
+          "kind": "uses"
+        },
+        {
+          "from": "ParkingLot",
+          "to": "Spot",
+          "kind": "has-a"
+        },
+        {
+          "from": "Spot",
+          "to": "Vehicle",
+          "kind": "has-a"
+        },
+        {
+          "from": "VehicleFactory",
+          "to": "Vehicle",
+          "kind": "uses"
+        },
+        {
+          "from": "ParkingLot",
+          "to": "Ticket",
+          "kind": "uses"
+        },
+        {
+          "from": "ParkingLot",
+          "to": "ParkingEventBus",
+          "kind": "uses"
+        },
+        {
+          "from": "ParkingLotSingleton",
+          "to": "ParkingLot",
+          "kind": "has-a"
+        }
+      ],
+      "tradeoffs": "Used Strategy, Factory, Observer and Singleton patterns for maximum flexibility and clean architecture.",
+      "decisions": [
+        {
+          "what": "Strategy pattern for pricing and allocation",
+          "alternative": "",
+          "why": "Flexibility"
+        },
+        {
+          "what": "Observer pattern for events",
+          "alternative": "",
+          "why": "Decoupling"
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-enter",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "ParkingLotSingleton",
+              "method": "instance",
+              "note": ""
+            },
+            {
+              "className": "ParkingLot",
+              "method": "park",
+              "note": ""
+            },
+            {
+              "className": "Spot",
+              "method": "occupy",
+              "note": "the lot picks the first free spot itself"
+            },
+            {
+              "className": "ParkingEventBus",
+              "method": "publish",
+              "note": ""
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-exit-pay",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "ParkingLot",
+              "method": "exit",
+              "note": ""
+            },
+            {
+              "className": "ParkingLot",
+              "method": "calculateFee",
+              "note": ""
+            },
+            {
+              "className": "Spot",
+              "method": "release",
+              "note": ""
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-full",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "ParkingLot",
+              "method": "park",
+              "note": ""
+            }
+          ]
+        }
+      ]
+    },
+    "requirements-missed": {
+      "assumptions": [
+        "Every vehicle fits every spot",
+        "Parking is free"
+      ],
+      "classes": [
+        {
+          "name": "ParkingLot",
+          "stereotype": "class",
+          "responsibility": "Owns the floors and hands out tickets",
+          "attributes": [
+            "floors"
+          ],
+          "methods": [
+            "park",
+            "exit"
+          ]
+        },
+        {
+          "name": "Floor",
+          "stereotype": "class",
+          "responsibility": "Owns the spots on one level",
+          "attributes": [
+            "spots"
+          ],
+          "methods": [
+            "freeSpot"
+          ]
+        },
+        {
+          "name": "Spot",
+          "stereotype": "class",
+          "responsibility": "One space, free or taken",
+          "attributes": [
+            "occupant"
+          ],
+          "methods": [
+            "occupy",
+            "release"
+          ]
+        },
+        {
+          "name": "Vehicle",
+          "stereotype": "class",
+          "responsibility": "A vehicle identified by its plate",
+          "attributes": [
+            "plate"
+          ],
+          "methods": []
+        },
+        {
+          "name": "Ticket",
+          "stereotype": "class",
+          "responsibility": "Links a vehicle to its spot for the duration of the stay",
+          "attributes": [
+            "spot",
+            "entryTime"
+          ],
+          "methods": [
+            "issue"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "ParkingLot",
+          "to": "Floor",
+          "kind": "has-a"
+        },
+        {
+          "from": "Floor",
+          "to": "Spot",
+          "kind": "has-a"
+        },
+        {
+          "from": "Spot",
+          "to": "Vehicle",
+          "kind": "has-a"
+        },
+        {
+          "from": "ParkingLot",
+          "to": "Ticket",
+          "kind": "uses"
+        },
+        {
+          "from": "Ticket",
+          "to": "Spot",
+          "kind": "uses"
+        }
+      ],
+      "tradeoffs": "I kept the structure to what the lot physically is — floors of spots — so that each class maps to something you could point at. I have not modelled pricing or vehicle sizes; I would add them as a second pass.",
+      "decisions": [
+        {
+          "what": "Floor is its own class",
+          "alternative": "A flat list of spots on the lot",
+          "why": "Nearest-floor allocation later needs the grouping."
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-enter",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "ParkingLot",
+              "method": "park",
+              "note": ""
+            },
+            {
+              "className": "Floor",
+              "method": "freeSpot",
+              "note": "first floor with a free spot"
+            },
+            {
+              "className": "Spot",
+              "method": "occupy",
+              "note": ""
+            },
+            {
+              "className": "Ticket",
+              "method": "issue",
+              "note": ""
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-exit-pay",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "ParkingLot",
+              "method": "exit",
+              "note": ""
+            },
+            {
+              "className": "Spot",
+              "method": "release",
+              "note": "no fee — parking is free in this version"
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-full",
+          "outcome": "refused",
+          "steps": [
+            {
+              "className": "ParkingLot",
+              "method": "park",
+              "note": ""
+            },
+            {
+              "className": "Floor",
+              "method": "freeSpot",
+              "note": "none on any floor"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "critiquePairs": [
+    {
+      "id": "cp-1",
+      "left": "strong",
+      "right": "god-class",
+      "question": "Weekend pricing starts next month. Which design absorbs that without editing code that already works? Click the class that makes it possible.",
+      "targetsConcept": "open-closed",
+      "answer": {
+        "design": "strong",
+        "className": "PricingStrategy"
+      },
+      "telling": "The left design puts pricing behind an interface, so a weekend rate is a new class that implements it — nothing that already works is reopened. The right design computes the fee inside ParkingLotManager, so every new rate is an edit to a method the whole lot depends on. The interface is not there for elegance; it is there because rates are the thing that changes most."
+    },
+    {
+      "id": "cp-2",
+      "left": "over-patterned",
+      "right": "strong",
+      "question": "Both designs declare a PricingStrategy interface. In only one of them does it actually carry behaviour. Click the class that proves the seam is real.",
+      "targetsConcept": "dip",
+      "answer": {
+        "design": "strong",
+        "className": "HourlyPricing"
+      },
+      "telling": "An interface nothing implements is a promise, not a seam. On the right, HourlyPricing implements PricingStrategy and the lot depends on the interface, so the seam carries the actual fee logic. On the left, PricingStrategy exists in the class list, nothing implements it, nothing uses it, and the exit walkthrough calls a calculateFee that ParkingLot never declares. Pattern names in the trade-offs do not make a seam; an implementer and a caller do."
+    },
+    {
+      "id": "cp-3",
+      "left": "god-class",
+      "right": "requirements-missed",
+      "question": "One of these designs misses requirements; the other covers them all with one class. Which has better-shaped classes — each owning one job? Click the class in that design that owns the floor-and-spot structure.",
+      "targetsConcept": "srp",
+      "answer": {
+        "design": "requirements-missed",
+        "className": "Floor"
+      },
+      "telling": "Missing requirements and bad structure are different faults, and they are scored separately for exactly this reason. The right design is incomplete — no pricing, no vehicle sizes — but every class it does have owns one job, and Floor is a real concept the allocation logic will need. The left design mentions everything and puts all of it in ParkingLotManager. Fixing the right design means adding classes; fixing the left one means taking a class apart."
+    }
+  ],
+  "calibrationSet": [
+    {
+      "designId": "strong",
+      "label": "strong",
+      "expectedBands": {
+        "requirement-coverage": [
+          3,
+          4
+        ],
+        "class-responsibilities": [
+          3,
+          4
+        ],
+        "coupling-cohesion": [
+          3,
+          4
+        ],
+        "abstraction-use": [
+          3,
+          4
+        ],
+        "behaviour": [
+          3,
+          4
+        ],
+        "edge-cases": [
+          2,
+          4
+        ]
+      }
+    },
+    {
+      "designId": "god-class",
+      "label": "god-class",
+      "expectedBands": {
+        "requirement-coverage": [
+          2,
+          4
+        ],
+        "class-responsibilities": [
+          0,
+          1
+        ],
+        "coupling-cohesion": [
+          0,
+          3
+        ],
+        "abstraction-use": [
+          0,
+          1
+        ],
+        "behaviour": [
+          0,
+          2
+        ],
+        "edge-cases": [
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "designId": "over-patterned",
+      "label": "over-patterned",
+      "expectedBands": {
+        "requirement-coverage": [
+          1,
+          4
+        ],
+        "class-responsibilities": [
+          2,
+          4
+        ],
+        "coupling-cohesion": [
+          0,
+          2
+        ],
+        "abstraction-use": [
+          0,
+          2
+        ],
+        "behaviour": [
+          0,
+          2
+        ],
+        "edge-cases": [
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "designId": "requirements-missed",
+      "label": "requirements-missed",
+      "expectedBands": {
+        "requirement-coverage": [
+          0,
+          2
+        ],
+        "class-responsibilities": [
+          3,
+          4
+        ],
+        "coupling-cohesion": [
+          3,
+          4
+        ],
+        "abstraction-use": [
+          0,
+          1
+        ],
+        "behaviour": [
+          2,
+          4
+        ],
+        "edge-cases": [
+          1,
+          4
+        ]
+      }
+    }
+  ],
+  "nextProblems": [
+    "vending-machine",
+    "elevator-system",
+    "shopping-cart-discounts"
+  ]
+}

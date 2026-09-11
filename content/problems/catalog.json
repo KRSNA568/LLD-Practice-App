@@ -1,0 +1,205 @@
+{
+  "version": "2.0.0",
+  "totalProblems": 20,
+  "note": "Problem statements are interview folklore, present across many public sources (see PROVENANCE.md). They are re-written in our own words. The IP in this catalogue is the instrumentation: variationPoints, hiddenChange, conceptTags and the calibration bands that let an evaluator discriminate a strong submission from a weak one on THIS problem.",
+
+  "selectionRationale": "20 problems chosen for concept-graph coverage, not for volume. Every one of the 20 concepts is exercised by at least 3 problems, which is the minimum the mastery model needs before it will report a trend. Adding a 21st problem is only worth doing when it raises coverage of a thin concept or opens a new domain — never for the count.",
+
+  "tiers": {
+    "1": "Foundations — one or two concepts each, small object graph, 25-35 min",
+    "2": "Intermediate — real variation points, 35-50 min",
+    "3": "Advanced — multiple interacting subsystems, 50-60 min",
+    "4": "Concurrency — correctness under simultaneity, 40 min"
+  },
+
+  "problems": [
+    {
+      "id": "parking-lot", "tier": 1, "minutes": 30, "title": "Parking Lot",
+      "domain": "physical-operations",
+      "conceptTags": ["srp", "open-closed", "polymorphism", "association-modeling"],
+      "variationPoints": ["pricing strategy", "spot allocation strategy", "vehicle type"],
+      "hiddenChange": "Add EV charging spots billed per kWh instead of per hour.",
+      "targetsConcept": "open-closed",
+      "detailFile": "parking-lot.json"
+    },
+    {
+      "id": "vending-machine", "tier": 1, "minutes": 30, "title": "Vending Machine",
+      "domain": "physical-operations",
+      "conceptTags": ["state-modeling", "encapsulation", "srp", "error-modeling"],
+      "variationPoints": ["payment method", "state transitions", "change-dispensing algorithm"],
+      "hiddenChange": "Accept UPI alongside coins, where payment confirmation is asynchronous.",
+      "targetsConcept": "state-modeling"
+    },
+    {
+      "id": "library-management", "tier": 1, "minutes": 30, "title": "Library Management",
+      "domain": "inventory",
+      "conceptTags": ["domain-modeling", "association-modeling", "cohesion", "immutability"],
+      "variationPoints": ["loan period policy", "fine calculation", "reservation ordering"],
+      "hiddenChange": "Add e-books, which have unlimited copies but a fixed-length licence.",
+      "targetsConcept": "association-modeling"
+    },
+    {
+      "id": "tic-tac-toe", "tier": 1, "minutes": 25, "title": "Tic Tac Toe",
+      "domain": "games",
+      "conceptTags": ["domain-modeling", "interface-design", "testability", "abstraction"],
+      "variationPoints": ["board size", "win condition", "player kind (human/bot)"],
+      "hiddenChange": "Support 4x4 with a connect-3 win rule, and one AI player.",
+      "targetsConcept": "abstraction"
+    },
+    {
+      "id": "logging-framework", "tier": 1, "minutes": 30, "title": "Logging Framework",
+      "domain": "infrastructure",
+      "conceptTags": ["isp", "dip", "open-closed", "interface-design"],
+      "variationPoints": ["sink/appender", "log level filtering", "message formatting"],
+      "hiddenChange": "Add an async sink that batches to a remote service and may fail.",
+      "targetsConcept": "dip"
+    },
+
+    {
+      "id": "elevator-system", "tier": 2, "minutes": 40, "title": "Elevator System",
+      "domain": "physical-operations",
+      "conceptTags": ["state-modeling", "open-closed", "srp", "concurrency-safety"],
+      "variationPoints": ["scheduling algorithm", "car state machine", "request source"],
+      "hiddenChange": "Add express cars that only serve floors above 20 during peak hours.",
+      "targetsConcept": "open-closed"
+    },
+    {
+      "id": "lru-cache", "tier": 2, "minutes": 35, "title": "LRU Cache",
+      "domain": "infrastructure",
+      "conceptTags": ["interface-design", "open-closed", "encapsulation", "concurrency-safety"],
+      "variationPoints": ["eviction policy", "sizing strategy", "expiry"],
+      "hiddenChange": "Swap LRU for LFU without callers noticing.",
+      "targetsConcept": "open-closed"
+    },
+    {
+      "id": "rate-limiter", "tier": 2, "minutes": 35, "title": "Rate Limiter",
+      "domain": "infrastructure",
+      "conceptTags": ["dip", "testability", "open-closed", "coupling", "abstraction"],
+      "variationPoints": ["limiting algorithm", "key extraction", "clock and storage backend"],
+      "hiddenChange": "Move from token bucket to sliding window log, and from memory to shared storage.",
+      "targetsConcept": "dip"
+    },
+    {
+      "id": "splitwise", "tier": 2, "minutes": 45, "title": "Splitwise",
+      "domain": "finance",
+      "conceptTags": ["polymorphism", "immutability", "domain-modeling", "srp"],
+      "variationPoints": ["split strategy", "settlement algorithm", "currency handling"],
+      "hiddenChange": "Add split-by-shares and split-by-adjustment alongside equal and exact.",
+      "targetsConcept": "polymorphism"
+    },
+    {
+      "id": "chess", "tier": 2, "minutes": 50, "title": "Chess",
+      "domain": "games",
+      "conceptTags": ["polymorphism", "lsp", "composition-over-inheritance", "association-modeling"],
+      "variationPoints": ["piece movement rule", "game-end condition", "special moves"],
+      "hiddenChange": "Add castling and en passant, which break the one-piece-one-move assumption.",
+      "targetsConcept": "lsp"
+    },
+    {
+      "id": "movie-booking", "tier": 2, "minutes": 45, "title": "Movie Ticket Booking",
+      "domain": "booking",
+      "conceptTags": ["state-modeling", "concurrency-safety", "error-modeling", "srp"],
+      "variationPoints": ["pricing rules", "seat hold policy", "payment provider"],
+      "hiddenChange": "Two users try to book the same seat at the same instant.",
+      "targetsConcept": "concurrency-safety"
+    },
+    {
+      "id": "notification-service", "tier": 2, "minutes": 40, "title": "Notification Service",
+      "domain": "infrastructure",
+      "conceptTags": ["open-closed", "dip", "isp", "extensibility", "coupling"],
+      "variationPoints": ["channel", "template rendering", "retry and fallback policy"],
+      "hiddenChange": "Add WhatsApp as a channel, and per-user channel preference with fallback.",
+      "targetsConcept": "open-closed"
+    },
+    {
+      "id": "file-system", "tier": 2, "minutes": 40, "title": "In-Memory File System",
+      "domain": "infrastructure",
+      "conceptTags": ["composition-over-inheritance", "polymorphism", "lsp", "abstraction"],
+      "variationPoints": ["node type", "permission model", "search strategy"],
+      "hiddenChange": "Add symbolic links, which are a node that resolves to another node.",
+      "targetsConcept": "composition-over-inheritance"
+    },
+    {
+      "id": "shopping-cart-discounts", "tier": 2, "minutes": 45, "title": "Shopping Cart & Discounts",
+      "domain": "commerce",
+      "conceptTags": ["open-closed", "extensibility", "immutability", "cohesion", "composition-over-inheritance"],
+      "variationPoints": ["discount rule", "rule combination order", "tax strategy"],
+      "hiddenChange": "Add buy-2-get-1 and a cart-level coupon that must not stack with it.",
+      "targetsConcept": "extensibility"
+    },
+
+    {
+      "id": "ride-sharing", "tier": 3, "minutes": 55, "title": "Ride Sharing (Uber)",
+      "domain": "marketplace",
+      "conceptTags": ["srp", "dip", "state-modeling", "coupling", "cohesion"],
+      "variationPoints": ["matching algorithm", "pricing/surge", "vehicle category"],
+      "hiddenChange": "Add carpooling where one driver serves multiple riders with overlapping routes.",
+      "targetsConcept": "srp"
+    },
+    {
+      "id": "food-delivery", "tier": 3, "minutes": 55, "title": "Food Delivery (Swiggy)",
+      "domain": "marketplace",
+      "conceptTags": ["state-modeling", "error-modeling", "extensibility", "srp", "lsp"],
+      "variationPoints": ["delivery assignment", "pricing and fees", "order lifecycle"],
+      "hiddenChange": "Add takeaway orders, which have no delivery partner and no address.",
+      "targetsConcept": "lsp"
+    },
+    {
+      "id": "payment-gateway", "tier": 3, "minutes": 55, "title": "Payment Gateway",
+      "domain": "finance",
+      "conceptTags": ["dip", "error-modeling", "open-closed", "testability"],
+      "variationPoints": ["provider adapter", "retry and idempotency", "settlement flow"],
+      "hiddenChange": "Add a second provider used as automatic failover when the first times out.",
+      "targetsConcept": "dip"
+    },
+    {
+      "id": "ledger", "tier": 3, "minutes": 55, "title": "Double-Entry Ledger",
+      "domain": "finance",
+      "conceptTags": ["immutability", "domain-modeling", "error-modeling", "testability"],
+      "variationPoints": ["account type", "posting rules", "reconciliation strategy"],
+      "hiddenChange": "Add reversals and corrections without ever mutating a posted entry.",
+      "targetsConcept": "immutability"
+    },
+
+    {
+      "id": "circuit-breaker", "tier": 4, "minutes": 40, "title": "Circuit Breaker",
+      "domain": "concurrency",
+      "conceptTags": ["state-modeling", "concurrency-safety", "testability", "dip"],
+      "variationPoints": ["trip condition", "half-open probe policy", "clock source"],
+      "hiddenChange": "Add per-endpoint breakers with independent state and shared metrics.",
+      "targetsConcept": "state-modeling"
+    },
+    {
+      "id": "blocking-queue", "tier": 4, "minutes": 40, "title": "Thread-Safe Bounded Blocking Queue",
+      "domain": "concurrency",
+      "conceptTags": ["concurrency-safety", "interface-design", "error-modeling", "encapsulation", "isp"],
+      "variationPoints": ["blocking vs timeout behaviour", "fairness policy", "capacity strategy"],
+      "hiddenChange": "Add offer-with-timeout and a drainTo bulk operation.",
+      "targetsConcept": "concurrency-safety"
+    }
+  ],
+
+  "conceptCoverage": {
+    "_comment": "Problems exercising each concept. Floor is 3 — the minimum before the mastery model will report a trend. Any concept that drops below 3 is the reason to add the next problem.",
+    "encapsulation": ["vending-machine", "lru-cache", "blocking-queue"],
+    "abstraction": ["tic-tac-toe", "rate-limiter", "file-system"],
+    "cohesion": ["library-management", "shopping-cart-discounts", "ride-sharing"],
+    "coupling": ["rate-limiter", "notification-service", "ride-sharing"],
+    "association-modeling": ["parking-lot", "library-management", "chess"],
+    "domain-modeling": ["library-management", "tic-tac-toe", "splitwise", "ledger"],
+    "srp": ["parking-lot", "vending-machine", "elevator-system", "splitwise", "movie-booking", "ride-sharing", "food-delivery"],
+    "interface-design": ["tic-tac-toe", "logging-framework", "lru-cache", "blocking-queue"],
+    "polymorphism": ["parking-lot", "splitwise", "chess", "file-system"],
+    "open-closed": ["parking-lot", "logging-framework", "elevator-system", "lru-cache", "rate-limiter", "notification-service", "shopping-cart-discounts", "payment-gateway"],
+    "lsp": ["chess", "file-system", "food-delivery"],
+    "isp": ["logging-framework", "notification-service", "blocking-queue"],
+    "dip": ["logging-framework", "rate-limiter", "notification-service", "ride-sharing", "payment-gateway", "circuit-breaker"],
+    "composition-over-inheritance": ["chess", "file-system", "shopping-cart-discounts"],
+    "state-modeling": ["vending-machine", "elevator-system", "movie-booking", "ride-sharing", "food-delivery", "circuit-breaker"],
+    "immutability": ["library-management", "splitwise", "shopping-cart-discounts", "ledger"],
+    "error-modeling": ["vending-machine", "movie-booking", "food-delivery", "payment-gateway", "ledger", "blocking-queue"],
+    "testability": ["tic-tac-toe", "rate-limiter", "payment-gateway", "ledger", "circuit-breaker"],
+    "extensibility": ["notification-service", "shopping-cart-discounts", "food-delivery"],
+    "concurrency-safety": ["elevator-system", "lru-cache", "movie-booking", "circuit-breaker", "blocking-queue"]
+  }
+}

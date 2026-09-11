@@ -1,0 +1,147 @@
+# Deliberate — an LLD practice loop
+
+Practice Low-Level Design and get feedback that **points at your own design**, not at a reference
+solution you were supposed to have guessed. Then the requirements change, and you find out how much
+of your design survives.
+
+```
+  warm up            design + run              change                  defend
+  ─────────          ────────────              ──────                  ──────
+  two designs,       classes, relations,       a requirement you       three questions
+  one question,      decisions — then walk     did not see coming;     chosen from what
+  click the class    three scenarios           revise; the blast       the review found
+  that decides it    through the design        radius is measured      in your design
+```
+
+- **[RESEARCH.md](RESEARCH.md)** — the learner problem, what exists, what the research says, the gaps
+- **[DESIGN.md](DESIGN.md)** — the class model, the evaluation approach, both change tests, trade-offs
+- **[AI_USAGE.md](AI_USAGE.md)** — where AI helped, and the ten times judgement had to overrule it
+
+## Running it
+
+Node 20+. Nothing else — **no API key needed.**
+
+```bash
+npm install
+npm run seed     # creates the SQLite database, validates every content file, seeds the demo learner
+npm run dev      # API on :4000, web on :3000
+```
+
+Open **http://localhost:3000**.
+
+With no `ANTHROPIC_API_KEY` set, the two read criteria (*edge cases*, *reasoning*) are scored by a
+deterministic heuristic that parses the same prompt the real model would see, so the whole loop
+works on a fresh clone. Set a key to swap in Claude for those two:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+npm run dev      # startup log now says: evaluator: anthropic
+```
+
+```bash
+npm test         # 148 tests, including a calibration suite over 13 gold designs
+npm run typecheck
+```
+
+If you have a database from an earlier version, delete `apps/api/prisma/dev.db` before seeding.
+
+## Try this first
+
+About ten minutes, and it shows every part of the product:
+
+1. On **Parking Lot**, click **Warm up first**. Three pairs of designs, one question each — click the
+   class that decides it. Read the paragraph that appears. That paragraph is the point.
+2. **Start** the attempt. Submit a deliberately bad design: one class `ParkingLotManager` whose
+   responsibility is *"Handles parking, pricing, exit, payment and ticket generation"* with methods
+   `park, exit, calculateFee, findSpot`, plus `Spot`, `Vehicle`, `Ticket`. In **Run it**, walk every
+   scenario with `ParkingLotManager` on every step and let *"nothing suitable is free"* end as
+   *Succeeds*.
+3. The report names the god class and **quotes your sentence back with a count**, tells you pricing
+   has no seam and is living inside that class, and shows that one class performs 100% of every
+   scenario while the refusal scenario ends as if nothing went wrong. Click any evidence chip — it
+   highlights the exact row, or the exact walkthrough step.
+4. **Continue.** The requirements change — EV charging spots billed per kWh. Your design is prefilled.
+   Absorb it the lazy way: add an `isElectric` attribute to `Spot` and a `calculateKwhFee` method to
+   the manager. Watch the blast-radius counter. Submit.
+5. *Handling change* scores **1** and names the flag. **Continue** again: three questions, each about
+   *your* `ParkingLotManager`. Answer them. *Reasoning* is scored from the answers, with the quote it
+   relied on as evidence.
+6. **Try again.** The form opens with your revision. Add `PricingStrategy` as an `interface`,
+   `HourlyPricing` implementing it, point `ParkingLot` at the interface, spread the walkthrough steps,
+   end the refusal scenario as *Refused*. This attempt is dealt a *different* change — reserved spots
+   for pass holders. Absorb it with a new `ReservedFirstAllocator` implementing `SpotAllocator` and
+   touch nothing else. *Handling change* scores **4**.
+
+To see the failure path: `LLD_STUB_FAIL=1 npm run dev`, then submit. The AI half dies, the five
+measured findings still arrive, and the report says so honestly rather than showing an error page.
+
+## What it does
+
+| | |
+|---|---|
+| **Submission** | A guided form in three facets: structure (classes, relationships), behaviour (scenario walkthroughs — a CRC-card role-play as a list), rationale (decisions with the alternative rejected). |
+| **Change** | After the design is frozen and reviewed, a requirement change is revealed. You revise. The diff is the evidence. |
+| **Evaluation** | Eight criteria, one owner each. **Six measured** from the class graph, the walkthroughs and the diff. **Two read** by an LLM — the two that need reading. |
+| **Feedback** | Every finding cites a class, relationship, assumption, decision, walkthrough step or quote **in your submission**, verified to exist before you see it. |
+| **Defend** | Up to three probes, chosen by what the review found and worded around your own class names. |
+| **Honesty** | Measured findings and AI findings are visually distinct. Missing criteria are absent, never zero. |
+| **History** | Per-criterion trend across stages, a callout when the same criterion keeps failing, and a next problem chosen to exercise it. |
+
+## Key decisions
+
+Full reasoning in [DESIGN.md](DESIGN.md); the short version:
+
+1. **Stress-test the design, don't grade the artifact.** Running it and changing it are where design
+   quality shows, and both can be measured.
+2. **AI reads; math measures.** LLM graders identify classes well and count relationships badly, so
+   nothing graph-shaped is ever sent to the model.
+3. **Extensibility is a diff, not an opinion.** A new class behind a seam that already existed, one
+   wiring touch: 4. A flag on an existing class: 1. The report names the flag.
+4. **Evidence is a type, not a convention.** `EvidenceRef` is a union over positions in a design, so a
+   finding *cannot be written* without pointing at something.
+5. **One owner per criterion, at one stage.** Twelve overlapping criteria once made one god class read
+   as four problems.
+6. **The change stays hidden** until the design is frozen and reviewed. Tested, because it is the point.
+7. **Calibration is a gate.** Thirteen gold designs with expected bands; an evaluator change that
+   moves one outside its band fails the build. This found four real flaws before any learner did.
+8. **Rubric and prompt versions are pinned forever.** v1 scores compare with v1, v2 with v2, never
+   across.
+
+## Layout
+
+```
+apps/api/src/
+  domain/          pure — no framework, no I/O. The product is legible from here alone.
+    design/        DesignGraph · DesignDiff · Walkthrough
+    feedback/      ScoreAggregator · RecurringWeakness · ProbeSelector · NextProblem
+    attempt/       AttemptStateMachine
+  submission/      SubmissionParser port  ← a new capture format plugs in here, declaring its facets
+  evaluation/      Evaluator port         ← a new evaluator plugs in here
+    rules/checks/  one file per measured check, each declaring its stage and facets
+    llm/           prompt with band anchors, providers, EvidenceGroundingValidator
+  app/             PracticeService — stages, submissions, critique, next problem
+  infra/           prisma · queue · content loader
+apps/web/          Next.js · Tailwind · Framer Motion
+packages/contracts/  shared types and zod schemas
+content/           problems (scenarios, hidden changes, probes, gold designs, critique pairs),
+                   rubric, concept graph — data, not code
+tests/             148 tests: state machine, parser, every check, grounding, diff, walkthrough,
+                   probes, next problem, calibration, and the full three-stage loop end to end
+```
+
+## Limitations
+
+Stated plainly, with the full list in [DESIGN.md §11](DESIGN.md):
+
+- **4 of the 20 catalogued problems are playable.** Instrumenting one to this depth — scenarios,
+  hidden changes, probes, three or four gold designs, critique pairs, calibration bands — is a few
+  hours of authoring, so the rest are hidden rather than offered as a loop the evaluator cannot serve.
+- **No auth.** `learnerId` is threaded through every layer, but everyone is `learner-demo`.
+- **The stub evaluator is a heuristic, not a model.** Good enough to demo and calibrate; not a
+  substitute for the real thing on the two read criteria.
+- **Requirement coverage matches vocabulary**, by authored keyword. It catches "you forgot fees"; it
+  does not judge how well fees were handled — the other criteria do.
+- **The diff cannot see intent.** A rename looks like a removal and an addition; the rationale box is
+  where you say so.
+- **Recurring weakness needs three attempts**, so the next-problem recommendation follows the authored
+  path until then.

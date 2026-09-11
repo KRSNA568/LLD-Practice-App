@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * One palette, two value sets.
+ *
+ * Colours are named by role, never by hue, so a screen written once works in both
+ * themes without a second pass. The ground is deliberately warm rather than pure
+ * white or pure black — this is a place people come back to daily, and a clinical
+ * grey dashboard is the wrong feeling for practice.
+ *
+ * `machine` and `judged` are load-bearing, not decorative: the learner must always
+ * be able to tell a finding that was *proved* from one that was *judged*.
+ */
+
+:root {
+  --canvas: 253 251 247;
+  --surface: 255 255 255;
+  --raised: 247 243 236;
+  --line: 232 224 212;
+
+  --ink: 42 37 32;
+  --ink-muted: 107 98 89;
+  --ink-faint: 154 144 134;
+
+  --brand: 214 96 38;
+  --brand-soft: 253 240 231;
+
+  --positive: 45 122 89;
+  --caution: 184 120 22;
+  --critical: 187 62 48;
+
+  --machine: 62 106 166;
+  --judged: 122 88 186;
+
+  --shadow: 92 74 54;
+
+  --font-sans: 'Inter var', 'Inter', system-ui, sans-serif;
+}
+
+:root[data-theme='dark'] {
+  --canvas: 24 21 18;
+  --surface: 33 29 25;
+  --raised: 44 39 34;
+  --line: 58 52 45;
+
+  --ink: 243 238 231;
+  --ink-muted: 170 161 150;
+  --ink-faint: 124 116 106;
+
+  --brand: 240 138 75;
+  --brand-soft: 52 36 25;
+
+  --positive: 106 200 150;
+  --caution: 224 169 79;
+  --critical: 226 124 110;
+
+  --machine: 130 168 220;
+  --judged: 176 145 232;
+
+  --shadow: 0 0 0;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-canvas text-ink antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  * {
+    @apply border-line;
+  }
+  ::selection {
+    background: rgb(var(--brand) / 0.22);
+  }
+  /* Focus is visible and warm, never the default blue ring. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--brand));
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-surface shadow-soft;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line
+           bg-raised px-2.5 py-1 text-xs font-medium text-ink-muted;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
+           text-sm font-semibold transition-colors disabled:cursor-not-allowed
+           disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-white hover:brightness-105 active:brightness-95;
+  }
+  .btn-quiet {
+    @apply btn border border-line bg-surface text-ink hover:bg-raised;
+  }
+  .field {
+    @apply w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm
+           text-ink placeholder:text-ink-faint focus:outline-none
+           focus:ring-2 focus:ring-brand/35 focus:border-brand/50 transition;
+  }
+  .skeleton {
+    @apply rounded-lg bg-raised;
+    background-image: linear-gradient(
+      90deg,
+      rgb(var(--raised)) 0px,
+      rgb(var(--line)) 60px,
+      rgb(var(--raised)) 120px
+    );
+    background-size: 500px 100%;
+    @apply animate-shimmer;
+  }
+}
+
+/* Motion should explain a change, never perform for its own sake — and it must
+   never be the reason someone cannot use the product. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

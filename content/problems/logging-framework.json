@@ -1,0 +1,1091 @@
+{
+  "id": "logging-framework",
+  "version": "2.0.0",
+  "rubricId": "lld-core",
+  "rubricVersion": "2.0.0",
+  "title": "Logging Framework",
+  "tier": 1,
+  "minutes": 35,
+  "domain": "infrastructure",
+  "brief": "Design the class structure for a logging library that other teams will depend on. Application code writes messages at a level; where they end up and how they are formatted is configuration, not code.",
+  "requirements": [
+    {
+      "id": "r1",
+      "text": "Application code logs a message at a level: debug, info, warn or error",
+      "conceptHints": [
+        "interface-design",
+        "domain-modeling"
+      ],
+      "keywords": [
+        "log",
+        "level",
+        "debug",
+        "info",
+        "warn",
+        "error",
+        "severity"
+      ]
+    },
+    {
+      "id": "r2",
+      "text": "Messages below the configured level are discarded",
+      "conceptHints": [
+        "isp",
+        "interface-design"
+      ],
+      "keywords": [
+        "threshold",
+        "filter",
+        "discard",
+        "minimum",
+        "atleast",
+        "isatleast",
+        "drop",
+        "below"
+      ]
+    },
+    {
+      "id": "r3",
+      "text": "The same message can go to more than one destination at once",
+      "conceptHints": [
+        "open-closed",
+        "composition"
+      ],
+      "keywords": [
+        "sink",
+        "appender",
+        "destination",
+        "target",
+        "output",
+        "handler",
+        "writer",
+        "fanout",
+        "multiple",
+        "broadcast"
+      ]
+    },
+    {
+      "id": "r4",
+      "text": "Destinations include console and file, and more can be added later",
+      "conceptHints": [
+        "dip",
+        "open-closed"
+      ],
+      "keywords": [
+        "console",
+        "file",
+        "stdout",
+        "stderr"
+      ]
+    },
+    {
+      "id": "r5",
+      "text": "How a message is rendered is independent of where it goes",
+      "conceptHints": [
+        "srp",
+        "isp"
+      ],
+      "keywords": [
+        "format",
+        "layout",
+        "render",
+        "encoder",
+        "serializ"
+      ]
+    },
+    {
+      "id": "r6",
+      "text": "A failing destination must not stop the others or crash the caller",
+      "conceptHints": [
+        "error-modeling"
+      ],
+      "keywords": [
+        "fail",
+        "failsafe",
+        "catch",
+        "contain",
+        "isolat",
+        "guard",
+        "swallow",
+        "resilient",
+        "error"
+      ]
+    }
+  ],
+  "constraints": [
+    "Synchronous delivery is acceptable for now",
+    "Configuration is supplied at construction — no global mutable state"
+  ],
+  "variationPoints": [
+    {
+      "id": "v1",
+      "name": "destination",
+      "why": "Console and file today; remote services, syslog and test collectors later — this is the axis that grows forever",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract"
+      ],
+      "nameHints": [
+        "sink",
+        "appender",
+        "target",
+        "destination",
+        "writer",
+        "handler",
+        "output"
+      ]
+    },
+    {
+      "id": "v2",
+      "name": "message formatting",
+      "why": "Plain text for humans, JSON for machines, and teams will want their own",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract"
+      ],
+      "nameHints": [
+        "format",
+        "layout",
+        "render",
+        "serial",
+        "encoder"
+      ]
+    },
+    {
+      "id": "v3",
+      "name": "level filtering",
+      "why": "Global thresholds, per-destination thresholds and per-module overrides are all reasonable policies",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract",
+        "enum"
+      ],
+      "nameHints": [
+        "level",
+        "filter",
+        "threshold",
+        "severity"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "sc-info",
+      "title": "An info message reaches console and file",
+      "description": "Application code logs at info. The configured level is info. Walk through how the message reaches both destinations.",
+      "expectsFailurePath": false,
+      "mustInvolve": [
+        "sink",
+        "appender",
+        "target",
+        "destination",
+        "writer",
+        "handler",
+        "output"
+      ]
+    },
+    {
+      "id": "sc-filtered",
+      "title": "A debug message is discarded",
+      "description": "Application code logs at debug; the configured level is info. Walk through where it stops.",
+      "expectsFailurePath": false,
+      "mustInvolve": [
+        "level",
+        "filter",
+        "threshold",
+        "severity"
+      ]
+    },
+    {
+      "id": "sc-sink-fails",
+      "title": "The file destination throws",
+      "description": "The disk is full. The file destination throws on write. Walk through what the console receives and what the caller sees — and how it ends.",
+      "expectsFailurePath": true,
+      "mustInvolve": []
+    }
+  ],
+  "hiddenChanges": [
+    {
+      "id": "hc-remote",
+      "prompt": "A team wants log messages shipped to a remote collector. Network calls are slow and sometimes fail, so this destination must batch messages and send them in the background — and a failure must never reach the caller. Revise your design so it handles this — and say what you touched and why.",
+      "targetsConcept": "open-closed",
+      "mustIntroduce": [
+        "remote",
+        "http",
+        "network",
+        "batch",
+        "collector",
+        "ship",
+        "queue",
+        "async"
+      ],
+      "expectedSeam": "v1",
+      "goodSignal": [
+        "adds a new class implementing the existing destination interface",
+        "batching and retry live inside that implementation, not in the logger",
+        "the logger and other destinations are untouched",
+        "names how failure is contained"
+      ],
+      "badSignal": [
+        "adds an isRemote flag or a conditional in the logger",
+        "puts batching logic into the core logger class",
+        "changes the interface every existing destination implements",
+        "no mention of failure containment"
+      ]
+    },
+    {
+      "id": "hc-context",
+      "prompt": "Every message must now carry a request id taken from the caller's context, and every formatter must render it. Revise your design so it handles this — and say what you touched and why.",
+      "targetsConcept": "encapsulation",
+      "mustIntroduce": [
+        "context",
+        "requestid",
+        "request",
+        "correlation",
+        "mdc",
+        "trace"
+      ],
+      "expectedSeam": "v2",
+      "goodSignal": [
+        "the record or a context object carries the id",
+        "formatters read it from the record",
+        "no destination changes"
+      ],
+      "badSignal": [
+        "each destination looks the id up itself",
+        "the logger method signature changes for every caller"
+      ]
+    }
+  ],
+  "probes": [
+    {
+      "id": "p-sink",
+      "prompt": "A team wants messages sent to Slack. Which class do they write, and which existing class — {{class}}? — do they have to edit to plug it in?",
+      "targetsConcept": "open-closed",
+      "triggerWhen": {
+        "criterionId": "abstraction-use",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names a new implementation of an existing interface",
+        "says only configuration changes"
+      ],
+      "badSignal": [
+        "the logger has to change",
+        "cannot name the class"
+      ]
+    },
+    {
+      "id": "p-split",
+      "prompt": "{{class}} both formats and writes. If the file is on a slow disk, which class is now slow — and does the console still get the message on time?",
+      "targetsConcept": "srp",
+      "triggerWhen": {
+        "criterionId": "class-responsibilities",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names the coupling between formatting and IO",
+        "proposes the split"
+      ],
+      "badSignal": [
+        "says it does not matter",
+        "no split"
+      ]
+    },
+    {
+      "id": "p-fail",
+      "prompt": "The file destination throws on write. Walk me through who catches it, whether the console still receives the message, and what the calling code sees.",
+      "targetsConcept": "error-modeling",
+      "triggerWhen": {
+        "criterionId": "behaviour",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names the class that contains the failure",
+        "console still receives",
+        "caller sees nothing"
+      ],
+      "badSignal": [
+        "exception reaches the caller",
+        "other destinations skipped",
+        "no class named"
+      ]
+    },
+    {
+      "id": "p-level",
+      "prompt": "Is a level a string, an int, or a type in your design? How do you compare two of them — and who does the comparing?",
+      "targetsConcept": "encapsulation",
+      "goodSignal": [
+        "ordered type",
+        "names the comparer"
+      ],
+      "badSignal": [
+        "string equality",
+        "no owner"
+      ]
+    },
+    {
+      "id": "p-isp",
+      "prompt": "Does a destination in your design have to know how a message is formatted? Where is that decided, and what would a new destination have to implement?",
+      "targetsConcept": "isp",
+      "goodSignal": [
+        "formatting is separate",
+        "new destination implements one small method"
+      ],
+      "badSignal": [
+        "destination formats",
+        "fat interface"
+      ]
+    }
+  ],
+  "conceptTags": [
+    "isp",
+    "dip",
+    "open-closed",
+    "interface-design"
+  ],
+  "commonFailureModes": [
+    {
+      "id": "f1",
+      "name": "Logger writes to files itself",
+      "description": "The core class does formatting and IO instead of delegating, so a new destination means editing it.",
+      "concept": "dip",
+      "frequency": "very-high"
+    },
+    {
+      "id": "f2",
+      "name": "One fat interface",
+      "description": "A single Appender interface carrying format, filter and write, so every implementer stubs methods it does not need.",
+      "concept": "isp",
+      "frequency": "high"
+    },
+    {
+      "id": "f3",
+      "name": "Level as a raw string",
+      "description": "Comparisons on string equality, so ordering and threshold filtering cannot be expressed.",
+      "concept": "domain-modeling",
+      "frequency": "medium"
+    },
+    {
+      "id": "f4",
+      "name": "One dead destination kills the rest",
+      "description": "No isolation, so a failing sink propagates into the caller.",
+      "concept": "error-modeling",
+      "frequency": "high"
+    }
+  ],
+  "goldDesigns": {
+    "strong": {
+      "assumptions": [
+        "Synchronous delivery is fine for now",
+        "Configuration is built once at startup",
+        "A destination that fails is reported to stderr, never to the caller"
+      ],
+      "classes": [
+        {
+          "name": "Logger",
+          "stereotype": "class",
+          "responsibility": "Filters a record by level then fans it out to every sink",
+          "attributes": [
+            "threshold",
+            "sinks"
+          ],
+          "methods": [
+            "log",
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ]
+        },
+        {
+          "name": "LogLevel",
+          "stereotype": "enum",
+          "responsibility": "The ordered severities",
+          "attributes": [],
+          "methods": [
+            "isAtLeast"
+          ]
+        },
+        {
+          "name": "LogRecord",
+          "stereotype": "class",
+          "responsibility": "One immutable log message together with its level",
+          "attributes": [
+            "level",
+            "message",
+            "timestamp",
+            "loggerName"
+          ],
+          "methods": []
+        },
+        {
+          "name": "LevelFilter",
+          "stereotype": "class",
+          "responsibility": "Decides whether a record clears the configured threshold",
+          "attributes": [
+            "threshold"
+          ],
+          "methods": [
+            "accepts"
+          ]
+        },
+        {
+          "name": "Sink",
+          "stereotype": "interface",
+          "responsibility": "A destination that writes one record",
+          "attributes": [],
+          "methods": [
+            "write"
+          ]
+        },
+        {
+          "name": "ConsoleSink",
+          "stereotype": "class",
+          "responsibility": "Writes formatted records to stdout",
+          "attributes": [
+            "formatter"
+          ],
+          "methods": [
+            "write"
+          ]
+        },
+        {
+          "name": "FileSink",
+          "stereotype": "class",
+          "responsibility": "Appends formatted records to a file",
+          "attributes": [
+            "formatter",
+            "path"
+          ],
+          "methods": [
+            "write"
+          ]
+        },
+        {
+          "name": "FailSafeSink",
+          "stereotype": "class",
+          "responsibility": "Wraps a sink and contains any failure it throws",
+          "attributes": [
+            "inner"
+          ],
+          "methods": [
+            "write"
+          ]
+        },
+        {
+          "name": "Formatter",
+          "stereotype": "interface",
+          "responsibility": "Renders a record to a line of text",
+          "attributes": [],
+          "methods": [
+            "format"
+          ]
+        },
+        {
+          "name": "PlainFormatter",
+          "stereotype": "class",
+          "responsibility": "Renders a record as a single human-readable line",
+          "attributes": [],
+          "methods": [
+            "format"
+          ]
+        },
+        {
+          "name": "JsonFormatter",
+          "stereotype": "class",
+          "responsibility": "Renders a record as one JSON object",
+          "attributes": [],
+          "methods": [
+            "format"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "Logger",
+          "to": "Sink",
+          "kind": "has-a"
+        },
+        {
+          "from": "Logger",
+          "to": "LevelFilter",
+          "kind": "has-a"
+        },
+        {
+          "from": "Logger",
+          "to": "LogRecord",
+          "kind": "uses"
+        },
+        {
+          "from": "LogRecord",
+          "to": "LogLevel",
+          "kind": "has-a"
+        },
+        {
+          "from": "LevelFilter",
+          "to": "LogLevel",
+          "kind": "uses"
+        },
+        {
+          "from": "ConsoleSink",
+          "to": "Sink",
+          "kind": "implements"
+        },
+        {
+          "from": "FileSink",
+          "to": "Sink",
+          "kind": "implements"
+        },
+        {
+          "from": "FailSafeSink",
+          "to": "Sink",
+          "kind": "implements"
+        },
+        {
+          "from": "FailSafeSink",
+          "to": "Sink",
+          "kind": "has-a"
+        },
+        {
+          "from": "ConsoleSink",
+          "to": "Formatter",
+          "kind": "uses"
+        },
+        {
+          "from": "FileSink",
+          "to": "Formatter",
+          "kind": "uses"
+        },
+        {
+          "from": "PlainFormatter",
+          "to": "Formatter",
+          "kind": "implements"
+        },
+        {
+          "from": "JsonFormatter",
+          "to": "Formatter",
+          "kind": "implements"
+        }
+      ],
+      "tradeoffs": "Formatting and writing are separate interfaces rather than one Appender, so a destination does not have to know how text is laid out and a formatter can be reused across destinations. Failure containment is a wrapper sink rather than a try/catch in the logger, so the logger's loop stays trivially correct and the policy can differ per destination.",
+      "decisions": [
+        {
+          "what": "Sink and Formatter are separate interfaces",
+          "alternative": "One Appender interface with format, filter and write",
+          "why": "A destination that must also format has two reasons to change; and every implementer would stub methods it does not need."
+        },
+        {
+          "what": "Failure containment is a decorating sink",
+          "alternative": "try/catch around each write inside Logger",
+          "why": "The logger stays a plain loop and the containment policy — swallow, count, fall back — can vary per destination."
+        },
+        {
+          "what": "LogLevel is an ordered enum",
+          "alternative": "Strings compared for equality",
+          "why": "'At least warn' is an ordering question; strings cannot answer it."
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-info",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "Logger",
+              "method": "info",
+              "note": ""
+            },
+            {
+              "className": "Logger",
+              "method": "log",
+              "note": "builds the record"
+            },
+            {
+              "className": "LevelFilter",
+              "method": "accepts",
+              "note": "info >= info"
+            },
+            {
+              "className": "FailSafeSink",
+              "method": "write",
+              "note": "for each sink"
+            },
+            {
+              "className": "ConsoleSink",
+              "method": "write",
+              "note": ""
+            },
+            {
+              "className": "PlainFormatter",
+              "method": "format",
+              "note": ""
+            },
+            {
+              "className": "FileSink",
+              "method": "write",
+              "note": ""
+            },
+            {
+              "className": "JsonFormatter",
+              "method": "format",
+              "note": ""
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-filtered",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "Logger",
+              "method": "debug",
+              "note": ""
+            },
+            {
+              "className": "LevelFilter",
+              "method": "accepts",
+              "note": "debug < info — stops here"
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-sink-fails",
+          "outcome": "error",
+          "steps": [
+            {
+              "className": "Logger",
+              "method": "log",
+              "note": ""
+            },
+            {
+              "className": "FailSafeSink",
+              "method": "write",
+              "note": "wraps the file sink"
+            },
+            {
+              "className": "FileSink",
+              "method": "write",
+              "note": "throws: disk full"
+            },
+            {
+              "className": "FailSafeSink",
+              "method": "write",
+              "note": "catches, reports to stderr, returns normally"
+            },
+            {
+              "className": "ConsoleSink",
+              "method": "write",
+              "note": "still receives the record"
+            }
+          ]
+        }
+      ]
+    },
+    "no-seams": {
+      "assumptions": [],
+      "classes": [
+        {
+          "name": "Logger",
+          "stereotype": "class",
+          "responsibility": "Formats messages, filters by level, writes to the console and to the log file",
+          "attributes": [
+            "level",
+            "filePath"
+          ],
+          "methods": [
+            "log",
+            "format",
+            "writeConsole",
+            "writeFile"
+          ]
+        },
+        {
+          "name": "Level",
+          "stereotype": "class",
+          "responsibility": "A level name",
+          "attributes": [
+            "name"
+          ],
+          "methods": []
+        },
+        {
+          "name": "Message",
+          "stereotype": "class",
+          "responsibility": "The text to log",
+          "attributes": [
+            "text"
+          ],
+          "methods": []
+        }
+      ],
+      "relationships": [
+        {
+          "from": "Logger",
+          "to": "Level",
+          "kind": "has-a"
+        },
+        {
+          "from": "Logger",
+          "to": "Message",
+          "kind": "uses"
+        }
+      ],
+      "tradeoffs": "One class keeps it easy to find everything.",
+      "decisions": [],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-info",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "Logger",
+              "method": "log",
+              "note": ""
+            },
+            {
+              "className": "Logger",
+              "method": "format",
+              "note": ""
+            },
+            {
+              "className": "Logger",
+              "method": "writeConsole",
+              "note": ""
+            },
+            {
+              "className": "Logger",
+              "method": "writeFile",
+              "note": ""
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-filtered",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "Logger",
+              "method": "log",
+              "note": "compares level.name == \"debug\""
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-sink-fails",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "Logger",
+              "method": "writeFile",
+              "note": "throws"
+            }
+          ]
+        }
+      ]
+    },
+    "fat-interface": {
+      "assumptions": [
+        "Synchronous delivery is fine"
+      ],
+      "classes": [
+        {
+          "name": "Logger",
+          "stereotype": "class",
+          "responsibility": "Accepts a message and passes it to every appender",
+          "attributes": [
+            "appenders"
+          ],
+          "methods": [
+            "log"
+          ]
+        },
+        {
+          "name": "Level",
+          "stereotype": "enum",
+          "responsibility": "The ordered severities",
+          "attributes": [],
+          "methods": []
+        },
+        {
+          "name": "Appender",
+          "stereotype": "interface",
+          "responsibility": "Filters, formats and writes a message",
+          "attributes": [],
+          "methods": [
+            "shouldLog",
+            "format",
+            "write"
+          ]
+        },
+        {
+          "name": "ConsoleAppender",
+          "stereotype": "class",
+          "responsibility": "Filters, formats and prints to stdout",
+          "attributes": [
+            "threshold"
+          ],
+          "methods": [
+            "shouldLog",
+            "format",
+            "write"
+          ]
+        },
+        {
+          "name": "FileAppender",
+          "stereotype": "class",
+          "responsibility": "Filters, formats and appends to a file",
+          "attributes": [
+            "threshold",
+            "path"
+          ],
+          "methods": [
+            "shouldLog",
+            "format",
+            "write"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "Logger",
+          "to": "Appender",
+          "kind": "has-a"
+        },
+        {
+          "from": "ConsoleAppender",
+          "to": "Appender",
+          "kind": "implements"
+        },
+        {
+          "from": "FileAppender",
+          "to": "Appender",
+          "kind": "implements"
+        },
+        {
+          "from": "ConsoleAppender",
+          "to": "Level",
+          "kind": "uses"
+        },
+        {
+          "from": "FileAppender",
+          "to": "Level",
+          "kind": "uses"
+        }
+      ],
+      "tradeoffs": "One Appender interface keeps the number of types small; each destination is self-contained.",
+      "decisions": [
+        {
+          "what": "One Appender interface",
+          "alternative": "Separate filter, formatter and sink types",
+          "why": "Fewer classes."
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-info",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "Logger",
+              "method": "log",
+              "note": ""
+            },
+            {
+              "className": "ConsoleAppender",
+              "method": "shouldLog",
+              "note": ""
+            },
+            {
+              "className": "ConsoleAppender",
+              "method": "format",
+              "note": ""
+            },
+            {
+              "className": "ConsoleAppender",
+              "method": "write",
+              "note": ""
+            },
+            {
+              "className": "FileAppender",
+              "method": "shouldLog",
+              "note": ""
+            },
+            {
+              "className": "FileAppender",
+              "method": "format",
+              "note": ""
+            },
+            {
+              "className": "FileAppender",
+              "method": "write",
+              "note": ""
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-filtered",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "Logger",
+              "method": "log",
+              "note": ""
+            },
+            {
+              "className": "ConsoleAppender",
+              "method": "shouldLog",
+              "note": "false"
+            },
+            {
+              "className": "FileAppender",
+              "method": "shouldLog",
+              "note": "false"
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-sink-fails",
+          "outcome": "error",
+          "steps": [
+            {
+              "className": "Logger",
+              "method": "log",
+              "note": ""
+            },
+            {
+              "className": "FileAppender",
+              "method": "write",
+              "note": "throws — the exception propagates out of Logger.log"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "critiquePairs": [
+    {
+      "id": "cp-1",
+      "left": "no-seams",
+      "right": "strong",
+      "question": "A team wants messages sent to Slack. Which design lets them add that without touching the logger? Click the class they would implement.",
+      "targetsConcept": "open-closed",
+      "answer": {
+        "design": "strong",
+        "className": "Sink"
+      },
+      "telling": "On the right, a destination is an implementation of Sink — Slack is a new class and one line of configuration. On the left, writing to the console and to the file are methods on Logger, so Slack is a third method and an edit to log(). The brief said 'more can be added later'; that sentence is the seam."
+    },
+    {
+      "id": "cp-2",
+      "left": "fat-interface",
+      "right": "strong",
+      "question": "Both designs have a destination abstraction. In which one does a new destination NOT have to know how a message is laid out as text? Click the class that took that job away from destinations.",
+      "targetsConcept": "isp",
+      "answer": {
+        "design": "strong",
+        "className": "Formatter"
+      },
+      "telling": "On the left, Appender carries shouldLog, format and write, so every destination reimplements filtering and formatting, and a JSON layout means editing every appender. On the right, formatting is its own interface handed to a sink. A destination implements one method. That is interface segregation in practice: the interface is small because the reasons to change are separate."
+    }
+  ],
+  "calibrationSet": [
+    {
+      "designId": "strong",
+      "label": "strong",
+      "expectedBands": {
+        "requirement-coverage": [
+          3,
+          4
+        ],
+        "class-responsibilities": [
+          3,
+          4
+        ],
+        "coupling-cohesion": [
+          3,
+          4
+        ],
+        "abstraction-use": [
+          3,
+          4
+        ],
+        "behaviour": [
+          3,
+          4
+        ],
+        "edge-cases": [
+          2,
+          4
+        ]
+      }
+    },
+    {
+      "designId": "no-seams",
+      "label": "no-seams",
+      "expectedBands": {
+        "requirement-coverage": [
+          1,
+          4
+        ],
+        "class-responsibilities": [
+          0,
+          1
+        ],
+        "coupling-cohesion": [
+          2,
+          4
+        ],
+        "abstraction-use": [
+          0,
+          1
+        ],
+        "behaviour": [
+          0,
+          2
+        ],
+        "edge-cases": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "designId": "fat-interface",
+      "label": "fat-interface",
+      "expectedBands": {
+        "requirement-coverage": [
+          2,
+          4
+        ],
+        "class-responsibilities": [
+          0,
+          2
+        ],
+        "coupling-cohesion": [
+          3,
+          4
+        ],
+        "abstraction-use": [
+          2,
+          4
+        ],
+        "behaviour": [
+          2,
+          4
+        ],
+        "edge-cases": [
+          1,
+          3
+        ]
+      }
+    }
+  ],
+  "nextProblems": [
+    "notification-service",
+    "parking-lot"
+  ]
+}

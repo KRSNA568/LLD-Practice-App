@@ -1,0 +1,173 @@
+{
+  "version": "1.0.0",
+  "description": "The LLD concept graph. Every rubric criterion and every drill maps to one or more of these. Mastery is tracked per concept, not per problem. Prerequisite edges gate the next-best-action recommender.",
+  "tiers": {
+    "foundation": "Ideas everything else is built on. No prerequisites.",
+    "principle": "The named principles. Require foundations.",
+    "structure": "How objects relate and compose.",
+    "behaviour": "How objects change and interact over time.",
+    "practice": "Applied judgement. The payoff concepts."
+  },
+  "concepts": [
+    {
+      "id": "encapsulation",
+      "tier": "foundation",
+      "name": "Encapsulation",
+      "plain": "A class hides its internal state and exposes behaviour instead of data.",
+      "tell": "Getters and setters on every field; callers mutating internals directly.",
+      "prerequisites": []
+    },
+    {
+      "id": "abstraction",
+      "tier": "foundation",
+      "name": "Abstraction",
+      "plain": "Model only what matters for the problem; leave the rest out.",
+      "tell": "Classes carrying fields nothing in the design ever reads.",
+      "prerequisites": []
+    },
+    {
+      "id": "cohesion",
+      "tier": "foundation",
+      "name": "Cohesion",
+      "plain": "Everything inside a class belongs to the same job.",
+      "tell": "A responsibility sentence that needs the word 'and' more than once.",
+      "prerequisites": []
+    },
+    {
+      "id": "coupling",
+      "tier": "foundation",
+      "name": "Coupling",
+      "plain": "How much one class must know about another to work.",
+      "tell": "Long reach-through chains like a.getB().getC().doThing().",
+      "prerequisites": []
+    },
+    {
+      "id": "association-modeling",
+      "tier": "structure",
+      "name": "Association Modelling",
+      "plain": "Choosing correctly between owns-a, has-a, uses-a and is-a.",
+      "tell": "Everything drawn as has-a because the distinction was never considered.",
+      "prerequisites": ["abstraction"]
+    },
+    {
+      "id": "domain-modeling",
+      "tier": "structure",
+      "name": "Domain Modelling",
+      "plain": "Naming classes after real things in the problem, and telling entities from values.",
+      "tell": "Class names like DataManager or InfoHandler that name no real concept.",
+      "prerequisites": ["abstraction", "cohesion"]
+    },
+    {
+      "id": "srp",
+      "tier": "principle",
+      "name": "Single Responsibility",
+      "plain": "A class should have one reason to change.",
+      "tell": "A god class named *Manager or *Service that touches everything.",
+      "prerequisites": ["cohesion"]
+    },
+    {
+      "id": "interface-design",
+      "tier": "structure",
+      "name": "Interface Design",
+      "plain": "A contract that says what, never how, and is hard to misuse.",
+      "tell": "Interfaces that leak their implementation in method names or return types.",
+      "prerequisites": ["abstraction", "encapsulation"]
+    },
+    {
+      "id": "polymorphism",
+      "tier": "behaviour",
+      "name": "Polymorphism",
+      "plain": "Different types answering the same message in their own way.",
+      "tell": "switch or if-else chains on a type field.",
+      "prerequisites": ["abstraction"]
+    },
+    {
+      "id": "open-closed",
+      "tier": "principle",
+      "name": "Open/Closed",
+      "plain": "Add behaviour by adding code, not by editing working code.",
+      "tell": "Every new feature means another branch inside an existing method.",
+      "prerequisites": ["abstraction", "coupling", "polymorphism"]
+    },
+    {
+      "id": "lsp",
+      "tier": "principle",
+      "name": "Liskov Substitution",
+      "plain": "A subtype must work anywhere its parent does, without surprises.",
+      "tell": "An override that throws UnsupportedOperation, or tightens what the parent accepted.",
+      "prerequisites": ["polymorphism"]
+    },
+    {
+      "id": "isp",
+      "tier": "principle",
+      "name": "Interface Segregation",
+      "plain": "Small focused contracts beat one fat one.",
+      "tell": "Implementers stubbing out methods they do not need.",
+      "prerequisites": ["interface-design"]
+    },
+    {
+      "id": "dip",
+      "tier": "principle",
+      "name": "Dependency Inversion",
+      "plain": "Depend on abstractions; let the concrete thing be handed in.",
+      "tell": "new ConcreteThing() inside a constructor of a high-level class.",
+      "prerequisites": ["coupling", "interface-design"]
+    },
+    {
+      "id": "composition-over-inheritance",
+      "tier": "structure",
+      "name": "Composition over Inheritance",
+      "plain": "Prefer assembling behaviour from parts over inheriting it.",
+      "tell": "Deep hierarchies, or subclasses created just to vary one value.",
+      "prerequisites": ["association-modeling", "polymorphism"]
+    },
+    {
+      "id": "state-modeling",
+      "tier": "behaviour",
+      "name": "State Modelling",
+      "plain": "Making the legal lifecycle explicit instead of implied by flags.",
+      "tell": "Several booleans that must agree, like isPaid plus isShipped plus isCancelled.",
+      "prerequisites": ["domain-modeling"]
+    },
+    {
+      "id": "immutability",
+      "tier": "behaviour",
+      "name": "Immutability & Value Objects",
+      "plain": "Values that never change are safe to share and easy to reason about.",
+      "tell": "Money or Date passed around as a mutable object with setters.",
+      "prerequisites": ["encapsulation", "domain-modeling"]
+    },
+    {
+      "id": "error-modeling",
+      "tier": "behaviour",
+      "name": "Error Modelling",
+      "plain": "Treat failure as part of the domain, not an afterthought.",
+      "tell": "Returning null or false to mean five different problems.",
+      "prerequisites": ["domain-modeling"]
+    },
+    {
+      "id": "testability",
+      "tier": "practice",
+      "name": "Testability",
+      "plain": "A design you can test without standing up the world.",
+      "tell": "Business logic that cannot run without a clock, a network or a database.",
+      "prerequisites": ["dip"]
+    },
+    {
+      "id": "extensibility",
+      "tier": "practice",
+      "name": "Extensibility",
+      "plain": "Putting the seam where the requirement will actually change.",
+      "tell": "Abstractions everywhere except the one place the spec said varies.",
+      "prerequisites": ["srp", "open-closed"]
+    },
+    {
+      "id": "concurrency-safety",
+      "tier": "practice",
+      "name": "Concurrency Safety",
+      "plain": "Shared state stays correct when two things happen at once.",
+      "tell": "check-then-act on shared state with no guard around it.",
+      "prerequisites": ["state-modeling", "immutability"]
+    }
+  ]
+}

@@ -1,0 +1,123 @@
+// Storage is deliberately thin. The domain owns the rules; these tables only
+// remember what happened. Design models and evaluation results are stored as JSON
+// because they are versioned documents validated by zod at the edges — shredding
+// them into columns would buy nothing and would make every rubric change a migration.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Single-tenant for now, but every attempt already carries a learnerId so that
+/// adding real accounts later is filling in a value rather than a migration.
+model Learner {
+  id        String     @id
+  name      String
+  createdAt DateTime   @default(now())
+  attempts  Attempt[]
+  critiques Critique[]
+}
+
+/// One attempt runs the practice loop up to three times: design, change, defend.
+/// `stage` says which pass is open; `state` is the lifecycle of that pass.
+model Attempt {
+  id            String   @id
+  problemId     String
+  learnerId     String
+  attemptNumber Int
+  stage         String   @default("design")
+  state         String
+
+  /// Autosaved as the learner works, keyed by stage. Never evaluated.
+  draftsJson    String?
+
+  /// Which hidden change this attempt was dealt. Chosen at start, revealed later.
+  changeId      String?
+
+  failureReason String?
+  /// Evaluation runs for the current stage — reset when the stage advances.
+  attempts      Int      @default(0)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  learner       Learner      @relation(fields: [learnerId], references: [id])
+  submissions   Submission[]
+  evaluations   Evaluation[]
+
+  @@index([learnerId, problemId, attemptNumber])
+}
+
+/// What the learner froze at one stage. Written BEFORE evaluation is queued, so an
+/// evaluator failure can never lose the learner's work.
+model Submission {
+  id             String   @id
+  attemptId      String
+  stage          String
+  /// Which capture format produced it — the structured form today.
+  format         String
+  payloadJson    String
+
+  /// Fingerprint of the design — how a real revision is told apart from a resubmit
+  /// of the same thing.
+  fingerprint    String?
+
+  /// Set once per stage by the client. A double-tapped submit, a retry and an
+  /// impatient refresh all carry the same key and cost one evaluation.
+  idempotencyKey String
+  submittedAt    DateTime @default(now())
+
+  attempt        Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, stage])
+}
+
+/// One per completed stage. The report the learner reads is the union of these.
+model Evaluation {
+  id                    String   @id
+  attemptId             String
+  stage                 String
+
+  /// Pinned forever. Scores are only comparable within the same rubric and prompt
+  /// version — silently mixing them across a rubric change would make the history
+  /// screen lie about whether the learner improved.
+  rubricId              String
+  rubricVersion         String
+  promptVersion         String
+  evaluatorIds          String
+
+  resultsJson           String
+  summaryJson           String
+  unchangedFromPrevious Boolean  @default(false)
+
+  /// Null on the stub; populated when a real provider ran.
+  inputTokens           Int?
+  outputTokens          Int?
+
+  completedAt           DateTime @default(now())
+
+  attempt               Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, stage])
+}
+
+/// One answer to one critique pair. Kept so the warm-up is not repeated and so
+/// history can show whether the learner's judgement is improving.
+model Critique {
+  id          String   @id
+  learnerId   String
+  problemId   String
+  pairId      String
+  choiceDesign String
+  choiceClass String
+  correct     Boolean
+  createdAt   DateTime @default(now())
+
+  learner     Learner  @relation(fields: [learnerId], references: [id])
+
+  @@unique([learnerId, problemId, pairId])
+}

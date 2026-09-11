@@ -1,0 +1,139 @@
+{
+  "id": "lld-core",
+  "version": "2.0.0",
+  "name": "LLD Core Rubric",
+  "_note": "Eight criteria, each owned by exactly one evaluator at exactly one stage. Six are measured — from the class graph, the scenario walkthroughs, or the diff between the design before and after a requirement change. Two need reading and go to the LLM. An earlier draft had twelve criteria and they overlapped badly: one god class lost points under responsibilities, cohesion, abstraction and extensibility at once, so a single flaw read as four. Version 2 replaces the LLM-judged 'extensibility' with a measured 'change-resilience' and adds 'behaviour', which no static class diagram can score.",
+  "criteria": [
+    {
+      "id": "requirement-coverage",
+      "name": "Requirement Coverage",
+      "question": "Does the design account for what the brief actually asked for?",
+      "judgedBy": "deterministic",
+      "stage": "design",
+      "conceptIds": ["domain-modeling", "abstraction"],
+      "bands": {
+        "0": "Most requirements have nothing in the design that speaks to them.",
+        "1": "Under half the requirements are addressed.",
+        "2": "Most requirements are addressed, but several are missing.",
+        "3": "Nearly all requirements are addressed.",
+        "4": "Every requirement is owned by something in the design."
+      }
+    },
+    {
+      "id": "class-responsibilities",
+      "name": "Class Responsibilities",
+      "question": "Does each class own one clear job?",
+      "judgedBy": "deterministic",
+      "stage": "design",
+      "conceptIds": ["srp", "cohesion"],
+      "bands": {
+        "0": "Several classes are doing many unrelated jobs, or the design is a list with no structure.",
+        "1": "One class absorbs most of the behaviour.",
+        "2": "One class is overloaded but the rest are focused.",
+        "3": "Responsibilities are mostly clean, with minor overlap.",
+        "4": "Every class describes a single job in one sentence."
+      }
+    },
+    {
+      "id": "coupling-cohesion",
+      "name": "Coupling and Cohesion",
+      "question": "Do the relationships between classes hold together?",
+      "judgedBy": "deterministic",
+      "stage": "design",
+      "conceptIds": ["coupling", "association-modeling"],
+      "bands": {
+        "0": "Dangling references, cycles and orphans throughout.",
+        "1": "Multiple structural faults.",
+        "2": "One or two structural faults.",
+        "3": "One minor fault, such as a single orphan.",
+        "4": "No orphans, cycles or dangling references."
+      }
+    },
+    {
+      "id": "abstraction-use",
+      "name": "Use of Abstraction",
+      "question": "Is there a seam where this problem is known to change, and does it carry weight?",
+      "judgedBy": "deterministic",
+      "stage": "design",
+      "conceptIds": ["open-closed", "dip", "interface-design"],
+      "bands": {
+        "0": "No abstractions, or abstractions that nothing implements and no variation needs.",
+        "1": "Most variation points are hardcoded.",
+        "2": "Some variation points have seams; others are baked in.",
+        "3": "Nearly all variation points are behind an abstraction.",
+        "4": "Every declared variation point is behind an abstraction that something implements."
+      }
+    },
+    {
+      "id": "behaviour",
+      "name": "Behaviour",
+      "question": "Does the design actually run its scenarios — every step on a class and method that exist?",
+      "judgedBy": "deterministic",
+      "stage": "design",
+      "conceptIds": ["collaboration", "srp", "error-modeling"],
+      "bands": {
+        "0": "No scenario was walked, or most steps land on classes or methods the design does not declare.",
+        "1": "Only one scenario walked, or one class performs nearly every step.",
+        "2": "All scenarios walked, but steps dangle or a failure scenario ends as if nothing went wrong.",
+        "3": "Every step resolves; one minor issue such as a class no scenario ever exercises.",
+        "4": "Every scenario walked, every step on a declared class and method, failure paths present, work spread across the design."
+      }
+    },
+    {
+      "id": "change-resilience",
+      "name": "Handling Change",
+      "question": "When the requirements changed, did the design absorb it by adding, or by reopening what already worked?",
+      "judgedBy": "deterministic",
+      "stage": "change",
+      "conceptIds": ["open-closed", "extensibility"],
+      "bands": {
+        "0": "No revision, or nothing in the revised design owns the new behaviour.",
+        "1": "Absorbed by editing existing classes and adding a flag, a type field or a conditional.",
+        "2": "Absorbed only by editing existing classes — no flag, but working code was reopened.",
+        "3": "A new class was added, but two or more existing classes had to change too, or it extends a concrete class.",
+        "4": "A new class behind a seam that already existed; at most one existing class touched to wire it in."
+      }
+    },
+    {
+      "id": "edge-cases",
+      "name": "Edge Cases and Assumptions",
+      "question": "Were the gaps in the brief filled deliberately rather than silently?",
+      "judgedBy": "llm",
+      "stage": "design",
+      "conceptIds": ["error-modeling", "testability"],
+      "bands": {
+        "0": "No assumptions recorded and no failure path considered.",
+        "1": "Assumptions recorded but nothing handles the unhappy path.",
+        "2": "Some thought given to failure, but the important cases are missing.",
+        "3": "Assumptions are explicit and the main failure paths are named.",
+        "4": "Assumptions are explicit and failure is modelled as part of the domain."
+      },
+      "anchors": {
+        "1": "Assumptions: 'one vehicle per spot'. Nothing in any class or walkthrough says what happens when the lot is full.",
+        "3": "Assumption 'entry is refused when nothing fits' and a walkthrough that ends `refused` with the class that decides it.",
+        "4": "As 3, plus the refusal is a named type or result the caller has to handle, not a null."
+      }
+    },
+    {
+      "id": "reasoning",
+      "name": "Reasoning",
+      "question": "Can the learner say what they chose, what they rejected, and defend it when pressed?",
+      "judgedBy": "llm",
+      "stage": "defend",
+      "conceptIds": ["domain-modeling", "design-rationale"],
+      "bands": {
+        "0": "No decisions recorded and probes left unanswered.",
+        "1": "Answers restate the design without reasoning, or dodge the question.",
+        "2": "Answers describe what the design does but not what it cost or what was rejected.",
+        "3": "Answers name a specific class and a consequence; at least one alternative is weighed.",
+        "4": "Answers name the class, the alternative rejected, why, and what would change their mind."
+      },
+      "anchors": {
+        "1": "Q: 'Weekend rates arrive — what changes?' A: 'I would update the pricing.'",
+        "2": "A: 'I would add a weekend rate to the fee calculation in ParkingLot.'",
+        "3": "A: 'A WeekendPricing class implementing PricingStrategy; ParkingLot does not change because it only sees the interface.'",
+        "4": "As 3, plus: 'I considered a rate table on Spot and rejected it because rates vary by time, not by location — if they started varying by floor I would revisit.'"
+      }
+    }
+  ]
+}

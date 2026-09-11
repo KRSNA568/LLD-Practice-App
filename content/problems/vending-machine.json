@@ -1,0 +1,1133 @@
+{
+  "id": "vending-machine",
+  "version": "2.0.0",
+  "rubricId": "lld-core",
+  "rubricVersion": "2.0.0",
+  "title": "Vending Machine",
+  "tier": 1,
+  "minutes": 35,
+  "domain": "physical-operations",
+  "brief": "Design the class structure for a drinks vending machine. A customer inserts coins, selects a product, and receives the drink plus any change. You are designing the object model — not the hardware interface, not the UI.",
+  "requirements": [
+    {
+      "id": "r1",
+      "text": "A customer inserts coins one at a time before selecting",
+      "conceptHints": [
+        "state-modeling",
+        "encapsulation"
+      ],
+      "keywords": [
+        "coin",
+        "insert",
+        "tender",
+        "payment",
+        "money",
+        "accept"
+      ]
+    },
+    {
+      "id": "r2",
+      "text": "Selecting a product is only allowed once enough money is inserted",
+      "conceptHints": [
+        "state-modeling",
+        "error-modeling"
+      ],
+      "keywords": [
+        "select",
+        "enough",
+        "balance",
+        "sufficient",
+        "state",
+        "hasmoney",
+        "afford"
+      ]
+    },
+    {
+      "id": "r3",
+      "text": "The machine dispenses the product and returns the correct change",
+      "conceptHints": [
+        "domain-modeling"
+      ],
+      "keywords": [
+        "dispens",
+        "change",
+        "return",
+        "vend"
+      ]
+    },
+    {
+      "id": "r4",
+      "text": "A customer can cancel at any point and get a full refund",
+      "conceptHints": [
+        "state-modeling",
+        "error-modeling"
+      ],
+      "keywords": [
+        "cancel",
+        "refund",
+        "abort"
+      ]
+    },
+    {
+      "id": "r5",
+      "text": "Selection is refused when the product is sold out",
+      "conceptHints": [
+        "error-modeling"
+      ],
+      "keywords": [
+        "stock",
+        "inventory",
+        "soldout",
+        "sold",
+        "availab",
+        "quantity"
+      ]
+    },
+    {
+      "id": "r6",
+      "text": "Purchase is refused when the machine cannot make exact change",
+      "conceptHints": [
+        "error-modeling"
+      ],
+      "keywords": [
+        "exact",
+        "changemaker",
+        "makechange",
+        "denomination",
+        "refus",
+        "cannot",
+        "coinstore"
+      ]
+    }
+  ],
+  "constraints": [
+    "Coins only, for now",
+    "One product dispensed per transaction",
+    "Single-threaded — one customer at a time"
+  ],
+  "variationPoints": [
+    {
+      "id": "v1",
+      "name": "payment method",
+      "why": "Card and UPI arrive later, and they confirm asynchronously rather than instantly like a coin",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract"
+      ],
+      "nameHints": [
+        "payment",
+        "tender",
+        "money",
+        "coin",
+        "purse",
+        "wallet"
+      ]
+    },
+    {
+      "id": "v2",
+      "name": "machine state",
+      "why": "The legal operations change completely depending on where the transaction is",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract",
+        "enum"
+      ],
+      "nameHints": [
+        "state",
+        "status",
+        "phase",
+        "mode"
+      ]
+    },
+    {
+      "id": "v3",
+      "name": "change-dispensing algorithm",
+      "why": "Greedy fails on some coin sets, and operators want to control which coins drain first",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract"
+      ],
+      "nameHints": [
+        "change",
+        "dispens",
+        "coinselect",
+        "denomination"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "sc-buy",
+      "title": "A customer buys a drink with exact coins",
+      "description": "Coins go in one at a time, a product is selected, the drink drops. Walk through who does what.",
+      "expectsFailurePath": false,
+      "mustInvolve": [
+        "state",
+        "status",
+        "phase",
+        "inventory",
+        "stock"
+      ]
+    },
+    {
+      "id": "sc-cancel",
+      "title": "A customer cancels after inserting coins",
+      "description": "Two coins in, then Cancel. Walk through how the refund happens and what state the machine ends in.",
+      "expectsFailurePath": false,
+      "mustInvolve": [
+        "state",
+        "status",
+        "phase",
+        "refund",
+        "money",
+        "purse",
+        "payment"
+      ]
+    },
+    {
+      "id": "sc-no-change",
+      "title": "The machine cannot make exact change",
+      "description": "A 20 purchase paid with a 50, and the coin store cannot make 30. Walk through what happens — and how it ends.",
+      "expectsFailurePath": true,
+      "mustInvolve": [
+        "change",
+        "dispens",
+        "coinselect",
+        "denomination",
+        "money"
+      ]
+    }
+  ],
+  "hiddenChanges": [
+    {
+      "id": "hc-upi",
+      "prompt": "The machine is being upgraded to accept UPI. Unlike coins, a UPI payment is confirmed asynchronously — the machine asks, then waits, and the answer may be yes, no, or never. Revise your design so it handles this — and say what you touched and why.",
+      "targetsConcept": "open-closed",
+      "mustIntroduce": [
+        "upi",
+        "online",
+        "digital",
+        "async",
+        "pending",
+        "await",
+        "confirm",
+        "gateway"
+      ],
+      "expectedSeam": "v1",
+      "goodSignal": [
+        "adds a payment abstraction with a new implementation",
+        "adds an explicit awaiting-confirmation state rather than blocking",
+        "names what happens on timeout or refusal",
+        "existing coin flow is untouched"
+      ],
+      "badSignal": [
+        "adds a boolean such as isUpi",
+        "adds conditionals inside the existing purchase method",
+        "assumes payment is still instant",
+        "no mention of the pending or failed case"
+      ]
+    },
+    {
+      "id": "hc-multi",
+      "prompt": "Customers can now buy up to three products in one transaction, with change returned once at the end. Revise your design so it handles this — and say what you touched and why.",
+      "targetsConcept": "state-modeling",
+      "mustIntroduce": [
+        "basket",
+        "cart",
+        "multi",
+        "items",
+        "selections",
+        "order",
+        "batch"
+      ],
+      "expectedSeam": "v2",
+      "goodSignal": [
+        "a new state or a selection collection is introduced",
+        "change-making is unchanged",
+        "the single-product flow still works"
+      ],
+      "badSignal": [
+        "a counter and a loop inside the existing select method",
+        "change logic duplicated per product"
+      ]
+    }
+  ],
+  "probes": [
+    {
+      "id": "p-state",
+      "prompt": "A customer presses Select while coins are still going in. Which class decides whether that is allowed right now — {{class}}, or something else — and how many places would you have to check to be sure?",
+      "targetsConcept": "state-modeling",
+      "triggerWhen": {
+        "criterionId": "abstraction-use",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names one class that owns the answer",
+        "says it is one place"
+      ],
+      "badSignal": [
+        "checks several flags",
+        "cannot name where"
+      ]
+    },
+    {
+      "id": "p-split",
+      "prompt": "{{class}} holds coins, stock and the machine's state. Which of those three would you move out first, and who would call it afterwards?",
+      "targetsConcept": "srp",
+      "triggerWhen": {
+        "criterionId": "class-responsibilities",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names one responsibility and its new owner",
+        "names the caller"
+      ],
+      "badSignal": [
+        "says it is fine",
+        "moves data without behaviour"
+      ]
+    },
+    {
+      "id": "p-refusal",
+      "prompt": "The machine cannot make exact change for a 20 purchase paid with a 50. Which class knows that, when does it find out, and what does the customer see?",
+      "targetsConcept": "error-modeling",
+      "triggerWhen": {
+        "criterionId": "behaviour",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names the class",
+        "says before dispensing",
+        "names a refusal the customer sees"
+      ],
+      "badSignal": [
+        "finds out after dispensing",
+        "returns null",
+        "no class named"
+      ]
+    },
+    {
+      "id": "p-money",
+      "prompt": "Is money an integer in your design? If so, what can you not express — and does it matter for exact change?",
+      "targetsConcept": "encapsulation",
+      "goodSignal": [
+        "names denominations or currency as the thing lost",
+        "connects it to exact change"
+      ],
+      "badSignal": [
+        "an int is fine",
+        "no consequence named"
+      ]
+    },
+    {
+      "id": "p-cancel",
+      "prompt": "Cancel is pressed after the product was selected but before it dropped. Which class handles it, and what state is the machine in afterwards?",
+      "targetsConcept": "state-modeling",
+      "goodSignal": [
+        "names the state or class",
+        "names the end state"
+      ],
+      "badSignal": [
+        "cannot say",
+        "the machine could be in two states"
+      ]
+    }
+  ],
+  "conceptTags": [
+    "state-modeling",
+    "encapsulation",
+    "srp",
+    "error-modeling"
+  ],
+  "commonFailureModes": [
+    {
+      "id": "f1",
+      "name": "Boolean soup instead of a state machine",
+      "description": "hasMoney, isDispensing and isSoldOut as separate flags that must agree.",
+      "concept": "state-modeling",
+      "frequency": "very-high"
+    },
+    {
+      "id": "f2",
+      "name": "VendingMachine does everything",
+      "description": "One class holding coins, inventory, state transitions and change calculation.",
+      "concept": "srp",
+      "frequency": "very-high"
+    },
+    {
+      "id": "f3",
+      "name": "Change as a bare integer",
+      "description": "Money modelled as an int, so denominations and exact-change failure cannot be expressed.",
+      "concept": "domain-modeling",
+      "frequency": "high"
+    },
+    {
+      "id": "f4",
+      "name": "No refusal path",
+      "description": "Sold out and insufficient change return null rather than being modelled.",
+      "concept": "error-modeling",
+      "frequency": "high"
+    }
+  ],
+  "goldDesigns": {
+    "strong": {
+      "assumptions": [
+        "One product per transaction",
+        "Coins are validated by the hardware before we see them",
+        "Purchase is refused before dispensing if change cannot be made"
+      ],
+      "classes": [
+        {
+          "name": "VendingMachine",
+          "stereotype": "class",
+          "responsibility": "Coordinates one transaction by delegating to the current state",
+          "attributes": [
+            "state",
+            "inserted"
+          ],
+          "methods": [
+            "insertCoin",
+            "select",
+            "cancel"
+          ]
+        },
+        {
+          "name": "MachineState",
+          "stereotype": "interface",
+          "responsibility": "What the machine allows in one phase of a transaction",
+          "attributes": [],
+          "methods": [
+            "insertCoin",
+            "select",
+            "cancel"
+          ]
+        },
+        {
+          "name": "IdleState",
+          "stereotype": "class",
+          "responsibility": "Accepts a first coin while refusing selection",
+          "attributes": [],
+          "methods": [
+            "insertCoin",
+            "select",
+            "cancel"
+          ]
+        },
+        {
+          "name": "HasMoneyState",
+          "stereotype": "class",
+          "responsibility": "Accepts further coins or a selection or a cancel",
+          "attributes": [],
+          "methods": [
+            "insertCoin",
+            "select",
+            "cancel"
+          ]
+        },
+        {
+          "name": "DispensingState",
+          "stereotype": "class",
+          "responsibility": "Dispenses the purchase then returns the machine to idle",
+          "attributes": [],
+          "methods": [
+            "dispense"
+          ]
+        },
+        {
+          "name": "Inventory",
+          "stereotype": "class",
+          "responsibility": "Tracks how many of each product are in stock",
+          "attributes": [
+            "stock"
+          ],
+          "methods": [
+            "isAvailable",
+            "take"
+          ]
+        },
+        {
+          "name": "Product",
+          "stereotype": "class",
+          "responsibility": "A drink with a price",
+          "attributes": [
+            "name",
+            "price"
+          ],
+          "methods": []
+        },
+        {
+          "name": "Money",
+          "stereotype": "class",
+          "responsibility": "An immutable amount made of coins",
+          "attributes": [
+            "coins"
+          ],
+          "methods": [
+            "plus",
+            "minus",
+            "total"
+          ]
+        },
+        {
+          "name": "Coin",
+          "stereotype": "enum",
+          "responsibility": "The accepted denominations",
+          "attributes": [],
+          "methods": []
+        },
+        {
+          "name": "PaymentMethod",
+          "stereotype": "interface",
+          "responsibility": "Collects tender for a transaction and refunds it",
+          "attributes": [],
+          "methods": [
+            "accept",
+            "refund",
+            "balance"
+          ]
+        },
+        {
+          "name": "CoinPayment",
+          "stereotype": "class",
+          "responsibility": "Collects coins into a Money balance",
+          "attributes": [
+            "balance"
+          ],
+          "methods": [
+            "accept",
+            "refund",
+            "balance"
+          ]
+        },
+        {
+          "name": "ChangeMaker",
+          "stereotype": "interface",
+          "responsibility": "Works out which coins to return or reports that it cannot",
+          "attributes": [],
+          "methods": [
+            "makeChange"
+          ]
+        },
+        {
+          "name": "GreedyChangeMaker",
+          "stereotype": "class",
+          "responsibility": "Makes change largest-coin-first from the coin store",
+          "attributes": [
+            "store"
+          ],
+          "methods": [
+            "makeChange"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "VendingMachine",
+          "to": "MachineState",
+          "kind": "uses"
+        },
+        {
+          "from": "VendingMachine",
+          "to": "Inventory",
+          "kind": "has-a"
+        },
+        {
+          "from": "VendingMachine",
+          "to": "PaymentMethod",
+          "kind": "uses"
+        },
+        {
+          "from": "VendingMachine",
+          "to": "ChangeMaker",
+          "kind": "uses"
+        },
+        {
+          "from": "IdleState",
+          "to": "MachineState",
+          "kind": "implements"
+        },
+        {
+          "from": "HasMoneyState",
+          "to": "MachineState",
+          "kind": "implements"
+        },
+        {
+          "from": "DispensingState",
+          "to": "MachineState",
+          "kind": "implements"
+        },
+        {
+          "from": "CoinPayment",
+          "to": "PaymentMethod",
+          "kind": "implements"
+        },
+        {
+          "from": "GreedyChangeMaker",
+          "to": "ChangeMaker",
+          "kind": "implements"
+        },
+        {
+          "from": "Inventory",
+          "to": "Product",
+          "kind": "has-a"
+        },
+        {
+          "from": "CoinPayment",
+          "to": "Money",
+          "kind": "has-a"
+        },
+        {
+          "from": "Money",
+          "to": "Coin",
+          "kind": "has-a"
+        },
+        {
+          "from": "GreedyChangeMaker",
+          "to": "Money",
+          "kind": "uses"
+        }
+      ],
+      "tradeoffs": "State is a set of classes rather than flags because the allowed actions differ per phase and a flag per phase would have to be kept consistent by hand. Money is a value object rather than an int so that exact-change failure is expressible. Payment is behind an interface even though only coins exist, because the constraint says 'for now'.",
+      "decisions": [
+        {
+          "what": "One class per machine state",
+          "alternative": "hasMoney / isDispensing booleans on VendingMachine",
+          "why": "Every action's legality depends on the phase; with flags that check is duplicated in every method."
+        },
+        {
+          "what": "Money is a value object over coins",
+          "alternative": "An integer balance",
+          "why": "Exact change is about denominations, not amounts. An int cannot say 'I have 50 but cannot make 30'."
+        },
+        {
+          "what": "Change-making is a strategy",
+          "alternative": "A loop inside dispense",
+          "why": "Greedy is wrong for some coin sets; the algorithm is the part that will be argued about."
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-buy",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "VendingMachine",
+              "method": "insertCoin",
+              "note": ""
+            },
+            {
+              "className": "IdleState",
+              "method": "insertCoin",
+              "note": "moves to HasMoney"
+            },
+            {
+              "className": "CoinPayment",
+              "method": "accept",
+              "note": ""
+            },
+            {
+              "className": "VendingMachine",
+              "method": "select",
+              "note": ""
+            },
+            {
+              "className": "HasMoneyState",
+              "method": "select",
+              "note": "checks stock and balance"
+            },
+            {
+              "className": "Inventory",
+              "method": "isAvailable",
+              "note": ""
+            },
+            {
+              "className": "ChangeMaker",
+              "method": "makeChange",
+              "note": "zero change here"
+            },
+            {
+              "className": "DispensingState",
+              "method": "dispense",
+              "note": ""
+            },
+            {
+              "className": "Inventory",
+              "method": "take",
+              "note": ""
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-cancel",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "VendingMachine",
+              "method": "cancel",
+              "note": ""
+            },
+            {
+              "className": "HasMoneyState",
+              "method": "cancel",
+              "note": ""
+            },
+            {
+              "className": "CoinPayment",
+              "method": "refund",
+              "note": "returns the same coins"
+            },
+            {
+              "className": "IdleState",
+              "method": "insertCoin",
+              "note": "machine is idle again"
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-no-change",
+          "outcome": "refused",
+          "steps": [
+            {
+              "className": "VendingMachine",
+              "method": "select",
+              "note": ""
+            },
+            {
+              "className": "HasMoneyState",
+              "method": "select",
+              "note": ""
+            },
+            {
+              "className": "GreedyChangeMaker",
+              "method": "makeChange",
+              "note": "cannot make 30 — reports it"
+            },
+            {
+              "className": "CoinPayment",
+              "method": "refund",
+              "note": "coins returned; nothing dispensed"
+            }
+          ]
+        }
+      ]
+    },
+    "boolean-soup": {
+      "assumptions": [],
+      "classes": [
+        {
+          "name": "VendingMachine",
+          "stereotype": "class",
+          "responsibility": "Handles coin insertion, product selection, dispensing, change and refunds",
+          "attributes": [
+            "balance",
+            "hasMoney",
+            "isDispensing",
+            "isSoldOut",
+            "stock"
+          ],
+          "methods": [
+            "insertCoin",
+            "select",
+            "cancel",
+            "dispense",
+            "makeChange"
+          ]
+        },
+        {
+          "name": "Product",
+          "stereotype": "class",
+          "responsibility": "A drink",
+          "attributes": [
+            "name",
+            "price"
+          ],
+          "methods": []
+        },
+        {
+          "name": "Coin",
+          "stereotype": "class",
+          "responsibility": "A coin",
+          "attributes": [
+            "value"
+          ],
+          "methods": []
+        }
+      ],
+      "relationships": [
+        {
+          "from": "VendingMachine",
+          "to": "Product",
+          "kind": "has-a"
+        },
+        {
+          "from": "VendingMachine",
+          "to": "Coin",
+          "kind": "uses"
+        }
+      ],
+      "tradeoffs": "Simple and direct.",
+      "decisions": [],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-buy",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "VendingMachine",
+              "method": "insertCoin",
+              "note": "sets hasMoney"
+            },
+            {
+              "className": "VendingMachine",
+              "method": "select",
+              "note": "checks hasMoney and isSoldOut"
+            },
+            {
+              "className": "VendingMachine",
+              "method": "dispense",
+              "note": "sets isDispensing"
+            },
+            {
+              "className": "VendingMachine",
+              "method": "makeChange",
+              "note": ""
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-cancel",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "VendingMachine",
+              "method": "cancel",
+              "note": "balance = 0, hasMoney = false"
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-no-change",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "VendingMachine",
+              "method": "select",
+              "note": ""
+            },
+            {
+              "className": "VendingMachine",
+              "method": "dispense",
+              "note": ""
+            },
+            {
+              "className": "VendingMachine",
+              "method": "makeChange",
+              "note": "returns what it can"
+            }
+          ]
+        }
+      ]
+    },
+    "money-as-int": {
+      "assumptions": [
+        "Coins are validated by the hardware"
+      ],
+      "classes": [
+        {
+          "name": "VendingMachine",
+          "stereotype": "class",
+          "responsibility": "Runs a transaction by delegating to the current state",
+          "attributes": [
+            "state",
+            "balance"
+          ],
+          "methods": [
+            "insertCoin",
+            "select",
+            "cancel"
+          ]
+        },
+        {
+          "name": "MachineState",
+          "stereotype": "interface",
+          "responsibility": "What the machine allows in one phase",
+          "attributes": [],
+          "methods": [
+            "insertCoin",
+            "select",
+            "cancel"
+          ]
+        },
+        {
+          "name": "IdleState",
+          "stereotype": "class",
+          "responsibility": "Waits for the first coin",
+          "attributes": [],
+          "methods": [
+            "insertCoin",
+            "select",
+            "cancel"
+          ]
+        },
+        {
+          "name": "HasMoneyState",
+          "stereotype": "class",
+          "responsibility": "Accepts coins, selection or cancel",
+          "attributes": [],
+          "methods": [
+            "insertCoin",
+            "select",
+            "cancel"
+          ]
+        },
+        {
+          "name": "Inventory",
+          "stereotype": "class",
+          "responsibility": "Tracks stock per product",
+          "attributes": [
+            "stock"
+          ],
+          "methods": [
+            "isAvailable",
+            "take"
+          ]
+        },
+        {
+          "name": "Product",
+          "stereotype": "class",
+          "responsibility": "A drink with a price",
+          "attributes": [
+            "name",
+            "price"
+          ],
+          "methods": []
+        }
+      ],
+      "relationships": [
+        {
+          "from": "VendingMachine",
+          "to": "MachineState",
+          "kind": "uses"
+        },
+        {
+          "from": "VendingMachine",
+          "to": "Inventory",
+          "kind": "has-a"
+        },
+        {
+          "from": "IdleState",
+          "to": "MachineState",
+          "kind": "implements"
+        },
+        {
+          "from": "HasMoneyState",
+          "to": "MachineState",
+          "kind": "implements"
+        },
+        {
+          "from": "Inventory",
+          "to": "Product",
+          "kind": "has-a"
+        }
+      ],
+      "tradeoffs": "State pattern for the phases. Balance is an integer number of rupees, which keeps the arithmetic trivial.",
+      "decisions": [
+        {
+          "what": "State pattern for the phases",
+          "alternative": "Flags",
+          "why": "Each phase allows different actions."
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-buy",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "VendingMachine",
+              "method": "insertCoin",
+              "note": ""
+            },
+            {
+              "className": "IdleState",
+              "method": "insertCoin",
+              "note": ""
+            },
+            {
+              "className": "VendingMachine",
+              "method": "select",
+              "note": ""
+            },
+            {
+              "className": "HasMoneyState",
+              "method": "select",
+              "note": "balance >= price"
+            },
+            {
+              "className": "Inventory",
+              "method": "take",
+              "note": ""
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-cancel",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "VendingMachine",
+              "method": "cancel",
+              "note": ""
+            },
+            {
+              "className": "HasMoneyState",
+              "method": "cancel",
+              "note": "balance returned as a number"
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-no-change",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "VendingMachine",
+              "method": "select",
+              "note": ""
+            },
+            {
+              "className": "HasMoneyState",
+              "method": "select",
+              "note": "balance - price is returned as change; whether the coins exist is not checked"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "critiquePairs": [
+    {
+      "id": "cp-1",
+      "left": "strong",
+      "right": "boolean-soup",
+      "question": "Cancel is pressed halfway through a purchase. Which design can say, in one place, exactly what the machine is allowed to do at that moment? Click the class that holds that answer.",
+      "targetsConcept": "state-modeling",
+      "answer": {
+        "design": "strong",
+        "className": "MachineState"
+      },
+      "telling": "On the left, the machine's phase is a class, and each phase says what it allows. Cancel during HasMoney is one method on one class. On the right, the phase is three booleans that have to agree — hasMoney, isDispensing, isSoldOut — and every method has to check the right combination. That is the boolean-soup fault: the state exists, but it is spread across flags nobody can see together."
+    },
+    {
+      "id": "cp-2",
+      "left": "money-as-int",
+      "right": "strong",
+      "question": "The coin store has 50 in it but cannot make 30 in change. In which design is that a fact the code can even express? Click the class that makes it expressible.",
+      "targetsConcept": "encapsulation",
+      "answer": {
+        "design": "strong",
+        "className": "Money"
+      },
+      "telling": "An integer balance knows the amount and nothing else. Exact change is about denominations: having 50 as one coin is not the same as having five tens. The right design models Money as a bag of coins, so the change-maker can look at what is actually there and refuse before dispensing. The left design does the subtraction and hopes the coins exist — which is the silent failure the sixth requirement is about."
+    }
+  ],
+  "calibrationSet": [
+    {
+      "designId": "strong",
+      "label": "strong",
+      "expectedBands": {
+        "requirement-coverage": [
+          3,
+          4
+        ],
+        "class-responsibilities": [
+          3,
+          4
+        ],
+        "coupling-cohesion": [
+          3,
+          4
+        ],
+        "abstraction-use": [
+          3,
+          4
+        ],
+        "behaviour": [
+          3,
+          4
+        ],
+        "edge-cases": [
+          2,
+          4
+        ]
+      }
+    },
+    {
+      "designId": "boolean-soup",
+      "label": "boolean-soup",
+      "expectedBands": {
+        "requirement-coverage": [
+          2,
+          4
+        ],
+        "class-responsibilities": [
+          0,
+          1
+        ],
+        "coupling-cohesion": [
+          2,
+          4
+        ],
+        "abstraction-use": [
+          0,
+          1
+        ],
+        "behaviour": [
+          0,
+          2
+        ],
+        "edge-cases": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "designId": "money-as-int",
+      "label": "money-as-int",
+      "expectedBands": {
+        "requirement-coverage": [
+          2,
+          4
+        ],
+        "class-responsibilities": [
+          3,
+          4
+        ],
+        "coupling-cohesion": [
+          3,
+          4
+        ],
+        "abstraction-use": [
+          1,
+          2
+        ],
+        "behaviour": [
+          1,
+          3
+        ],
+        "edge-cases": [
+          0,
+          2
+        ]
+      }
+    }
+  ],
+  "nextProblems": [
+    "parking-lot",
+    "shopping-cart-discounts"
+  ]
+}

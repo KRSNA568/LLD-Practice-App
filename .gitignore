@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.next/
+*.db
+*.db-journal
+.DS_Store
+
+# apps/api/.env holds only a local SQLite path and is committed so a fresh clone
+# runs with no setup. Real secrets go in .env.local, which is not.
+.env.local
+.env.*.local

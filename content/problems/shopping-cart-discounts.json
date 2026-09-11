@@ -1,0 +1,1172 @@
+{
+  "id": "shopping-cart-discounts",
+  "version": "2.0.0",
+  "rubricId": "lld-core",
+  "rubricVersion": "2.0.0",
+  "title": "Shopping Cart & Discounts",
+  "tier": 2,
+  "minutes": 45,
+  "domain": "commerce",
+  "brief": "Design the class structure for a shopping cart that prices itself. Items go in, promotions apply, and a total comes out. The hard part is not the arithmetic — it is that the promotion rules change every week and are written by people who do not deploy code.",
+  "requirements": [
+    {
+      "id": "r1",
+      "text": "Items can be added and removed, with quantities",
+      "conceptHints": [
+        "domain-modeling"
+      ],
+      "keywords": [
+        "add",
+        "remove",
+        "quantity",
+        "lineitem",
+        "line",
+        "item"
+      ]
+    },
+    {
+      "id": "r2",
+      "text": "The cart produces a total with a breakdown the customer can read",
+      "conceptHints": [
+        "immutability",
+        "domain-modeling"
+      ],
+      "keywords": [
+        "total",
+        "breakdown",
+        "receipt",
+        "summary",
+        "itemis",
+        "explain",
+        "readable"
+      ]
+    },
+    {
+      "id": "r3",
+      "text": "Percentage-off and fixed-amount-off promotions are supported",
+      "conceptHints": [
+        "open-closed",
+        "polymorphism"
+      ],
+      "keywords": [
+        "percent",
+        "fixed",
+        "amount",
+        "discount",
+        "promotion",
+        "offer",
+        "coupon"
+      ]
+    },
+    {
+      "id": "r4",
+      "text": "Some promotions apply to one line, others to the whole cart",
+      "conceptHints": [
+        "composition",
+        "open-closed"
+      ],
+      "keywords": [
+        "scope",
+        "line",
+        "cartwide",
+        "wholecart",
+        "perline",
+        "applyto",
+        "target",
+        "level"
+      ]
+    },
+    {
+      "id": "r5",
+      "text": "Tax is applied after discounts",
+      "conceptHints": [
+        "domain-modeling",
+        "immutability"
+      ],
+      "keywords": [
+        "tax",
+        "vat",
+        "gst",
+        "levy"
+      ]
+    },
+    {
+      "id": "r6",
+      "text": "Promotions that must not be combined are rejected rather than silently stacked",
+      "conceptHints": [
+        "error-modeling",
+        "extensibility"
+      ],
+      "keywords": [
+        "exclus",
+        "conflict",
+        "reject",
+        "combin",
+        "stack",
+        "policy",
+        "forbid",
+        "incompatible",
+        "resolve"
+      ]
+    }
+  ],
+  "constraints": [
+    "Single currency",
+    "Promotions are supplied as data, not compiled in",
+    "The breakdown must explain every adjustment"
+  ],
+  "variationPoints": [
+    {
+      "id": "v1",
+      "name": "discount rule",
+      "why": "This is the axis that changes weekly, and by people who cannot ship code",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract"
+      ],
+      "nameHints": [
+        "discount",
+        "promotion",
+        "offer",
+        "rule",
+        "deal",
+        "coupon"
+      ]
+    },
+    {
+      "id": "v2",
+      "name": "rule combination order",
+      "why": "Whether discounts stack, and in what order, is a policy that differs by market",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract"
+      ],
+      "nameHints": [
+        "combin",
+        "resolv",
+        "stack",
+        "applicat",
+        "pipeline",
+        "policy",
+        "engine"
+      ]
+    },
+    {
+      "id": "v3",
+      "name": "tax strategy",
+      "why": "Rates and rounding differ by jurisdiction, and inclusive-vs-exclusive pricing differs by market",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract"
+      ],
+      "nameHints": [
+        "tax",
+        "vat",
+        "gst",
+        "levy"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "sc-total",
+      "title": "Two items, one 10%-off promotion, then tax",
+      "description": "Two lines in the cart, a 10%-off promotion on one of them, tax applied afterwards. Walk through how the breakdown is produced.",
+      "expectsFailurePath": false,
+      "mustInvolve": [
+        "discount",
+        "promotion",
+        "offer",
+        "rule",
+        "deal",
+        "coupon",
+        "percent",
+        "fixed",
+        "off"
+      ]
+    },
+    {
+      "id": "sc-scopes",
+      "title": "A line promotion and a cart-wide promotion both apply",
+      "description": "One promotion targets a single line; another is a fixed amount off the whole cart. Walk through who applies which, and in what order.",
+      "expectsFailurePath": false,
+      "mustInvolve": [
+        "combin",
+        "resolv",
+        "stack",
+        "applicat",
+        "pipeline",
+        "policy",
+        "engine",
+        "order"
+      ]
+    },
+    {
+      "id": "sc-conflict",
+      "title": "Two promotions that must not be combined are both present",
+      "description": "Both are valid on their own; together they are forbidden. Walk through who notices and how it ends.",
+      "expectsFailurePath": true,
+      "mustInvolve": []
+    }
+  ],
+  "hiddenChanges": [
+    {
+      "id": "hc-b2g1",
+      "prompt": "Marketing wants buy-two-get-one-free on selected items, plus a cart-wide coupon — and the two must never apply together. Whichever gives the customer the better price should win. Revise your design so it handles this — and say what you touched and why.",
+      "targetsConcept": "open-closed",
+      "mustIntroduce": [
+        "buy",
+        "bogo",
+        "free",
+        "bundle",
+        "multibuy",
+        "quantity",
+        "coupon",
+        "best",
+        "compare",
+        "cheap"
+      ],
+      "expectedSeam": "v1",
+      "goodSignal": [
+        "adds a new class implementing the existing discount abstraction",
+        "the exclusivity decision lives in a combination or resolution policy, not inside a rule",
+        "comparing outcomes is possible because pricing is a pure calculation",
+        "existing promotions are untouched"
+      ],
+      "badSignal": [
+        "adds a conditional inside the cart total method",
+        "hardcodes the pair of conflicting promotions",
+        "each rule is made aware of the others",
+        "no mention of how the better price is chosen"
+      ]
+    },
+    {
+      "id": "hc-regions",
+      "prompt": "Tax now depends on the delivery region, and in some regions tax is applied before discounts rather than after. Revise your design so it handles this — and say what you touched and why.",
+      "targetsConcept": "open-closed",
+      "mustIntroduce": [
+        "region",
+        "jurisdiction",
+        "zone",
+        "country",
+        "locale",
+        "state"
+      ],
+      "expectedSeam": "v3",
+      "goodSignal": [
+        "a new tax strategy per region behind an existing tax abstraction",
+        "the ordering is a property of the strategy or the pipeline, not a branch in the cart"
+      ],
+      "badSignal": [
+        "a region switch inside the total method",
+        "tax logic copied per region"
+      ]
+    }
+  ],
+  "probes": [
+    {
+      "id": "p-rule",
+      "prompt": "Marketing adds 'free shipping over 500'. Which class do you write, and does {{class}} have to change to run it?",
+      "targetsConcept": "open-closed",
+      "triggerWhen": {
+        "criterionId": "abstraction-use",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "a new implementation of an existing promotion abstraction",
+        "nothing existing changes"
+      ],
+      "badSignal": [
+        "a new branch",
+        "the cart changes"
+      ]
+    },
+    {
+      "id": "p-split",
+      "prompt": "{{class}} both stores items and computes totals. If something else computed the totals, what would the 'breakdown the customer can read' requirement gain?",
+      "targetsConcept": "srp",
+      "triggerWhen": {
+        "criterionId": "class-responsibilities",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "the breakdown becomes a value the calculation returns",
+        "the cart stays a plain collection"
+      ],
+      "badSignal": [
+        "nothing gained",
+        "no split"
+      ]
+    },
+    {
+      "id": "p-conflict",
+      "prompt": "Two promotions that must not combine are both in the cart. Which class notices, when, and what does the customer see?",
+      "targetsConcept": "error-modeling",
+      "triggerWhen": {
+        "criterionId": "behaviour",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "one class owns the decision",
+        "customer sees a named rejection"
+      ],
+      "badSignal": [
+        "each promotion checks the others",
+        "silently stacks",
+        "no class named"
+      ]
+    },
+    {
+      "id": "p-money",
+      "prompt": "Is a price a float in your design? Where does rounding happen, and how many places would you have to fix if it were wrong?",
+      "targetsConcept": "encapsulation",
+      "goodSignal": [
+        "a money type",
+        "rounding in one place"
+      ],
+      "badSignal": [
+        "float is fine",
+        "rounding everywhere"
+      ]
+    },
+    {
+      "id": "p-order",
+      "prompt": "Tax is applied after discounts. Where in your design is that ordering decided, and how many places change if it flips?",
+      "targetsConcept": "cohesion",
+      "goodSignal": [
+        "one place",
+        "names it"
+      ],
+      "badSignal": [
+        "scattered",
+        "cannot say"
+      ]
+    }
+  ],
+  "conceptTags": [
+    "open-closed",
+    "extensibility",
+    "immutability",
+    "cohesion",
+    "composition-over-inheritance"
+  ],
+  "commonFailureModes": [
+    {
+      "id": "f1",
+      "name": "Discount type enum with a switch",
+      "description": "A calculateTotal method branching on a DiscountType, so every new promotion edits it.",
+      "concept": "open-closed",
+      "frequency": "very-high"
+    },
+    {
+      "id": "f2",
+      "name": "Cart mutates its own totals",
+      "description": "Totals as mutable fields updated in place, making the breakdown impossible to reconstruct.",
+      "concept": "immutability",
+      "frequency": "high"
+    },
+    {
+      "id": "f3",
+      "name": "Money as a float",
+      "description": "Rounding errors and no place to express currency or precision.",
+      "concept": "immutability",
+      "frequency": "high"
+    },
+    {
+      "id": "f4",
+      "name": "Rules that know about each other",
+      "description": "Exclusivity encoded inside individual promotions rather than in a combination policy.",
+      "concept": "cohesion",
+      "frequency": "medium"
+    }
+  ],
+  "goldDesigns": {
+    "strong": {
+      "assumptions": [
+        "Single currency, two decimal places",
+        "Promotions arrive as data and are parsed into rule objects at load time",
+        "A rejected combination is reported, never silently resolved"
+      ],
+      "classes": [
+        {
+          "name": "Cart",
+          "stereotype": "class",
+          "responsibility": "Holds line items and their quantities",
+          "attributes": [
+            "lines"
+          ],
+          "methods": [
+            "add",
+            "remove",
+            "lines"
+          ]
+        },
+        {
+          "name": "LineItem",
+          "stereotype": "class",
+          "responsibility": "One product at a quantity",
+          "attributes": [
+            "product",
+            "quantity"
+          ],
+          "methods": [
+            "subtotal"
+          ]
+        },
+        {
+          "name": "Product",
+          "stereotype": "class",
+          "responsibility": "Something for sale with a unit price",
+          "attributes": [
+            "sku",
+            "price"
+          ],
+          "methods": []
+        },
+        {
+          "name": "Money",
+          "stereotype": "class",
+          "responsibility": "An immutable amount with fixed precision",
+          "attributes": [
+            "cents"
+          ],
+          "methods": [
+            "plus",
+            "minus",
+            "percent"
+          ]
+        },
+        {
+          "name": "Promotion",
+          "stereotype": "interface",
+          "responsibility": "A rule that may produce an adjustment for a cart",
+          "attributes": [],
+          "methods": [
+            "applyTo"
+          ]
+        },
+        {
+          "name": "PercentOffLine",
+          "stereotype": "class",
+          "responsibility": "Takes a percentage off one line",
+          "attributes": [
+            "sku",
+            "percent"
+          ],
+          "methods": [
+            "applyTo"
+          ]
+        },
+        {
+          "name": "FixedOffCart",
+          "stereotype": "class",
+          "responsibility": "Takes a fixed amount off the cart subtotal",
+          "attributes": [
+            "amount"
+          ],
+          "methods": [
+            "applyTo"
+          ]
+        },
+        {
+          "name": "Adjustment",
+          "stereotype": "class",
+          "responsibility": "One named change to the price for the breakdown",
+          "attributes": [
+            "label",
+            "amount",
+            "source"
+          ],
+          "methods": []
+        },
+        {
+          "name": "CombinationPolicy",
+          "stereotype": "interface",
+          "responsibility": "Decides which candidate adjustments may apply together",
+          "attributes": [],
+          "methods": [
+            "resolve"
+          ]
+        },
+        {
+          "name": "ExclusiveBestPricePolicy",
+          "stereotype": "class",
+          "responsibility": "Rejects forbidden pairs and keeps the cheaper outcome",
+          "attributes": [
+            "exclusions"
+          ],
+          "methods": [
+            "resolve"
+          ]
+        },
+        {
+          "name": "TaxStrategy",
+          "stereotype": "interface",
+          "responsibility": "Computes tax on a discounted subtotal",
+          "attributes": [],
+          "methods": [
+            "taxOn"
+          ]
+        },
+        {
+          "name": "FlatRateTax",
+          "stereotype": "class",
+          "responsibility": "A single percentage on the discounted subtotal",
+          "attributes": [
+            "rate"
+          ],
+          "methods": [
+            "taxOn"
+          ]
+        },
+        {
+          "name": "PricingEngine",
+          "stereotype": "class",
+          "responsibility": "Prices a cart by running promotions then policy then tax into a breakdown",
+          "attributes": [
+            "promotions",
+            "policy",
+            "tax"
+          ],
+          "methods": [
+            "price"
+          ]
+        },
+        {
+          "name": "Breakdown",
+          "stereotype": "class",
+          "responsibility": "The immutable priced result the customer reads",
+          "attributes": [
+            "lines",
+            "adjustments",
+            "tax",
+            "total"
+          ],
+          "methods": []
+        }
+      ],
+      "relationships": [
+        {
+          "from": "Cart",
+          "to": "LineItem",
+          "kind": "has-a"
+        },
+        {
+          "from": "LineItem",
+          "to": "Product",
+          "kind": "has-a"
+        },
+        {
+          "from": "LineItem",
+          "to": "Money",
+          "kind": "uses"
+        },
+        {
+          "from": "PricingEngine",
+          "to": "Cart",
+          "kind": "uses"
+        },
+        {
+          "from": "PricingEngine",
+          "to": "Promotion",
+          "kind": "has-a"
+        },
+        {
+          "from": "PricingEngine",
+          "to": "CombinationPolicy",
+          "kind": "uses"
+        },
+        {
+          "from": "PricingEngine",
+          "to": "TaxStrategy",
+          "kind": "uses"
+        },
+        {
+          "from": "PricingEngine",
+          "to": "Breakdown",
+          "kind": "uses"
+        },
+        {
+          "from": "PercentOffLine",
+          "to": "Promotion",
+          "kind": "implements"
+        },
+        {
+          "from": "FixedOffCart",
+          "to": "Promotion",
+          "kind": "implements"
+        },
+        {
+          "from": "Promotion",
+          "to": "Adjustment",
+          "kind": "uses"
+        },
+        {
+          "from": "ExclusiveBestPricePolicy",
+          "to": "CombinationPolicy",
+          "kind": "implements"
+        },
+        {
+          "from": "FlatRateTax",
+          "to": "TaxStrategy",
+          "kind": "implements"
+        },
+        {
+          "from": "Breakdown",
+          "to": "Adjustment",
+          "kind": "has-a"
+        },
+        {
+          "from": "Adjustment",
+          "to": "Money",
+          "kind": "has-a"
+        }
+      ],
+      "tradeoffs": "Pricing is a pure function from cart plus rules to a Breakdown, rather than totals mutated on the cart, so the same cart can be priced under two candidate rule sets and compared. Exclusivity lives in a policy rather than inside promotions, because a rule that knows about other rules has to change whenever the catalogue does.",
+      "decisions": [
+        {
+          "what": "Pricing is a separate engine returning an immutable Breakdown",
+          "alternative": "Cart.total() mutating running totals",
+          "why": "The breakdown requirement needs every adjustment recorded, and comparing two outcomes needs pricing to be repeatable."
+        },
+        {
+          "what": "Exclusivity is a CombinationPolicy",
+          "alternative": "Each promotion lists what it conflicts with",
+          "why": "Rules that know about each other grow quadratically; a policy is one place."
+        },
+        {
+          "what": "Money is a fixed-precision value",
+          "alternative": "float",
+          "why": "Rounding has one owner, and percent-off is defined once."
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-total",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "PricingEngine",
+              "method": "price",
+              "note": ""
+            },
+            {
+              "className": "Cart",
+              "method": "lines",
+              "note": ""
+            },
+            {
+              "className": "LineItem",
+              "method": "subtotal",
+              "note": "per line"
+            },
+            {
+              "className": "PercentOffLine",
+              "method": "applyTo",
+              "note": "yields one Adjustment"
+            },
+            {
+              "className": "Money",
+              "method": "percent",
+              "note": "10% of the line subtotal"
+            },
+            {
+              "className": "ExclusiveBestPricePolicy",
+              "method": "resolve",
+              "note": "single candidate — allowed"
+            },
+            {
+              "className": "FlatRateTax",
+              "method": "taxOn",
+              "note": "on the discounted subtotal"
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-scopes",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "PricingEngine",
+              "method": "price",
+              "note": ""
+            },
+            {
+              "className": "PercentOffLine",
+              "method": "applyTo",
+              "note": "line-scoped"
+            },
+            {
+              "className": "FixedOffCart",
+              "method": "applyTo",
+              "note": "cart-scoped, on the post-line subtotal"
+            },
+            {
+              "className": "ExclusiveBestPricePolicy",
+              "method": "resolve",
+              "note": "both allowed"
+            },
+            {
+              "className": "FlatRateTax",
+              "method": "taxOn",
+              "note": ""
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-conflict",
+          "outcome": "refused",
+          "steps": [
+            {
+              "className": "PricingEngine",
+              "method": "price",
+              "note": ""
+            },
+            {
+              "className": "PercentOffLine",
+              "method": "applyTo",
+              "note": ""
+            },
+            {
+              "className": "FixedOffCart",
+              "method": "applyTo",
+              "note": ""
+            },
+            {
+              "className": "ExclusiveBestPricePolicy",
+              "method": "resolve",
+              "note": "forbidden pair — rejects with the pair named"
+            }
+          ]
+        }
+      ]
+    },
+    "enum-switch": {
+      "assumptions": [],
+      "classes": [
+        {
+          "name": "Cart",
+          "stereotype": "class",
+          "responsibility": "Stores items, applies discounts, computes tax and total",
+          "attributes": [
+            "items",
+            "discounts",
+            "total"
+          ],
+          "methods": [
+            "addItem",
+            "removeItem",
+            "calculateTotal",
+            "applyDiscount"
+          ]
+        },
+        {
+          "name": "Item",
+          "stereotype": "class",
+          "responsibility": "A product and quantity",
+          "attributes": [
+            "name",
+            "price",
+            "quantity"
+          ],
+          "methods": []
+        },
+        {
+          "name": "DiscountType",
+          "stereotype": "enum",
+          "responsibility": "PERCENT, FIXED",
+          "attributes": [],
+          "methods": []
+        },
+        {
+          "name": "Discount",
+          "stereotype": "class",
+          "responsibility": "A discount with a type and a value",
+          "attributes": [
+            "type",
+            "value"
+          ],
+          "methods": []
+        }
+      ],
+      "relationships": [
+        {
+          "from": "Cart",
+          "to": "Item",
+          "kind": "has-a"
+        },
+        {
+          "from": "Cart",
+          "to": "Discount",
+          "kind": "has-a"
+        },
+        {
+          "from": "Discount",
+          "to": "DiscountType",
+          "kind": "has-a"
+        }
+      ],
+      "tradeoffs": "Straightforward; the switch in calculateTotal handles both discount types.",
+      "decisions": [],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-total",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "Cart",
+              "method": "calculateTotal",
+              "note": "switch on discount.type"
+            },
+            {
+              "className": "Cart",
+              "method": "applyDiscount",
+              "note": ""
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-scopes",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "Cart",
+              "method": "calculateTotal",
+              "note": "applies both in list order"
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-conflict",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "Cart",
+              "method": "calculateTotal",
+              "note": "both applied"
+            }
+          ]
+        }
+      ]
+    },
+    "rules-know-each-other": {
+      "assumptions": [
+        "Single currency"
+      ],
+      "classes": [
+        {
+          "name": "Cart",
+          "stereotype": "class",
+          "responsibility": "Holds line items",
+          "attributes": [
+            "lines"
+          ],
+          "methods": [
+            "add",
+            "remove"
+          ]
+        },
+        {
+          "name": "LineItem",
+          "stereotype": "class",
+          "responsibility": "A product at a quantity",
+          "attributes": [
+            "product",
+            "quantity"
+          ],
+          "methods": [
+            "subtotal"
+          ]
+        },
+        {
+          "name": "Product",
+          "stereotype": "class",
+          "responsibility": "Something for sale with a price",
+          "attributes": [
+            "sku",
+            "price"
+          ],
+          "methods": []
+        },
+        {
+          "name": "Promotion",
+          "stereotype": "interface",
+          "responsibility": "Applies itself to a cart and knows which promotions it conflicts with",
+          "attributes": [],
+          "methods": [
+            "applyTo",
+            "conflictsWith"
+          ]
+        },
+        {
+          "name": "PercentOff",
+          "stereotype": "class",
+          "responsibility": "Percentage off a line",
+          "attributes": [
+            "percent",
+            "conflicts"
+          ],
+          "methods": [
+            "applyTo",
+            "conflictsWith"
+          ]
+        },
+        {
+          "name": "FixedOff",
+          "stereotype": "class",
+          "responsibility": "Fixed amount off the cart",
+          "attributes": [
+            "amount",
+            "conflicts"
+          ],
+          "methods": [
+            "applyTo",
+            "conflictsWith"
+          ]
+        },
+        {
+          "name": "Checkout",
+          "stereotype": "class",
+          "responsibility": "Applies each promotion in turn, then tax, and prints the total",
+          "attributes": [
+            "promotions",
+            "taxRate"
+          ],
+          "methods": [
+            "total"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "Cart",
+          "to": "LineItem",
+          "kind": "has-a"
+        },
+        {
+          "from": "LineItem",
+          "to": "Product",
+          "kind": "has-a"
+        },
+        {
+          "from": "Checkout",
+          "to": "Cart",
+          "kind": "uses"
+        },
+        {
+          "from": "Checkout",
+          "to": "Promotion",
+          "kind": "has-a"
+        },
+        {
+          "from": "PercentOff",
+          "to": "Promotion",
+          "kind": "implements"
+        },
+        {
+          "from": "FixedOff",
+          "to": "Promotion",
+          "kind": "implements"
+        }
+      ],
+      "tradeoffs": "Each promotion declares its own conflicts so the checkout does not need a separate rules table.",
+      "decisions": [
+        {
+          "what": "Promotions know their conflicts",
+          "alternative": "A central policy",
+          "why": "Keeps the knowledge next to the rule."
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-total",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "Checkout",
+              "method": "total",
+              "note": ""
+            },
+            {
+              "className": "PercentOff",
+              "method": "applyTo",
+              "note": ""
+            },
+            {
+              "className": "Checkout",
+              "method": "total",
+              "note": "tax as a rate multiplied in"
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-scopes",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "Checkout",
+              "method": "total",
+              "note": ""
+            },
+            {
+              "className": "PercentOff",
+              "method": "applyTo",
+              "note": ""
+            },
+            {
+              "className": "FixedOff",
+              "method": "applyTo",
+              "note": ""
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-conflict",
+          "outcome": "refused",
+          "steps": [
+            {
+              "className": "Checkout",
+              "method": "total",
+              "note": ""
+            },
+            {
+              "className": "PercentOff",
+              "method": "conflictsWith",
+              "note": "asks every other promotion"
+            },
+            {
+              "className": "FixedOff",
+              "method": "conflictsWith",
+              "note": "asks every other promotion"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "critiquePairs": [
+    {
+      "id": "cp-1",
+      "left": "enum-switch",
+      "right": "strong",
+      "question": "A new promotion type arrives every week. Which design absorbs that by adding a class rather than editing one? Click the abstraction that makes it possible.",
+      "targetsConcept": "open-closed",
+      "answer": {
+        "design": "strong",
+        "className": "Promotion"
+      },
+      "telling": "On the right, a promotion is an implementation of Promotion; a new one is a new class and the engine never changes. On the left, DiscountType is an enum and calculateTotal switches on it, so every new promotion is a new case in a method the whole cart depends on. The brief warned that the rules are written by people who do not deploy code — an enum is a deploy."
+    },
+    {
+      "id": "cp-2",
+      "left": "strong",
+      "right": "rules-know-each-other",
+      "question": "Two promotions must never stack. In which design is that decided in exactly one place? Click it.",
+      "targetsConcept": "cohesion",
+      "answer": {
+        "design": "strong",
+        "className": "CombinationPolicy"
+      },
+      "telling": "On the left, exclusivity is a CombinationPolicy — one class that sees all candidates and decides. On the right, each promotion lists what it conflicts with, so adding a promotion means editing every promotion it must not combine with, and two rules can disagree about each other. Knowledge that is about pairs belongs in one place that sees pairs."
+    }
+  ],
+  "calibrationSet": [
+    {
+      "designId": "strong",
+      "label": "strong",
+      "expectedBands": {
+        "requirement-coverage": [
+          3,
+          4
+        ],
+        "class-responsibilities": [
+          3,
+          4
+        ],
+        "coupling-cohesion": [
+          3,
+          4
+        ],
+        "abstraction-use": [
+          3,
+          4
+        ],
+        "behaviour": [
+          3,
+          4
+        ],
+        "edge-cases": [
+          2,
+          4
+        ]
+      }
+    },
+    {
+      "designId": "enum-switch",
+      "label": "enum-switch",
+      "expectedBands": {
+        "requirement-coverage": [
+          1,
+          4
+        ],
+        "class-responsibilities": [
+          0,
+          2
+        ],
+        "coupling-cohesion": [
+          2,
+          4
+        ],
+        "abstraction-use": [
+          0,
+          1
+        ],
+        "behaviour": [
+          0,
+          2
+        ],
+        "edge-cases": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "designId": "rules-know-each-other",
+      "label": "rules-know-each-other",
+      "expectedBands": {
+        "requirement-coverage": [
+          2,
+          4
+        ],
+        "class-responsibilities": [
+          2,
+          4
+        ],
+        "coupling-cohesion": [
+          3,
+          4
+        ],
+        "abstraction-use": [
+          1,
+          3
+        ],
+        "behaviour": [
+          2,
+          4
+        ],
+        "edge-cases": [
+          1,
+          3
+        ]
+      }
+    }
+  ],
+  "nextProblems": [
+    "notification-service",
+    "splitwise"
+  ]
+}
