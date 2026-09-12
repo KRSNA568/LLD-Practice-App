@@ -181,11 +181,11 @@
       "mustIntroduce": [
         "size",
         "dimension",
-        "grid",
         "configurable",
         "width",
-        "length",
-        "n"
+        "boardsize",
+        "gridsize",
+        "nxn"
       ],
       "expectedSeam": "v1",
       "goodSignal": [
