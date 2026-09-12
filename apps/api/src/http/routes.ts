@@ -14,6 +14,7 @@ import {
   type PracticeService,
 } from '../app/PracticeService.js'
 import { InvalidTransitionError } from '../domain/attempt/AttemptStateMachine.js'
+import type { CoachService } from '../app/CoachService.js'
 import type { ContentStore } from '../infra/content/ContentStore.js'
 
 /**
@@ -31,13 +32,35 @@ const wrap =
     handler(req, res).catch(next)
   }
 
-export function createRouter(service: PracticeService, content: ContentStore): Router {
+export function createRouter(service: PracticeService, content: ContentStore, coach?: CoachService): Router {
   const router = Router()
 
   router.get(
     '/problems',
     wrap(async (_req, res) => {
       res.json(await service.listProblems(DEMO_LEARNER_ID))
+    }),
+  )
+
+  router.get(
+    '/attempts/:id/notes',
+    wrap(async (req, res) => {
+      const attempt = await service.getAttempt(req.params.id!)
+      const results = attempt.report?.results ?? []
+      res.json(coach ? await coach.notesFor(attempt.id, results) : { review: {}, lessons: {}, lessonable: [], live: false })
+    }),
+  )
+
+  router.post(
+    '/attempts/:id/lessons/:criterionId',
+    wrap(async (req, res) => {
+      if (!coach) throw new NotFoundError('The mentor')
+      const lesson = await coach.lessonFor(req.params.id!, req.params.criterionId!)
+      if (!lesson) {
+        res.status(204).end()
+        return
+      }
+      res.json({ lesson })
     }),
   )
 

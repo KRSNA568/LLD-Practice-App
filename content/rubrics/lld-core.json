@@ -120,7 +120,7 @@
       "question": "Can the learner say what they chose, what they rejected, and defend it when pressed?",
       "judgedBy": "llm",
       "stage": "defend",
-      "conceptIds": ["domain-modeling", "design-rationale"],
+      "conceptIds": ["design-rationale", "domain-modeling"],
       "bands": {
         "0": "No decisions recorded and probes left unanswered.",
         "1": "Answers restate the design without reasoning, or dodge the question.",

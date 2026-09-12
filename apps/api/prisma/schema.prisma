@@ -121,3 +121,23 @@ model Critique {
 
   @@unique([learnerId, problemId, pairId])
 }
+
+/// Anything the AI mentor wrote, cached by the inputs that produced it. The key is
+/// a hash of (kind, prompt version, inputs); the same design re-opened costs no
+/// call, and a prompt change invalidates everything written under the old one.
+model AiNote {
+  id        String   @id
+  learnerId String
+  kind      String
+  key       String
+  attemptId String?
+  stage     String?
+  /// Criterion id for a lesson or explanation; null for a review note.
+  refId     String?
+  modelId   String
+  json      String
+  createdAt DateTime @default(now())
+
+  @@unique([kind, key])
+  @@index([attemptId])
+}

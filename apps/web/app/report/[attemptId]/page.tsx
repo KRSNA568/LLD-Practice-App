@@ -10,7 +10,9 @@ import {
   nextStage,
   STAGES,
   type Attempt,
+  type AttemptNotes,
   type EvaluationReport,
+  type MicroLesson,
   type EvidenceRef,
   type PublicProblem,
   type Rubric,
@@ -18,6 +20,8 @@ import {
 } from '@lld/contracts'
 import { api } from '@/lib/api'
 import { CriterionCard } from '@/components/CriterionCard'
+import { MentorNote } from '@/components/MentorNote'
+import { LessonDrawer } from '@/components/LessonDrawer'
 import { SubmittedDesign } from '@/components/SubmittedDesign'
 import { DesignDiffView } from '@/components/DesignDiff'
 import { StageRail } from '@/components/StageRail'
@@ -55,6 +59,11 @@ export default function ReportPage() {
   const [busy, setBusy] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout>>()
 
+  const [notes, setNotes] = useState<AttemptNotes | null>(null)
+  const notesTimer = useRef<ReturnType<typeof setTimeout>>()
+  const notesStarted = useRef<number>(0)
+  const [lesson, setLesson] = useState<{ criterionId: string; title: string; data: (MicroLesson & { modelId: string }) | null; loading: boolean; failed: boolean } | null>(null)
+
   useEffect(() => {
     let cancelled = false
 
@@ -89,6 +98,51 @@ export default function ReportPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attemptId])
+
+  // The mentor writes after the scores land, on its own queue. Poll for the note
+  // of the stage just completed for up to 25s, then stop and show nothing —
+  // never a placeholder pretending to be a note.
+  const settledStages = attempt?.report?.stagesCompleted.join(',') ?? ''
+  useEffect(() => {
+    if (!attempt?.report) return
+    let cancelled = false
+    notesStarted.current = Date.now()
+
+    async function pollNotes() {
+      try {
+        const n = await api.getNotes(attemptId)
+        if (cancelled) return
+        setNotes(n)
+        const latest = attempt!.report!.stagesCompleted.at(-1)
+        const waiting = latest && !n.review[latest] && Date.now() - notesStarted.current < 25_000
+        if (waiting) notesTimer.current = setTimeout(pollNotes, 1500)
+      } catch {
+        if (!cancelled) notesTimer.current = setTimeout(pollNotes, 3000)
+      }
+    }
+    void pollNotes()
+    return () => {
+      cancelled = true
+      clearTimeout(notesTimer.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attemptId, settledStages])
+
+  async function learn(criterionId: string, title: string) {
+    const cached = notes?.lessons[criterionId]
+    if (cached) {
+      setLesson({ criterionId, title, data: cached, loading: false, failed: false })
+      return
+    }
+    setLesson({ criterionId, title, data: null, loading: true, failed: false })
+    try {
+      const r = await api.requestLesson(attemptId, criterionId)
+      setLesson({ criterionId, title, data: r?.lesson ?? null, loading: false, failed: !r?.lesson })
+      if (r?.lesson) setNotes((n) => (n ? { ...n, lessons: { ...n.lessons, [criterionId]: r.lesson } } : n))
+    } catch {
+      setLesson({ criterionId, title, data: null, loading: false, failed: true })
+    }
+  }
 
   function cite(ref: EvidenceRef) {
     setHighlight(ref)
@@ -290,6 +344,12 @@ export default function ReportPage() {
                 <p className="text-xs text-ink-faint">{STAGE_INTRO[stage]}</p>
               </div>
 
+              <MentorNote
+                text={notes?.review[stage]?.text ?? null}
+                pending={!notes || (!notes.review[stage] && stage === report.stagesCompleted.at(-1) && Date.now() - notesStarted.current < 25_000)}
+                live={notes?.live ?? false}
+              />
+
               {stage === 'change' && attempt.design && attempt.revision && (
                 <div className="mb-4">
                   <DesignDiffView before={attempt.design} after={attempt.revision.design} highlight={highlight} />
@@ -326,6 +386,12 @@ export default function ReportPage() {
                       result={result}
                       criterion={rubric?.criteria.find((c) => c.id === result.criterionId)}
                       onCite={cite}
+                      onLearn={
+                        notes?.lessonable.includes(result.criterionId)
+                          ? () => learn(result.criterionId, rubric?.criteria.find((c) => c.id === result.criterionId)?.name ?? result.criterionId)
+                          : undefined
+                      }
+                      learnLabel={notes?.lessons[result.criterionId] ? 'Reopen the lesson' : 'Learn the concept behind this'}
                     />
                   ))}
               </motion.ul>
@@ -396,6 +462,14 @@ export default function ReportPage() {
           )}
         </div>
       </div>
+      <LessonDrawer
+        open={lesson !== null}
+        title={lesson?.title ?? ''}
+        lesson={lesson?.data ?? null}
+        loading={lesson?.loading ?? false}
+        failed={lesson?.failed ?? false}
+        onClose={() => setLesson(null)}
+      />
     </div>
   )
 }

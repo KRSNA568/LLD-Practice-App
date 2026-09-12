@@ -257,3 +257,25 @@ and the default is what the free tier actually serves.
 **Also:** a key had been pasted into the tracked `apps/api/.env`, which Prisma auto-loads — so the
 deterministic test suite silently started calling the network. Key moved to the gitignored
 `.env.local`; the integration suite now pins `LLD_FORCE_STUB=1` regardless of environment.
+
+## 12. The mentor named a class that did not exist — once in three runs
+
+**Where:** `apps/api/scripts/live-mentor.ts`, three live reviewer's notes from Groq on the
+god-class design, printing what prose grounding kept and dropped.
+
+**What happened:** the prompt tells the model to describe a suggested class in words rather than
+name it. Two runs complied fully. One ended with *"Start by extracting the findSpot behavior into a
+new class (e.g., SpotAllocator) and let ParkingLotManager depend on it"* — sound advice, and a
+class this learner does not have. Grounding dropped that sentence; the three that survived were
+all about `ParkingLotManager` and read as a complete note.
+
+**Judgement call:** I considered letting suggested names through when framed as suggestions
+("e.g."). Decided against it: the promise under *why trust this?* is *every class named here is
+one you wrote*, and a rule with an exception is a rule the learner cannot rely on. The filter stays;
+the model loses one sentence in three runs and the note is still good.
+
+**Also found on the same run:** Groq's JSON mode failed outright on the longer lesson output
+("Failed to generate JSON", a 400), which the adapter had been treating as the provider being
+down. It now retries once in plain mode, since every caller parses defensively anyway. And the
+free tier's per-minute token limit bit on the third run — a reminder that the mentor's calls sit
+on the queue behind the scores, never in front of them.

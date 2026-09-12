@@ -7,6 +7,7 @@ import express from 'express'
 import cors from 'cors'
 import { PrismaClient } from '@prisma/client'
 import { PracticeService } from './app/PracticeService.js'
+import { CoachService } from './app/CoachService.js'
 import { ContentStore } from './infra/content/ContentStore.js'
 import { InProcessQueue } from './infra/queue/InProcessQueue.js'
 import { createRouter, DEMO_LEARNER_ID, errorHandler } from './http/routes.js'
@@ -40,6 +41,18 @@ async function main(): Promise<void> {
   const llm = resolveLlmClient()
   const service = new PracticeService(prisma, content, queue, llm)
 
+  // The mentor writes after each stage lands, on the same queue, never on the
+  // learner's request path. If it fails the report simply has no note.
+  const coach = new CoachService(prisma, content, (id, stage) => service.loadContext(id, stage), llm)
+  service.onEvaluated = (attemptId, stage) => {
+    queue.enqueue(
+      async () => {
+        await coach.reviewStage(attemptId, stage)
+      },
+      { id: `note:${attemptId}:${stage}` },
+    )
+  }
+
   const app = express()
   app.use(cors())
   app.use(express.json({ limit: '1mb' }))
@@ -51,7 +64,7 @@ async function main(): Promise<void> {
       provider: resolveLlmProvider(),
     })
   })
-  app.use('/api', createRouter(service, content))
+  app.use('/api', createRouter(service, content, coach))
   app.use(errorHandler)
 
   app.listen(PORT, () => {

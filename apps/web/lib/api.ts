@@ -1,7 +1,9 @@
 import type {
   ApiError,
   Attempt,
+  AttemptNotes,
   ConceptsPayload,
+  MicroLesson,
   ProgressPayload,
   AttemptSummary,
   CritiqueVerdict,
@@ -79,6 +81,13 @@ export const api = {
     request<{ attempt: Attempt; draft: RawStageInput | null }>('/attempts', {
       method: 'POST',
       body: JSON.stringify({ problemId }),
+    }),
+
+  getNotes: (id: string) => request<AttemptNotes>(`/attempts/${id}/notes`),
+
+  requestLesson: (id: string, criterionId: string) =>
+    request<{ lesson: MicroLesson & { conceptId: string; modelId: string } } | undefined>(`/attempts/${id}/lessons/${criterionId}`, {
+      method: 'POST',
     }),
 
   getAttempt: (id: string) =>

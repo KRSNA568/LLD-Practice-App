@@ -17,12 +17,17 @@ import { LlmUnavailableError, type LlmClient, type LlmRequest, type LlmResponse 
  * exercised without unplugging anything.
  */
 export class StubLlmClient implements LlmClient {
-  readonly id = 'stub-heuristic-v2'
+  readonly id = 'stub-heuristic-v3'
 
   async complete(request: LlmRequest): Promise<LlmResponse> {
     if (process.env.LLD_STUB_FAIL === '1') {
       throw new LlmUnavailableError('Stub evaluator failing deliberately (LLD_STUB_FAIL=1)')
     }
+
+    // Mentor tasks announce themselves on the first line; the evaluator does not.
+    const task = /^TASK: (\S+)/.exec(request.user)?.[1]
+    if (task === 'reviewer-note') return { text: JSON.stringify(stubReviewerNote(request.user)) }
+    if (task === 'micro-lesson') return { text: JSON.stringify(stubLesson(request.user)) }
 
     const submission = extractSubmission(request.user)
     const wanted = extractRequestedCriteria(request.user)
@@ -205,4 +210,61 @@ function judgeReasoning(s: Submission) {
 function firstClause(text: string): string {
   const clause = text.split(/(?<=[.!?])\s|,\s/)[0] ?? text
   return clause.slice(0, 120).trim()
+}
+
+/* ------------------------------------------------------------------------- */
+/* Mentor stand-ins                                                           */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * The stub's mentor is a template over the lowest finding: enough to show the
+ * shape of the feature without a key, honest enough not to pretend to insight.
+ * It reads the findings block the real prompt carries.
+ */
+function lowestFinding(prompt: string): { name: string; score: number; concern: string; suggestion: string } | null {
+  const block = prompt.split('THE FINDINGS')[1] ?? ''
+  const findings = [...block.matchAll(/- (.+?) \((?:read|measured)\): (\d)\/4\n\s+concern: (.*)\n\s+suggestion: (.*)/g)].map((m) => ({
+    name: m[1]!,
+    score: Number(m[2]),
+    concern: m[3]!.trim(),
+    suggestion: m[4]!.trim(),
+  }))
+  if (findings.length === 0) return null
+  return findings.sort((a, b) => a.score - b.score)[0]!
+}
+
+function firstClass(prompt: string): string | null {
+  const m = /CLASS NAMES YOU MAY MENTION: ([^\n]+)/.exec(prompt)
+  const first = m?.[1]?.split(',')[0]?.trim()
+  return first && first !== '(none)' ? first : null
+}
+
+function stubReviewerNote(prompt: string): { note: string } {
+  const low = lowestFinding(prompt)
+  if (!low) return { note: 'Nothing here was scored, so there is nothing to say yet. Submit a design and come back.' }
+  if (low.score >= 3) {
+    return {
+      note: `Every criterion is at par, and ${low.name.toLowerCase()} is the closest to the line. ${low.suggestion} That is the place to push next.`,
+    }
+  }
+  return {
+    note: `The finding that would change this design most is ${low.name.toLowerCase()}. ${low.concern} Start there: ${low.suggestion.replace(/\.$/, '')}. The other findings get easier once that one moves.`,
+  }
+}
+
+function stubLesson(prompt: string): { title: string; body: string; example: { before: string; after: string } } {
+  const name = /name: (.+)/.exec(prompt)?.[1]?.trim() ?? 'the concept'
+  const plain = /plain: (.+)/.exec(prompt)?.[1]?.trim() ?? ''
+  const tell = /when it is missing: (.+)/.exec(prompt)?.[1]?.trim() ?? ''
+  const concern = /concern: (.+)/.exec(prompt)?.[1]?.trim() ?? ''
+  const suggestion = /suggestion: (.+)/.exec(prompt)?.[1]?.trim() ?? ''
+  const cls = firstClass(prompt) ?? 'your main class'
+  return {
+    title: `${name}, in your own design`,
+    body: `${plain} You can usually tell it is missing by this: ${tell.replace(/\.$/, '')}. In this problem the review found exactly that. ${concern} The fix is smaller than it looks, and it starts with one class.`,
+    example: {
+      before: `Right now ${cls} carries this responsibility alongside its others. ${concern}`,
+      after: `${suggestion} Once that is done, ${cls} keeps one job and the new responsibility has a home of its own.`,
+    },
+  }
 }

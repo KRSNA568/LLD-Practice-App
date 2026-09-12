@@ -47,6 +47,20 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
   }
 
   async complete(request: LlmRequest): Promise<LlmResponse> {
+    try {
+      return await this.send(request, request.json ?? false)
+    } catch (error) {
+      // Some providers' JSON mode fails on longer outputs with a 400 rather than a
+      // malformed reply. The callers all parse defensively, so plain mode is a
+      // fine second try — better than reporting the model as down.
+      if (request.json && error instanceof LlmUnavailableError && /JSON/i.test(error.message)) {
+        return this.send(request, false)
+      }
+      throw error
+    }
+  }
+
+  private async send(request: LlmRequest, jsonMode: boolean): Promise<LlmResponse> {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), this.timeoutMs)
 
@@ -61,7 +75,7 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
       ],
       max_tokens: request.maxTokens,
     }
-    if (request.json) body.response_format = { type: 'json_object' }
+    if (jsonMode) body.response_format = { type: 'json_object' }
 
     let response: Response
     try {

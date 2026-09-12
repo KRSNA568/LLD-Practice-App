@@ -3,6 +3,8 @@ import { execFileSync } from 'node:child_process'
 import { rmSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import type { DesignModel, RawStageInput } from '@lld/contracts'
+import { CoachService } from '../../apps/api/src/app/CoachService.js'
+import { StubLlmClient } from '../../apps/api/src/evaluation/llm/StubLlmClient.js'
 import { PracticeService } from '../../apps/api/src/app/PracticeService.js'
 import { ContentStore } from '../../apps/api/src/infra/content/ContentStore.js'
 import { InProcessQueue } from '../../apps/api/src/infra/queue/InProcessQueue.js'
@@ -17,6 +19,7 @@ const LEARNER = 'learner-test'
 
 let prisma: any
 let service: PracticeService
+let coach: CoachService
 let queue: InProcessQueue
 
 const designInput = (design: DesignModel): RawStageInput => ({
@@ -92,8 +95,12 @@ beforeEach(async () => {
   await prisma.evaluation.deleteMany({})
   await prisma.submission.deleteMany({})
   await prisma.attempt.deleteMany({})
+  await prisma.aiNote.deleteMany({})
   queue = new InProcessQueue({ maxRetries: 2, baseDelayMs: 1 })
-  service = new PracticeService(prisma, ContentStore.load(), queue)
+  const content = ContentStore.load()
+  service = new PracticeService(prisma, content, queue)
+  coach = new CoachService(prisma, content, (id, stage) => service.loadContext(id, stage), new StubLlmClient())
+  service.onEvaluated = (id, stage) => queue.enqueue(() => coach.reviewStage(id, stage).then(() => undefined))
 })
 
 async function designAndSettle(design: DesignModel, key = crypto.randomUUID(), problemId = 'parking-lot') {
@@ -410,5 +417,47 @@ describe('critique', () => {
 
     const history = await service.getHistory(LEARNER, 'parking-lot')
     expect(history.critique).toEqual({ answered: 2, correct: 1, total: 3 })
+  })
+})
+
+describe('the mentor', () => {
+  it('writes a grounded note after each stage lands, cached by content', async () => {
+    const settled = await designAndSettle(godClassDesign)
+    const notes = await coach.notesFor(settled.id, settled.report!.results)
+
+    expect(notes.review.design?.text).toBeTruthy()
+    expect(notes.review.design?.modelId).toMatch(/^stub/)
+    expect(notes.live).toBe(false)
+    // Low criteria are the ones a lesson can be asked for.
+    expect(notes.lessonable).toContain('abstraction-use')
+    expect(notes.lessonable).not.toContain('requirement-coverage')
+
+    const before = await prisma.aiNote.count()
+    await coach.reviewStage(settled.id, 'design')
+    expect(await prisma.aiNote.count()).toBe(before)
+  })
+
+  it('writes a lesson on request for a low criterion only, using the learner\'s classes', async () => {
+    const settled = await designAndSettle(godClassDesign)
+    const lesson = await coach.lessonFor(settled.id, 'abstraction-use')
+    expect(lesson?.conceptId).toBe('open-closed')
+    expect(lesson?.example.before).toContain('ParkingLotManager')
+
+    // At par → no lesson, and nothing stored.
+    expect(await coach.lessonFor(settled.id, 'requirement-coverage')).toBeNull()
+    expect((await coach.notesFor(settled.id, settled.report!.results)).lessons['abstraction-use']?.title).toBe(lesson?.title)
+  })
+
+  it('leaves the attempt untouched when the mentor fails', async () => {
+    const broken = new CoachService(prisma, ContentStore.load(), (id, stage) => service.loadContext(id, stage), {
+      id: 'broken',
+      complete: async () => {
+        throw new Error('down')
+      },
+    })
+    service.onEvaluated = (id, stage) => queue.enqueue(() => broken.reviewStage(id, stage).then(() => undefined))
+    const settled = await designAndSettle(strongDesign)
+    expect(settled.state).toBe('COMPLETED')
+    expect((await broken.notesFor(settled.id, settled.report!.results)).review.design).toBeUndefined()
   })
 })

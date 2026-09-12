@@ -277,16 +277,48 @@ single-player version of this.
 the declared design and the code is the most interesting feedback of all, and it needs both — which
 is why `SubmissionParser` declares facets rather than a boolean.
 
-**Concept-level mastery.** Criteria carry `conceptIds`; `content/concepts/concept-graph.json` has 20
-concepts with prerequisite edges; `NextProblem` already follows the chain from a weak criterion to a
-problem that exercises it. The next step is per-concept mastery across problems, so *"abstraction-use
-keeps scoring 1"* becomes *"you hardcode the thing that varies — here it is in three problems."*
-
 **Generated probes as a `ProbeSource`.** Authored probes are sharp and safe. A generated source would
 be a second implementation behind the same selection, with the grounding validator applied to the
 question as well as the answer.
 
-## 11. Limitations
+## 11. The mentor: where AI reads and where it counts
+
+The evaluator's rule — *AI reads; math measures* — was written for scoring. The mentor extends it
+to everything else a good reviewer does across the table: synthesise, explain, teach. None of it
+touches a score. `apps/api/src/coach/` is a separate module with its own prompt version
+(`COACH_PROMPT_VERSION`), its own cache, and one dependency on the evaluator: it reads the same
+`EvaluationContext` and the results the evaluators produced.
+
+| Surface | What the model does | Grounded how | When it runs |
+|---|---|---|---|
+| **Reviewer's note** | 3–5 sentences over one stage: the finding that matters most, why here, what first | per sentence — any sentence naming a class the learner did not write is dropped; < 2 survivors → no note | after each stage's evaluation lands, on the queue |
+| **Micro-lesson** | the authored concept (`plain`, `tell`) explained through the learner's own classes, with a before/after | body and both halves of the example, same rule | on request, criteria scored ≤ 2 only |
+
+**Grounding for prose** is coarser than for evidence. A citation resolves or it does not; a sentence
+can only be checked for the identifiers it names — anything in backticks or CamelCase. So the rule
+is per sentence: name something the learner never wrote and the sentence goes. The model is told
+to describe a suggested class in words ("a component that owns pricing") rather than name it, and
+in practice it complies; when it does not, the sentence is removed before the learner sees it and
+the UI says so in one line under *why trust this?*
+
+**Caching is content-addressed.** `AiNote.key` is a hash of (kind, prompt version, the inputs the
+prompt was built from — the design, the scores and concerns). The same design re-opened costs
+nothing; the same design resubmitted costs nothing; a prompt change regenerates everything. A model
+failure is not cached, so an unavailable provider today does not become an empty note forever.
+
+**Failure is absence.** The mentor hangs off `PracticeService.onEvaluated`, a callback rather than a
+dependency, so the practice loop knows nothing about it and a coach failure can never change an
+attempt's state. The report shows a skeleton for 25 seconds, then nothing — never a placeholder
+pretending to be a note. The stub client answers both prompts with templates over the lowest
+finding, so a clone with no key still shows the shape of the feature, labelled *stand-in*.
+
+**Concept mastery** closes the loop between the mentor and the curriculum. Every criterion names the
+concepts it produces evidence about; `ConceptMastery` folds the last five attempts' scores into a
+standing per concept (`new` / `developing` / `solid`, with the evidence count shown), and the
+Concepts page and dashboard read that — nothing is graded a second time. Loading the concept graph
+at boot and checking the rubric against it found two concepts the rubric named that the graph lacked.
+
+## 12. Limitations
 
 - **Requirement coverage matches vocabulary.** Authored keywords stop `Vehicle` from covering the fee
   requirement, but a class named `FeeThing` that does nothing still counts. Coverage asks *"is this
@@ -294,8 +326,11 @@ question as well as the answer.
 - **The diff cannot see intent.** A rename reads as remove + add; the report says so and the rationale
   box exists partly for that reason.
 - **The stub is a heuristic.** With no API key, `edge-cases` and `reasoning` come from keyword rules
-  over the same prompt the real model sees. It separates strong from weak reliably enough to demo and
-  to calibrate, and does not pretend to be a language model.
+  over the same prompt the real model sees, and the mentor's note is a template over the lowest
+  finding. It separates strong from weak reliably enough to demo and to calibrate, and does not
+  pretend to be a language model — the UI labels it a stand-in.
+- **Prose grounding checks names, not claims.** A sentence that names only real classes can still
+  say something wrong about them. Evidence grounding is exact; prose grounding is a filter.
 - **Walkthrough checks trust the walkthrough.** A learner can write steps that resolve and still be
   wrong about the order. Order is not judged; existence and distribution are.
 - **Four problems, one learner.** Sixteen more are catalogued but not instrumented to v2 depth; there

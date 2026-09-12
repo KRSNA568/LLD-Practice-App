@@ -25,10 +25,15 @@ export function CriterionCard({
   result,
   criterion,
   onCite,
+  onLearn,
+  learnLabel,
 }: {
   result: CriterionResult
   criterion: Criterion | undefined
   onCite: (ref: EvidenceRef) => void
+  /** When set, a low score offers a lesson on the concept behind it. */
+  onLearn?: () => void
+  learnLabel?: string
 }) {
   const tone = TONE[scoreTone(result.score)]
   const isMachine = result.evaluatorKind === 'deterministic'
@@ -104,6 +109,16 @@ export function CriterionCard({
               </span>
               <p className="text-[13px] leading-relaxed text-ink-muted">{result.suggestion}</p>
             </div>
+          )}
+
+          {onLearn && (
+            <button
+              onClick={onLearn}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-judged/30 bg-judged/[0.06] px-3 py-1.5 text-[12px] font-medium text-judged transition-colors hover:bg-judged/[0.12]"
+            >
+              <span aria-hidden>◈</span>
+              {learnLabel ?? 'Learn the concept'}
+            </button>
           )}
 
           {result.evidence.length > 0 && (

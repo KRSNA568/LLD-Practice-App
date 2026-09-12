@@ -54,7 +54,7 @@ npx tsx apps/api/scripts/live-llm.ts god-class defend   # exercise the live prov
 ```
 
 ```bash
-npm test         # 172 tests, including a calibration suite over 13 gold designs
+npm test         # 186 tests, including a calibration suite over 13 gold designs
 npm run typecheck
 ```
 
@@ -74,7 +74,8 @@ About ten minutes, and it shows every part of the product:
 3. The report names the god class and **quotes your sentence back with a count**, tells you pricing
    has no seam and is living inside that class, and shows that one class performs 100% of every
    scenario while the refusal scenario ends as if nothing went wrong. Click any evidence chip — it
-   highlights the exact row, or the exact walkthrough step.
+   highlights the exact row, or the exact walkthrough step. A few seconds later **your mentor's note**
+   appears above the cards. Click **Learn the concept behind this** on *Use of abstraction*.
 4. **Continue.** The requirements change — EV charging spots billed per kWh. Your design is prefilled.
    Absorb it the lazy way: add an `isElectric` attribute to `Spot` and a `calculateKwhFee` method to
    the manager. Watch the blast-radius counter. Submit.
@@ -99,7 +100,8 @@ measured findings still arrive, and the report says so honestly rather than show
 | **Evaluation** | Eight criteria, one owner each. **Six measured** from the class graph, the walkthroughs and the diff. **Two read** by an LLM — the two that need reading. |
 | **Feedback** | Every finding cites a class, relationship, assumption, decision, walkthrough step or quote **in your submission**, verified to exist before you see it. |
 | **Defend** | Up to three probes, chosen by what the review found and worded around your own class names. |
-| **Honesty** | Measured findings and AI findings are visually distinct. Missing criteria are absent, never zero. |
+| **Mentor** | After each stage, an AI note over the findings — the one thing that matters most, in your class names. On any low criterion, a two-minute lesson on the concept behind it, illustrated with your own classes. Every sentence is checked against your design before you see it. |
+| **Honesty** | Measured findings and AI findings are visually distinct. Missing criteria are absent, never zero. The mentor's note is visibly AI and says why it can be trusted. |
 | **History** | Per-criterion trend across stages, a callout when the same criterion keeps failing, and a next problem chosen to exercise it. |
 | **Curriculum** | 22 concepts in five tiers. Your standing on each is folded from the criteria that produce evidence about it — no separate grading. The dashboard shows your path; the map shows what depends on what and where to practise it. |
 
@@ -135,7 +137,8 @@ apps/api/src/
   evaluation/      Evaluator port         ← a new evaluator plugs in here
     rules/checks/  one file per measured check, each declaring its stage and facets
     llm/           prompt with band anchors, providers, EvidenceGroundingValidator
-  app/             PracticeService — stages, submissions, critique, next problem
+  coach/           the mentor: prose grounding, prompts, Reviewer, LessonWriter, NoteStore (cache)
+  app/             PracticeService — stages, submissions, critique, next problem; CoachService
   infra/           prisma · queue · content loader
 apps/web/          Next.js · Tailwind · Framer Motion
 packages/contracts/  shared types and zod schemas

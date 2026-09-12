@@ -100,6 +100,20 @@ describe('OpenAiCompatibleLlmClient', () => {
     await expect(client(fetch, { timeoutMs: 20 }).complete(request)).rejects.toThrow(/did not answer within/)
   })
 
+  it('falls back to plain mode when the provider cannot produce JSON mode output', async () => {
+    let n = 0
+    const { fetch, calls } = fakeFetch(() => {
+      n += 1
+      return n === 1
+        ? json(400, { error: { message: 'Failed to generate JSON. Please adjust your prompt.' } })
+        : json(200, { choices: [{ message: { content: '{"ok":1}' } }] })
+    })
+    const out = await client(fetch).complete(request)
+    expect(out.text).toBe('{"ok":1}')
+    expect(JSON.parse(String(calls[0]!.init.body)).response_format).toBeDefined()
+    expect(JSON.parse(String(calls[1]!.init.body)).response_format).toBeUndefined()
+  })
+
   it('rejects an empty completion so the evaluator retries rather than parsing nothing', async () => {
     const { fetch } = fakeFetch(() => json(200, { choices: [{ message: { content: '  ' } }] }))
     await expect(client(fetch).complete(request)).rejects.toThrow(/no text content/)

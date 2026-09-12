@@ -94,6 +94,13 @@ export class PracticeService {
   private readonly parser = new StructuredDesignParser()
   private readonly pipeline: EvaluationPipeline
 
+  /**
+   * Fires after a stage's evaluation is stored. The coach hangs off this; it is a
+   * callback rather than a dependency so the practice loop knows nothing about
+   * mentoring and a coach failure can never touch an attempt's state.
+   */
+  onEvaluated: ((attemptId: string, stage: Stage) => void) | null = null
+
   constructor(
     private readonly prisma: PrismaClient,
     private readonly content: ContentStore,
@@ -384,6 +391,29 @@ export class PracticeService {
         failureReason: outcome.failures.map((f) => f.reason).join('; ') || null,
       },
     })
+
+    this.onEvaluated?.(attemptId, stage)
+  }
+
+  /**
+   * The context an evaluator saw for a completed stage, with its results — what
+   * the coach reads. Null until that stage has been evaluated.
+   */
+  async loadContext(
+    attemptId: string,
+    stage: Stage,
+  ): Promise<{ ctx: EvaluationContext; results: CriterionResult[]; learnerId: string } | null> {
+    const row = await this.prisma.attempt.findUnique({ where: { id: attemptId }, include: WITH_ALL })
+    if (!row) return null
+    const evaluation = row.evaluations.find((e) => e.stage === stage)
+    if (!evaluation) return null
+    const problem = this.requireProblem(row.problemId)
+    const rubric = this.content.rubricFor(problem)
+    return {
+      ctx: { ...this.contextFor(stage, row, problem), rubric },
+      results: JSON.parse(evaluation.resultsJson) as CriterionResult[],
+      learnerId: row.learnerId,
+    }
   }
 
   /** Assembles what each stage's evaluators are allowed to see. */
