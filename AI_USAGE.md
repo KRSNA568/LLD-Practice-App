@@ -341,3 +341,34 @@ to carry the change's vocabulary. The existing test that lets a learner name the
 `MeteredPricing` and say "bills per kWh" in the rationale still passes; the unrelated-seam case now
 scores 0 with "none of them speaks to the requirement that changed". The generated problem was
 worth more as a test of the evaluator than as content.
+
+## 16. Two commits diagnosed a rate limit; the third run showed the diagnosis was beside the point
+
+**Where:** `OpenAiCompatibleLlmClient.ts` (commits "fall back to the wait time in the error body"
+and "prefer the body's wait time over the reset-tokens header"), during the authoring runs for
+`lru-cache`, `rate-limiter` and `notification-service`.
+
+**What happened:** three authoring runs died with a Groq 429 whose body said "try again in 4.62s"
+— well inside the adapter's 30s wait. I concluded the retry was not firing because the reset header
+was missing, added a body-text fallback, and committed. The next run failed on a 15.33s wait. I
+concluded the header was present but longer than the cap and winning the `??`, flipped the order,
+and committed again with that story in the message. The next run failed on a 12.7s wait.
+
+Then a different error appeared: **413, "Request too large … Limit 8000, Requested 8474"**. The
+small model has an 8,000-token *per-request* ceiling (input plus `max_tokens`), separate from the
+per-minute budget, and the authoring script's schema-repair prompt was echoing 6,000 characters of
+the previous reply on top of the original prompt. That is a structural overflow no retry can fix,
+and it is what actually ended the runs. With the echo cut to a 2,000-character tail, the fourth run
+completed end to end.
+
+**What I got wrong:** both commit messages assert a cause I had inferred from one symptom and never
+observed. Whether the 429 retry fires live is still unverified — the run that finally succeeded
+never hit a 429, so the diagnostic I added to watch it fired zero times and was removed. The two
+adapter changes stay because each is right on its own terms (the body's number is computed for
+*this* request; the header is the whole bucket), not because they fixed anything I saw.
+
+**Also caught on the same pass:** the calibration suite globbed `*.json`, so an unreviewed
+`notification-service.draft.json` was already being run as a promoted problem — one test was
+failing on the draft's un-repaired weak design and would have failed on any draft. Drafts are
+excluded until renamed; the API was never affected, since it only serves ids whose `<id>.json`
+exists.
