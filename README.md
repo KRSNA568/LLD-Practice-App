@@ -59,7 +59,7 @@ npx tsx apps/api/scripts/live-llm.ts god-class defend   # exercise the live prov
 ```
 
 ```bash
-npm test         # 218 tests, including a calibration suite over 26 gold designs across 8 problems
+npm test         # 220 tests, including a calibration suite over 26 gold designs across 8 problems
 npm run typecheck
 ```
 

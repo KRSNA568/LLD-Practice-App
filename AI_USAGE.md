@@ -362,10 +362,17 @@ and it is what actually ended the runs. With the echo cut to a 2,000-character t
 completed end to end.
 
 **What I got wrong:** both commit messages assert a cause I had inferred from one symptom and never
-observed. Whether the 429 retry fires live is still unverified — the run that finally succeeded
-never hit a 429, so the diagnostic I added to watch it fired zero times and was removed. The two
-adapter changes stay because each is right on its own terms (the body's number is computed for
-*this* request; the header is the whole bucket), not because they fixed anything I saw.
+observed. The two adapter changes stay because each is right on its own terms (the body's number is
+computed for *this* request; the header is the whole bucket), not because they fixed anything I saw.
+
+**Then measured instead of inferred.** A twelve-line probe against a model with a 1,000
+output-tokens-per-minute cap, three calls in a row: the second call waited the 19 seconds the body
+asked for, retried, and was rate-limited *again*; the third call, six seconds later, went through.
+So the retry had been firing all along — Groq's "try again in N s" is when *some* capacity frees
+in a sliding window, not when this request fits, and one wait is often one short. The adapter now
+waits up to three times inside the same total budget (unit-tested: two 429s then success passes;
+a limit that never clears stops after the third wait). That is the fix the two earlier commits were
+reaching for, and it took a measurement rather than a theory to find it.
 
 **Also caught on the same pass:** the calibration suite globbed `*.json`, so an unreviewed
 `notification-service.draft.json` was already being run as a promoted problem — one test was

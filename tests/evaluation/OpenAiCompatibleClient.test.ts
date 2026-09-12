@@ -225,6 +225,28 @@ describe('rate limits', () => {
     expect(n).toBe(2)
   })
 
+  it('waits again when the retry is rate-limited too, as Groq does live', async () => {
+    let n = 0
+    const { fetch } = fakeFetch(() => {
+      n += 1
+      return n <= 2
+        ? json(429, { error: { message: `Rate limit reached. Please try again in 0.01s.` } })
+        : json(200, { choices: [{ message: { content: 'ok' } }] })
+    })
+    expect((await client(fetch).complete(request)).text).toBe('ok')
+    expect(n).toBe(3)
+  })
+
+  it('stops after a bounded number of waits when the limit never clears', async () => {
+    let n = 0
+    const { fetch } = fakeFetch(() => {
+      n += 1
+      return json(429, { error: { message: 'Rate limit reached. Please try again in 0.01s.' } })
+    })
+    await expect(client(fetch).complete(request)).rejects.toThrow(/Rate limited/)
+    expect(n).toBe(4) // the first send plus three waits, then it reports the limit
+  })
+
   it('does not wait for a limit that resets too far away', async () => {
     const { fetch } = fakeFetch(() => new Response('{}', { status: 429, headers: { 'retry-after': '600' } }))
     await expect(client(fetch).complete(request)).rejects.toThrow(/Rate limited/)

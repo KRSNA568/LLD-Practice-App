@@ -36,6 +36,8 @@ type ChatCompletion = {
 const DEFAULT_TIMEOUT_MS = 20_000
 /** Overridable for offline jobs (content authoring) that can afford to wait out a whole window. */
 const MAX_RATE_LIMIT_WAIT_MS = Number(process.env.LLD_LLM_MAX_WAIT_MS ?? 30_000)
+/** How many separate waits a single call may make inside that budget. */
+const MAX_RATE_LIMIT_WAITS = 3
 
 export class OpenAiCompatibleLlmClient implements LlmClient {
   readonly id: string
@@ -67,14 +69,27 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
       if (request.json && /JSON/i.test(error.message)) {
         return this.send(request, false)
       }
-      // A per-minute token limit tells us when it resets. Free tiers are tight
-      // enough that waiting it out once is the difference between a report and a
-      // partial one — but only once, and never longer than the caller would.
-      if (error.retryAfterMs !== undefined && error.retryAfterMs <= MAX_RATE_LIMIT_WAIT_MS) {
-        await new Promise((r) => setTimeout(r, error.retryAfterMs))
-        return this.send(request, request.json ?? false)
+      // A per-minute token limit tells us when it clears. Free tiers are tight
+      // enough that waiting it out is the difference between a report and a
+      // partial one. Observed live: Groq's "try again in 19s" is when *some*
+      // capacity frees in its sliding window, and the retry can be limited again
+      // — a second, shorter wait then succeeds. So wait more than once, but
+      // never longer in total than the caller would.
+      let last = error
+      let waited = 0
+      for (let i = 0; i < MAX_RATE_LIMIT_WAITS; i += 1) {
+        const wait = last.retryAfterMs
+        if (wait === undefined || waited + wait > MAX_RATE_LIMIT_WAIT_MS) break
+        await new Promise((r) => setTimeout(r, wait))
+        waited += wait
+        try {
+          return await this.send(request, request.json ?? false)
+        } catch (again) {
+          if (!(again instanceof LlmUnavailableError) || again.retryAfterMs === undefined) throw again
+          last = again
+        }
       }
-      throw error
+      throw last
     }
   }
 
