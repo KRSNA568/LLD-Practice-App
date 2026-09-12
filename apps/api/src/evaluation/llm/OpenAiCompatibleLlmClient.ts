@@ -156,10 +156,11 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
       const error = new LlmUnavailableError(
         `Rate limited by ${this.id} — the AI half of this report was skipped${detail ? ` (${detail})` : ''}`,
       )
-      // Groq's headers are the primary source, but under load they are sometimes
-      // absent while the body still says e.g. "Please try again in 4.62s" — that
-      // number is exactly as good for deciding whether to wait it out.
-      error.retryAfterMs = resetAfterMs(response.headers) ?? secondsFromDetail(detail)
+      // The body's "Please try again in 4.62s" is Groq computing the exact wait
+      // for *this* request; the reset-tokens header instead reports when the
+      // whole per-minute bucket empties, which can be much longer. Prefer the
+      // precise number and only fall back to the header when the body has none.
+      error.retryAfterMs = secondsFromDetail(detail) ?? resetAfterMs(response.headers)
       return error
     }
     if (status === 400 || status === 404 || status === 422) {
