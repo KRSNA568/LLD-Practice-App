@@ -176,7 +176,12 @@ async function generate<S extends z.ZodTypeAny>(client: LlmClient, label: string
     }
     const issues = parsed.error.issues.slice(0, 12).map((i) => `${i.path.join('.')}: ${i.message}`).join('\n  ')
     console.log(`  ${label}: invalid, repairing —\n  ${issues}`)
-    prompt = `${user}\n\nYOUR PREVIOUS ATTEMPT FAILED VALIDATION. Fix exactly these and return the whole object again:\n  ${issues}\n\nPREVIOUS ATTEMPT:\n${response.text.slice(0, 6000)}`
+    // Groq's small model caps a single request (input + max_tokens) at 8000 tokens
+    // total, not just per-minute usage — echoing 6000 chars of the previous reply
+    // on top of the original prompt routinely blew past that and 413'd, which no
+    // retry can fix. The issues list already pinpoints the exact fields; a short
+    // tail of the previous JSON is enough context to fix them.
+    prompt = `${user}\n\nYOUR PREVIOUS ATTEMPT FAILED VALIDATION. Fix exactly these and return the whole object again:\n  ${issues}\n\nPREVIOUS ATTEMPT (tail):\n${response.text.slice(-2000)}`
     await sleep(15_000)
   }
   throw new Error(`${label}: could not produce a valid object in 3 attempts`)

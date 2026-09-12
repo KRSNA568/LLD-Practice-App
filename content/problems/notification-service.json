@@ -1,0 +1,1103 @@
+{
+  "id": "notification-service",
+  "version": "2.0.0",
+  "rubricId": "lld-core",
+  "rubricVersion": "2.0.0",
+  "title": "Notification Service",
+  "tier": 2,
+  "minutes": 40,
+  "domain": "infrastructure",
+  "brief": "Design a Notification Service that routes alerts to multiple configurable channels while keeping the core logic open to extension and decoupled from channel specifics.",
+  "requirements": [
+    {
+      "id": "r1",
+      "text": "Application code triggers a notification with a type and data payload.",
+      "conceptHints": [
+        "interface-design",
+        "domain-modeling"
+      ],
+      "keywords": [
+        "trigger",
+        "notification",
+        "type",
+        "payload",
+        "event",
+        "data"
+      ]
+    },
+    {
+      "id": "r2",
+      "text": "Which channels a notification type goes to is supplied as configuration, not written into the service.",
+      "conceptHints": [
+        "composition",
+        "open-closed"
+      ],
+      "keywords": [
+        "channel",
+        "configured",
+        "type",
+        "mapping",
+        "registry",
+        "route"
+      ]
+    },
+    {
+      "id": "r3",
+      "text": "Each channel formats the notification content according to its own rules.",
+      "conceptHints": [
+        "interface-segregation",
+        "formatting",
+        "responsibility"
+      ],
+      "keywords": [
+        "format",
+        "channel",
+        "rules",
+        "content",
+        "message",
+        "layout"
+      ]
+    },
+    {
+      "id": "r4",
+      "text": "Adding a new channel does not require changes to existing notification logic.",
+      "conceptHints": [
+        "open-closed",
+        "dependency-inversion"
+      ],
+      "keywords": [
+        "add",
+        "channel",
+        "open-closed",
+        "extensible",
+        "modify",
+        "existing"
+      ]
+    },
+    {
+      "id": "r5",
+      "text": "Failure in one channel must not prevent other channels from delivering the notification.",
+      "conceptHints": [
+        "error-modeling",
+        "isolation"
+      ],
+      "keywords": [
+        "failure",
+        "isolation",
+        "fallback",
+        "continue",
+        "delivery",
+        "guard"
+      ]
+    },
+    {
+      "id": "r6",
+      "text": "The service is constructed with a configuration object; no global mutable state is used.",
+      "conceptHints": [
+        "configuration",
+        "dependency-inversion",
+        "isp"
+      ],
+      "keywords": [
+        "configuration",
+        "construction",
+        "immutable",
+        "state",
+        "no-global",
+        "dependency"
+      ]
+    }
+  ],
+  "constraints": [
+    "Synchronous delivery is acceptable",
+    "Configuration is supplied at construction; no global state",
+    "No actual network calls; mockable transports",
+    "Core service must not contain channel-specific logic"
+  ],
+  "variationPoints": [
+    {
+      "id": "v1",
+      "name": "channel",
+      "why": "Email, SMS, push, webhook and future channels",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract"
+      ],
+      "nameHints": [
+        "channel",
+        "delivery",
+        "sms",
+        "email",
+        "push",
+        "webhook"
+      ]
+    },
+    {
+      "id": "v2",
+      "name": "format",
+      "why": "Plain text, HTML, JSON, etc. per channel",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract"
+      ],
+      "nameHints": [
+        "format",
+        "layout",
+        "render",
+        "plain",
+        "html",
+        "json"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "sc-email",
+      "title": "A user receives email and SMS notification",
+      "description": "Application triggers a notification; both email and SMS channels send the message.",
+      "expectsFailurePath": false,
+      "mustInvolve": [
+        "channel",
+        "delivery",
+        "notification",
+        "email",
+        "sms"
+      ]
+    },
+    {
+      "id": "sc-filtered",
+      "title": "A notification is suppressed because no channel configured",
+      "description": "Application triggers a notification; no channel is configured for the given type, so it is discarded.",
+      "expectsFailurePath": false,
+      "mustInvolve": [
+        "channel",
+        "config",
+        "notification",
+        "type"
+      ]
+    },
+    {
+      "id": "sc-failure",
+      "title": "The email channel throws; SMS still delivered",
+      "description": "The email channel throws an exception during send; SMS channel completes successfully and caller sees no error.",
+      "expectsFailurePath": true,
+      "mustInvolve": [
+        "channel",
+        "failure",
+        "email",
+        "sms"
+      ]
+    }
+  ],
+  "hiddenChanges": [
+    {
+      "id": "hc-channel-add",
+      "prompt": "Mobile push is now required: every notification of type order-shipped must also reach the customer’s phone through a push provider that needs a device token. Revise your design and explain what you touched and why.",
+      "targetsConcept": "open-closed",
+      "mustIntroduce": [
+        "push",
+        "mobile",
+        "device",
+        "token",
+        "phone"
+      ],
+      "expectedSeam": "v1",
+      "goodSignal": [
+        "adds a new class implementing the existing Channel interface",
+        "the router is unchanged",
+        "no existing channel is edited",
+        "the new channel is registered in configuration"
+      ],
+      "badSignal": [
+        "adds a push flag to the router",
+        "puts push logic into the router",
+        "changes the Channel interface for every channel",
+        "no mention of where it is registered"
+      ]
+    },
+    {
+      "id": "hc-format-md",
+      "prompt": "The on-call team now reads alerts in a chat tool that renders Markdown: alerts sent there must use headings and bold labels instead of plain text. Revise your design and explain what you touched and why.",
+      "targetsConcept": "open-closed",
+      "mustIntroduce": [
+        "markdown",
+        "heading",
+        "bold",
+        "chat",
+        "md"
+      ],
+      "expectedSeam": "v2",
+      "goodSignal": [
+        "adds a new class implementing the Formatter interface",
+        "no channel is edited",
+        "configuration decides which Formatter a channel uses"
+      ],
+      "badSignal": [
+        "adds a markdown flag to the router",
+        "puts layout logic into a channel",
+        "changes the Formatter interface for every channel"
+      ]
+    }
+  ],
+  "probes": [
+    {
+      "id": "p-add-channel",
+      "prompt": "A team wants to add a PushChannel. Which class do they write, and which existing class — {{class}}? — would they have to edit to plug it in?",
+      "targetsConcept": "open-closed",
+      "triggerWhen": {
+        "criterionId": "abstraction-use",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names a new implementation of the existing Channel interface",
+        "only configuration changes",
+        "the router is not edited"
+      ],
+      "badSignal": [
+        "requires editing the router",
+        "cannot name the class"
+      ]
+    },
+    {
+      "id": "p-split-format",
+      "prompt": "{{class}} both lays out the message and sends it. When the SMS gateway is slow, which class is now slow — and can EmailChannel reuse the same layout code without dragging the gateway in?",
+      "targetsConcept": "srp",
+      "triggerWhen": {
+        "criterionId": "class-responsibilities",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "separates a Formatter from the Channel",
+        "names which class owns the layout",
+        "email is unaffected by the SMS gateway"
+      ],
+      "badSignal": [
+        "says it does not matter",
+        "keeps layout and sending together"
+      ]
+    },
+    {
+      "id": "p-error-handling",
+      "prompt": "If EmailChannel throws while sending, walk me through who catches it, whether SmsChannel still delivers, and what the application code that triggered the notification sees.",
+      "targetsConcept": "error-modeling",
+      "triggerWhen": {
+        "criterionId": "behaviour",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names the class that contains the failure",
+        "the router keeps going to the other channels",
+        "the caller sees a result, not an exception"
+      ],
+      "badSignal": [
+        "the exception reaches the caller",
+        "the other channels are skipped",
+        "no class named"
+      ]
+    },
+    {
+      "id": "p-routing",
+      "prompt": "How does your design know which channels a notification of a given type goes to? Is that a table the service is built with, or logic inside a class — and what has to change when a new type appears?",
+      "targetsConcept": "encapsulation",
+      "goodSignal": [
+        "the mapping is configuration supplied at construction",
+        "names the class that owns the mapping",
+        "a new type is a configuration entry, not a code change"
+      ],
+      "badSignal": [
+        "a switch on type inside the service",
+        "cannot say who owns the mapping"
+      ]
+    },
+    {
+      "id": "p-isp-format",
+      "prompt": "Does a channel have to know how a message is formatted? Where is that decided, and what would a new channel have to implement?",
+      "targetsConcept": "isp",
+      "goodSignal": [
+        "formatting is handled by a separate Formatter",
+        "channel implements a single send method that receives formatted string",
+        "new channel only implements send"
+      ],
+      "badSignal": [
+        "channel formats message",
+        "fat interface"
+      ]
+    }
+  ],
+  "conceptTags": [
+    "open-closed",
+    "dip",
+    "isp",
+    "extensibility",
+    "coupling"
+  ],
+  "commonFailureModes": [
+    {
+      "id": "f1",
+      "name": "Hardcoded channel logic leads to brittle changes",
+      "description": "Service contains switch-case for each channel, making new channel additions hard.",
+      "concept": "dip",
+      "frequency": "high"
+    },
+    {
+      "id": "f2",
+      "name": "Single interface mixes sending and formatting",
+      "description": "Channel interface requires both format and send methods, causing many stubs.",
+      "concept": "isp",
+      "frequency": "medium"
+    },
+    {
+      "id": "f3",
+      "name": "Failure in a channel stops all notifications",
+      "description": "One channel throws and propagates, killing other deliveries.",
+      "concept": "error-modeling",
+      "frequency": "high"
+    }
+  ],
+  "goldDesigns": {
+    "strong": {
+      "assumptions": [
+        "Delivery is synchronous",
+        "Which channels a type goes to is fixed at construction",
+        "Formatters are stateless",
+        "A failed send is reported in the result, never thrown to the caller"
+      ],
+      "classes": [
+        {
+          "name": "NotificationRouter",
+          "stereotype": "class",
+          "responsibility": "Routes a notification to the channels registered for its type",
+          "attributes": [
+            "registry"
+          ],
+          "methods": [
+            "trigger"
+          ]
+        },
+        {
+          "name": "ChannelRegistry",
+          "stereotype": "class",
+          "responsibility": "Maps each notification type to the channels configured for it",
+          "attributes": [
+            "channelsByType"
+          ],
+          "methods": [
+            "channelsFor"
+          ]
+        },
+        {
+          "name": "Notification",
+          "stereotype": "class",
+          "responsibility": "An immutable record of type and payload",
+          "attributes": [
+            "type",
+            "payload"
+          ],
+          "methods": []
+        },
+        {
+          "name": "Channel",
+          "stereotype": "interface",
+          "responsibility": "Sends a notification and returns a send result",
+          "attributes": [],
+          "methods": [
+            "send"
+          ]
+        },
+        {
+          "name": "EmailChannel",
+          "stereotype": "class",
+          "responsibility": "Sends a notification via email",
+          "attributes": [
+            "formatter"
+          ],
+          "methods": [
+            "send"
+          ]
+        },
+        {
+          "name": "SmsChannel",
+          "stereotype": "class",
+          "responsibility": "Sends a notification via SMS",
+          "attributes": [
+            "formatter"
+          ],
+          "methods": [
+            "send"
+          ]
+        },
+        {
+          "name": "Formatter",
+          "stereotype": "interface",
+          "responsibility": "Renders a notification to a string",
+          "attributes": [],
+          "methods": [
+            "format"
+          ]
+        },
+        {
+          "name": "PlainTextFormatter",
+          "stereotype": "class",
+          "responsibility": "Formats a notification as plain text",
+          "attributes": [],
+          "methods": [
+            "format"
+          ]
+        },
+        {
+          "name": "JsonFormatter",
+          "stereotype": "class",
+          "responsibility": "Formats a notification as JSON",
+          "attributes": [],
+          "methods": [
+            "format"
+          ]
+        },
+        {
+          "name": "SendResult",
+          "stereotype": "class",
+          "responsibility": "Represents success or failure of a send operation",
+          "attributes": [
+            "success",
+            "error"
+          ],
+          "methods": [
+            "isSuccess",
+            "getError"
+          ]
+        },
+        {
+          "name": "NotificationResult",
+          "stereotype": "class",
+          "responsibility": "Encapsulates overall success status of a notification delivery",
+          "attributes": [
+            "success",
+            "message"
+          ],
+          "methods": [
+            "isSuccess",
+            "getMessage"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "NotificationRouter",
+          "to": "ChannelRegistry",
+          "kind": "has-a"
+        },
+        {
+          "from": "ChannelRegistry",
+          "to": "Channel",
+          "kind": "has-a"
+        },
+        {
+          "from": "EmailChannel",
+          "to": "Channel",
+          "kind": "implements"
+        },
+        {
+          "from": "SmsChannel",
+          "to": "Channel",
+          "kind": "implements"
+        },
+        {
+          "from": "EmailChannel",
+          "to": "Formatter",
+          "kind": "uses"
+        },
+        {
+          "from": "SmsChannel",
+          "to": "Formatter",
+          "kind": "uses"
+        },
+        {
+          "from": "PlainTextFormatter",
+          "to": "Formatter",
+          "kind": "implements"
+        },
+        {
+          "from": "JsonFormatter",
+          "to": "Formatter",
+          "kind": "implements"
+        },
+        {
+          "from": "Channel",
+          "to": "Notification",
+          "kind": "uses"
+        },
+        {
+          "from": "NotificationRouter",
+          "to": "Notification",
+          "kind": "uses"
+        },
+        {
+          "from": "NotificationRouter",
+          "to": "SendResult",
+          "kind": "uses"
+        },
+        {
+          "from": "NotificationRouter",
+          "to": "NotificationResult",
+          "kind": "uses"
+        }
+      ],
+      "tradeoffs": "Separating Channel and Formatter keeps channel logic extensible and decouples formatting rules. Returning a result type from Channel.send and aggregating it in NotificationService allows precise failure reporting and keeps the service loop simple.",
+      "decisions": [
+        {
+          "what": "Channel as an interface",
+          "alternative": "A base class every channel extends",
+          "why": "Any number of independent channel implementations without forcing inheritance"
+        },
+        {
+          "what": "Type-to-channel mapping lives in ChannelRegistry",
+          "alternative": "A switch on type inside the router",
+          "why": "The mapping is configuration handed in at construction; the router never names a channel"
+        },
+        {
+          "what": "Channel.send returns a SendResult instead of throwing",
+          "alternative": "Let exceptions propagate and catch them in the router",
+          "why": "A channel that reports rather than throws cannot stop the loop; the router keeps routing and reports every outcome together"
+        },
+        {
+          "what": "A separate Formatter interface",
+          "alternative": "Formatting hard-coded inside each channel",
+          "why": "Layouts are reused across channels and a new layout does not touch any channel"
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-email",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "NotificationRouter",
+              "method": "trigger",
+              "note": "builds a Notification from the type and payload"
+            },
+            {
+              "className": "ChannelRegistry",
+              "method": "channelsFor",
+              "note": "returns EmailChannel and SmsChannel for this type"
+            },
+            {
+              "className": "EmailChannel",
+              "method": "send",
+              "note": "asks its formatter for the body, then hands it to the email transport"
+            },
+            {
+              "className": "PlainTextFormatter",
+              "method": "format",
+              "note": "renders the payload as plain text"
+            },
+            {
+              "className": "SmsChannel",
+              "method": "send",
+              "note": "same shape, via the SMS transport"
+            },
+            {
+              "className": "JsonFormatter",
+              "method": "format",
+              "note": "renders the payload as JSON"
+            },
+            {
+              "className": "NotificationRouter",
+              "method": "trigger",
+              "note": "collects both SendResults into one NotificationResult"
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-filtered",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "NotificationRouter",
+              "method": "trigger",
+              "note": "builds the Notification"
+            },
+            {
+              "className": "ChannelRegistry",
+              "method": "channelsFor",
+              "note": "finds no channel configured for this type"
+            },
+            {
+              "className": "NotificationRouter",
+              "method": "trigger",
+              "note": "returns a NotificationResult saying nothing was delivered; no channel is called"
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-failure",
+          "outcome": "refused",
+          "steps": [
+            {
+              "className": "NotificationRouter",
+              "method": "trigger",
+              "note": "builds the Notification"
+            },
+            {
+              "className": "ChannelRegistry",
+              "method": "channelsFor",
+              "note": "returns EmailChannel and SmsChannel"
+            },
+            {
+              "className": "EmailChannel",
+              "method": "send",
+              "note": "the email transport throws; send catches it and returns a failed SendResult"
+            },
+            {
+              "className": "SmsChannel",
+              "method": "send",
+              "note": "still called; delivers"
+            },
+            {
+              "className": "NotificationRouter",
+              "method": "trigger",
+              "note": "returns a NotificationResult carrying the email failure; nothing is thrown to the caller"
+            }
+          ]
+        }
+      ]
+    },
+    "hardcoded-channels": {
+      "assumptions": [],
+      "classes": [
+        {
+          "name": "NotificationService",
+          "stereotype": "class",
+          "responsibility": "Routes notifications to configured channels based on type and payload",
+          "attributes": [
+            "config"
+          ],
+          "methods": [
+            "sendNotification"
+          ]
+        },
+        {
+          "name": "NotificationConfiguration",
+          "stereotype": "class",
+          "responsibility": "Holds list of channel names for runtime delivery",
+          "attributes": [
+            "channels"
+          ],
+          "methods": []
+        },
+        {
+          "name": "EmailChannel",
+          "stereotype": "class",
+          "responsibility": "Sends notification via email channel",
+          "attributes": [],
+          "methods": [
+            "send"
+          ]
+        },
+        {
+          "name": "SMSChannel",
+          "stereotype": "class",
+          "responsibility": "Sends notification via sms channel",
+          "attributes": [],
+          "methods": [
+            "send"
+          ]
+        },
+        {
+          "name": "PushChannel",
+          "stereotype": "class",
+          "responsibility": "Sends notification via push channel",
+          "attributes": [],
+          "methods": [
+            "send"
+          ]
+        },
+        {
+          "name": "WebhookChannel",
+          "stereotype": "class",
+          "responsibility": "Sends notification via webhook channel",
+          "attributes": [],
+          "methods": [
+            "send"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "NotificationService",
+          "to": "NotificationConfiguration",
+          "kind": "has-a"
+        },
+        {
+          "from": "NotificationService",
+          "to": "EmailChannel",
+          "kind": "uses"
+        },
+        {
+          "from": "NotificationService",
+          "to": "SMSChannel",
+          "kind": "uses"
+        },
+        {
+          "from": "NotificationService",
+          "to": "PushChannel",
+          "kind": "uses"
+        },
+        {
+          "from": "NotificationService",
+          "to": "WebhookChannel",
+          "kind": "uses"
+        }
+      ],
+      "tradeoffs": "Hardcoded channel logic in NotificationService makes new channel additions brittle",
+      "decisions": [],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-email",
+          "steps": [
+            {
+              "className": "NotificationService",
+              "method": "sendNotification",
+              "note": "iterates config channels 'email','sms'"
+            },
+            {
+              "className": "EmailChannel",
+              "method": "send",
+              "note": "formats and sends email"
+            },
+            {
+              "className": "SMSChannel",
+              "method": "send",
+              "note": "formats and sends sms"
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-filtered",
+          "steps": [
+            {
+              "className": "NotificationService",
+              "method": "sendNotification",
+              "note": "no channels configured, no send"
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-failure",
+          "steps": [
+            {
+              "className": "NotificationService",
+              "method": "sendNotification",
+              "note": "calls EmailChannel.send and exception propagates"
+            },
+            {
+              "className": "EmailChannel",
+              "method": "send",
+              "note": "throws"
+            },
+            {
+              "className": "NotificationService",
+              "method": "sendNotification",
+              "note": "terminates, SMSChannel not called"
+            }
+          ],
+          "outcome": "refused"
+        }
+      ]
+    },
+    "fat-channel-interface": {
+      "assumptions": [
+        "Application passes notification type and payload to NotificationService",
+        "Channels are configured and passed via NotificationConfig during construction"
+      ],
+      "classes": [
+        {
+          "name": "NotificationService",
+          "stereotype": "class",
+          "responsibility": "Routes notifications to configured channels",
+          "attributes": [
+            "channels",
+            "config"
+          ],
+          "methods": [
+            "notify",
+            "sendToChannels"
+          ]
+        },
+        {
+          "name": "Channel",
+          "stereotype": "interface",
+          "responsibility": "Defines formatting and sending of a notification",
+          "attributes": [],
+          "methods": [
+            "format",
+            "send"
+          ]
+        },
+        {
+          "name": "EmailChannel",
+          "stereotype": "class",
+          "responsibility": "Formats notification as email and sends via SMTP",
+          "attributes": [],
+          "methods": [
+            "format",
+            "send"
+          ]
+        },
+        {
+          "name": "SMSChannel",
+          "stereotype": "class",
+          "responsibility": "Formats notification as SMS and sends via SMS gateway",
+          "attributes": [],
+          "methods": [
+            "format",
+            "send"
+          ]
+        },
+        {
+          "name": "Notification",
+          "stereotype": "class",
+          "responsibility": "Represents a notification with type and payload",
+          "attributes": [
+            "type",
+            "payload"
+          ],
+          "methods": [
+            "getType",
+            "getPayload"
+          ]
+        },
+        {
+          "name": "NotificationConfig",
+          "stereotype": "class",
+          "responsibility": "Holds channel configuration",
+          "attributes": [
+            "channelList"
+          ],
+          "methods": [
+            "getChannels"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "NotificationService",
+          "to": "NotificationConfig",
+          "kind": "has-a"
+        },
+        {
+          "from": "NotificationService",
+          "to": "Channel",
+          "kind": "uses"
+        },
+        {
+          "from": "NotificationService",
+          "to": "Notification",
+          "kind": "uses"
+        },
+        {
+          "from": "EmailChannel",
+          "to": "Channel",
+          "kind": "implements"
+        },
+        {
+          "from": "SMSChannel",
+          "to": "Channel",
+          "kind": "implements"
+        }
+      ],
+      "tradeoffs": "Single interface mixes formatting and sending, forcing stubs and lacking separation between content generation and delivery",
+      "decisions": [
+        {
+          "what": "Channel interface mixes formatting and sending, leading to stubs",
+          "alternative": "",
+          "why": ""
+        },
+        {
+          "what": "NotificationService does not catch exceptions, so a channel failure propagates",
+          "alternative": "",
+          "why": ""
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-email",
+          "steps": [
+            {
+              "className": "NotificationService",
+              "method": "notify",
+              "note": ""
+            },
+            {
+              "className": "EmailChannel",
+              "method": "format",
+              "note": ""
+            },
+            {
+              "className": "EmailChannel",
+              "method": "send",
+              "note": ""
+            },
+            {
+              "className": "SMSChannel",
+              "method": "format",
+              "note": ""
+            },
+            {
+              "className": "SMSChannel",
+              "method": "send",
+              "note": ""
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-filtered",
+          "steps": [
+            {
+              "className": "NotificationService",
+              "method": "notify",
+              "note": "no channels configured"
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-failure",
+          "steps": [
+            {
+              "className": "NotificationService",
+              "method": "notify",
+              "note": ""
+            },
+            {
+              "className": "EmailChannel",
+              "method": "format",
+              "note": ""
+            },
+            {
+              "className": "EmailChannel",
+              "method": "send",
+              "note": "throws"
+            }
+          ],
+          "outcome": "refused"
+        }
+      ]
+    }
+  },
+  "critiquePairs": [
+    {
+      "id": "cp-1",
+      "left": "hardcoded-channels",
+      "right": "strong",
+      "question": "A team wants alerts sent to Slack. Which design lets them add that without editing the class that routes notifications? Click the class they would implement.",
+      "targetsConcept": "open-closed",
+      "answer": {
+        "design": "strong",
+        "className": "Channel"
+      },
+      "telling": "In the strong design a Slack destination is one more implementation of Channel, registered in the ChannelRegistry the router is built with, so NotificationRouter is untouched. In the hardcoded design NotificationService names every channel it knows, so adding Slack means editing it."
+    },
+    {
+      "id": "cp-2",
+      "left": "fat-channel-interface",
+      "right": "strong",
+      "question": "Both designs have a destination abstraction. In which one does a new destination NOT have to know how a message is laid out as text? Click the class that took that job away from destinations.",
+      "targetsConcept": "isp",
+      "answer": {
+        "design": "strong",
+        "className": "Formatter"
+      },
+      "telling": "The strong design separates layout from sending: the Formatter interface, implemented by PlainTextFormatter and JsonFormatter, owns rendering, and a channel only sends. In the fat-interface design every channel must also format, so a new channel carries layout code it did not want."
+    }
+  ],
+  "calibrationSet": [
+    {
+      "designId": "strong",
+      "label": "strong",
+      "expectedBands": {
+        "requirement-coverage": [
+          3,
+          4
+        ],
+        "class-responsibilities": [
+          3,
+          4
+        ],
+        "coupling-cohesion": [
+          3,
+          4
+        ],
+        "abstraction-use": [
+          3,
+          4
+        ],
+        "behaviour": [
+          3,
+          4
+        ],
+        "edge-cases": [
+          2,
+          4
+        ]
+      }
+    },
+    {
+      "designId": "hardcoded-channels",
+      "label": "hardcoded-channels",
+      "expectedBands": {
+        "requirement-coverage": [
+          3,
+          4
+        ],
+        "class-responsibilities": [
+          1,
+          3
+        ],
+        "coupling-cohesion": [
+          2,
+          4
+        ],
+        "abstraction-use": [
+          0,
+          2
+        ],
+        "behaviour": [
+          2,
+          4
+        ]
+      }
+    },
+    {
+      "designId": "fat-channel-interface",
+      "label": "fat-channel-interface",
+      "expectedBands": {
+        "requirement-coverage": [
+          2,
+          4
+        ],
+        "class-responsibilities": [
+          0,
+          1
+        ],
+        "coupling-cohesion": [
+          2,
+          4
+        ],
+        "abstraction-use": [
+          3,
+          4
+        ],
+        "behaviour": [
+          2,
+          4
+        ]
+      }
+    }
+  ],
+  "nextProblems": []
+}

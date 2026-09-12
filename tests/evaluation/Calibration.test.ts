@@ -23,7 +23,9 @@ const read = <T,>(rel: string): T => JSON.parse(readFileSync(fileURLToPath(new U
 
 const rubric = read<Rubric>('rubrics/lld-core.json')
 const problems = readdirSync(fileURLToPath(new URL('problems/', root)))
-  .filter((f) => f.endsWith('.json') && f !== 'catalog.json')
+  // A `.draft.json` is model output awaiting review — it is gated by
+  // measure-problem.ts on its own, and only joins this suite once promoted.
+  .filter((f) => f.endsWith('.json') && !f.endsWith('.draft.json') && f !== 'catalog.json')
   .map((f) => read<Problem>(`problems/${f}`))
 
 const pipeline = new EvaluationPipeline([new RuleEvaluator(), new LlmEvaluator(new StubLlmClient())])
