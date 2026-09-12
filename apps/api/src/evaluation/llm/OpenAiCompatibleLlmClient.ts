@@ -153,7 +153,9 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
       return new LlmUnavailableError(`${this.id} rejected the credentials — check the API key`)
     }
     if (status === 429) {
-      const error = new LlmUnavailableError(`Rate limited by ${this.id} — the AI half of this report was skipped`)
+      const error = new LlmUnavailableError(
+        `Rate limited by ${this.id} — the AI half of this report was skipped${detail ? ` (${detail})` : ''}`,
+      )
       error.retryAfterMs = resetAfterMs(response.headers)
       return error
     }

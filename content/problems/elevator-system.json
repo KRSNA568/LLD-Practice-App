@@ -1,0 +1,1191 @@
+{
+  "id": "elevator-system",
+  "version": "2.0.0",
+  "rubricId": "lld-core",
+  "rubricVersion": "2.0.0",
+  "title": "Elevator System",
+  "tier": 2,
+  "minutes": 40,
+  "domain": "physical-operations",
+  "brief": "Design the class structure for a single elevator car serving a multi-floor building. Passengers press buttons on floors and inside the car; the car decides where to go next, moves, and opens its doors only when it is safe to. You are designing the object model — not the motor control, not the UI.",
+  "requirements": [
+    {
+      "id": "r1",
+      "text": "Floor buttons and in-car buttons both produce requests, which the car queues",
+      "conceptHints": [
+        "domain-modeling"
+      ],
+      "keywords": [
+        "request",
+        "queue",
+        "button",
+        "floor",
+        "pending",
+        "call"
+      ]
+    },
+    {
+      "id": "r2",
+      "text": "The car chooses its next stop by a movement policy that can be replaced",
+      "conceptHints": [
+        "open-closed"
+      ],
+      "keywords": [
+        "move",
+        "direction",
+        "policy",
+        "next",
+        "schedule",
+        "strategy",
+        "stop"
+      ]
+    },
+    {
+      "id": "r3",
+      "text": "Doors open only when the car is stationary at a floor, and close before it moves",
+      "conceptHints": [
+        "state-modeling"
+      ],
+      "keywords": [
+        "door",
+        "open",
+        "close",
+        "stationary",
+        "safe",
+        "interlock"
+      ]
+    },
+    {
+      "id": "r4",
+      "text": "A car at capacity refuses further boarding and will not move while overloaded",
+      "conceptHints": [
+        "error-modeling"
+      ],
+      "keywords": [
+        "capacity",
+        "load",
+        "overload",
+        "weight",
+        "limit",
+        "full"
+      ]
+    },
+    {
+      "id": "r5",
+      "text": "An emergency stop halts the car immediately and overrides pending requests",
+      "conceptHints": [
+        "state-modeling"
+      ],
+      "keywords": [
+        "emergency",
+        "stop",
+        "halt",
+        "override",
+        "interrupt",
+        "alarm"
+      ]
+    },
+    {
+      "id": "r6",
+      "text": "Maintenance mode takes the car out of service: requests are refused until it returns",
+      "conceptHints": [
+        "state-modeling",
+        "error-modeling"
+      ],
+      "keywords": [
+        "maintenance",
+        "mode",
+        "service",
+        "refuse",
+        "inspect",
+        "offline"
+      ]
+    }
+  ],
+  "constraints": [
+    "One car, one shaft",
+    "A fixed passenger capacity",
+    "Single-threaded — one event at a time; ignore concurrent button presses for this problem"
+  ],
+  "variationPoints": [
+    {
+      "id": "v1",
+      "name": "movement policy",
+      "why": "Nearest-first today; rush-hour express, energy-saving parking and destination dispatch all arrive later",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract"
+      ],
+      "nameHints": [
+        "policy",
+        "strategy",
+        "scheduler",
+        "dispatch",
+        "movement"
+      ]
+    },
+    {
+      "id": "v2",
+      "name": "operating mode",
+      "why": "Normal, maintenance and emergency each allow different things; the set grows (fire service, VIP)",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract",
+        "enum"
+      ],
+      "nameHints": [
+        "mode",
+        "state",
+        "phase",
+        "status",
+        "operating"
+      ]
+    },
+    {
+      "id": "v3",
+      "name": "request source",
+      "why": "Floor buttons, car buttons — then a lobby kiosk, a phone app, a service key",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract"
+      ],
+      "nameHints": [
+        "source",
+        "button",
+        "kiosk",
+        "origin",
+        "caller"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "sc-serve",
+      "title": "A passenger presses a floor button and the car comes",
+      "description": "From the button press to the doors opening at that floor. Who queues it, who decides to go, who opens the door?",
+      "expectsFailurePath": false,
+      "mustInvolve": [
+        "request",
+        "queue",
+        "policy",
+        "move",
+        "door"
+      ]
+    },
+    {
+      "id": "sc-emergency",
+      "title": "Emergency stop is pressed while the car is moving",
+      "description": "The car halts; pending requests are overridden. Walk through what stops what.",
+      "expectsFailurePath": false,
+      "mustInvolve": [
+        "emergency",
+        "stop",
+        "halt",
+        "mode",
+        "state"
+      ]
+    },
+    {
+      "id": "sc-maintenance",
+      "title": "A floor button is pressed while the car is in maintenance mode",
+      "description": "The request must be refused, not queued. Which class says no?",
+      "expectsFailurePath": true,
+      "mustInvolve": [
+        "mode",
+        "maintenance",
+        "refuse",
+        "reject",
+        "state"
+      ]
+    }
+  ],
+  "hiddenChanges": [
+    {
+      "id": "hc-express",
+      "prompt": "Rush hour is coming. Between 8 and 10 in the morning the car must serve the lobby first and skip floors 2–4 on the way up. Revise your design so the rush-hour behaviour can be switched on and off — and say what you touched and why.",
+      "targetsConcept": "open-closed",
+      "mustIntroduce": [
+        "express",
+        "rush",
+        "peak",
+        "skip",
+        "priority",
+        "lobby",
+        "hour"
+      ],
+      "expectedSeam": "v1",
+      "goodSignal": [
+        "a new movement policy behind the abstraction the car already used",
+        "the car does not change",
+        "says who switches the policy"
+      ],
+      "badSignal": [
+        "adds an isRushHour flag and branches in the movement code",
+        "puts the time check inside Elevator",
+        "changes the queue to absorb it"
+      ]
+    },
+    {
+      "id": "hc-kiosk",
+      "prompt": "A lobby kiosk is being installed: a visitor types a destination floor before entering the car. Revise your design so kiosk requests reach the car like button presses do — and say what you touched and why.",
+      "targetsConcept": "open-closed",
+      "mustIntroduce": [
+        "kiosk",
+        "lobby",
+        "visitor",
+        "destination",
+        "terminal",
+        "screen"
+      ],
+      "expectedSeam": "v3",
+      "goodSignal": [
+        "a new request source behind the abstraction that already existed",
+        "Request and Elevator unchanged",
+        "names how the kiosk's floor becomes a Request"
+      ],
+      "badSignal": [
+        "adds a sourceType field to Request and branches on it",
+        "a separate kiosk path into the queue",
+        "changes Elevator to accept kiosk input"
+      ]
+    }
+  ],
+  "probes": [
+    {
+      "id": "p-arrival",
+      "prompt": "A request arrives while the car is moving. Which class decides whether it is queued or refused — {{class}}, or something else — and how many places would you check to be sure?",
+      "targetsConcept": "state-modeling",
+      "triggerWhen": {
+        "criterionId": "abstraction-use",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names one class that owns the answer",
+        "says it is one place"
+      ],
+      "badSignal": [
+        "checks several flags",
+        "cannot name where"
+      ]
+    },
+    {
+      "id": "p-door",
+      "prompt": "The car is about to move while the door is still open. Which class prevents that — {{class}} — and how does it know the car is stationary?",
+      "targetsConcept": "error-modeling",
+      "triggerWhen": {
+        "criterionId": "behaviour",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names the class that enforces the interlock",
+        "says where the stationary fact lives"
+      ],
+      "badSignal": [
+        "assumes the caller checks",
+        "cannot say who enforces it"
+      ]
+    },
+    {
+      "id": "p-emergency",
+      "prompt": "Emergency stop is pressed mid-travel. Which class changes state, what happens to the pending requests, and what does the door do?",
+      "targetsConcept": "state-modeling",
+      "triggerWhen": {
+        "criterionId": "edge-cases",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names the state change and who makes it",
+        "says what happens to pending requests",
+        "says the door stays closed between floors"
+      ],
+      "badSignal": [
+        "only says the motor stops",
+        "forgets the queue"
+      ]
+    },
+    {
+      "id": "p-split",
+      "prompt": "{{class}} carries more than one job. If you had to split it tonight, where is the cut — and which of the two does the door talk to?",
+      "targetsConcept": "srp",
+      "triggerWhen": {
+        "criterionId": "class-responsibilities",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names the cut",
+        "says which half the door depends on"
+      ],
+      "badSignal": [
+        "cannot name the cut",
+        "says it is fine as it is"
+      ]
+    },
+    {
+      "id": "p-policy",
+      "prompt": "Requests exist above and below the current floor. Which class decides the next direction, and what would you touch to change that rule?",
+      "targetsConcept": "open-closed",
+      "goodSignal": [
+        "names one class",
+        "says only that class changes"
+      ],
+      "badSignal": [
+        "adds a branch",
+        "cannot name the class"
+      ]
+    }
+  ],
+  "conceptTags": [
+    "state-modeling",
+    "open-closed",
+    "srp",
+    "concurrency-safety"
+  ],
+  "commonFailureModes": [
+    {
+      "id": "f1",
+      "name": "Elevator does everything",
+      "description": "One Elevator class queues, decides, moves, opens doors and handles emergencies; everything else is data.",
+      "concept": "srp",
+      "frequency": "very-high"
+    },
+    {
+      "id": "f2",
+      "name": "Mode as booleans",
+      "description": "isMoving, isMaintenance, isEmergency as separate flags that must agree, checked in every method.",
+      "concept": "state-modeling",
+      "frequency": "high"
+    }
+  ],
+  "goldDesigns": {
+    "strong": {
+      "assumptions": [
+        "A button press is a Request; the same path serves floor and car buttons",
+        "Capacity is checked by load, not by counting passengers",
+        "Emergency stop is itself a request that switches the mode"
+      ],
+      "classes": [
+        {
+          "name": "Elevator",
+          "stereotype": "class",
+          "responsibility": "Accepts requests and hands them to the queue when the mode allows",
+          "attributes": [
+            "currentFloor",
+            "capacity",
+            "load"
+          ],
+          "methods": [
+            "receiveRequest",
+            "refuseRequest",
+            "isOverloaded"
+          ]
+        },
+        {
+          "name": "OperatingMode",
+          "stereotype": "interface",
+          "responsibility": "Says what the car is allowed to do right now",
+          "attributes": [],
+          "methods": [
+            "allowsRequests",
+            "allowsMovement",
+            "onEmergency"
+          ]
+        },
+        {
+          "name": "NormalMode",
+          "stereotype": "class",
+          "responsibility": "Allows requests and movement",
+          "attributes": [],
+          "methods": [
+            "allowsRequests",
+            "allowsMovement",
+            "onEmergency"
+          ]
+        },
+        {
+          "name": "MaintenanceMode",
+          "stereotype": "class",
+          "responsibility": "Refuses requests while the car is being serviced",
+          "attributes": [],
+          "methods": [
+            "allowsRequests",
+            "allowsMovement",
+            "onEmergency"
+          ]
+        },
+        {
+          "name": "EmergencyMode",
+          "stereotype": "class",
+          "responsibility": "Halts the car and overrides everything pending",
+          "attributes": [],
+          "methods": [
+            "allowsRequests",
+            "allowsMovement",
+            "onEmergency"
+          ]
+        },
+        {
+          "name": "FloorRequestQueue",
+          "stereotype": "class",
+          "responsibility": "Holds pending floor requests in arrival order",
+          "attributes": [
+            "requests"
+          ],
+          "methods": [
+            "addRequest",
+            "pending",
+            "clear"
+          ]
+        },
+        {
+          "name": "Request",
+          "stereotype": "class",
+          "responsibility": "One floor asked for, from one source",
+          "attributes": [
+            "floor",
+            "source"
+          ],
+          "methods": [
+            "getFloor",
+            "getSource"
+          ]
+        },
+        {
+          "name": "RequestSource",
+          "stereotype": "interface",
+          "responsibility": "Where a request came from",
+          "attributes": [],
+          "methods": [
+            "describe"
+          ]
+        },
+        {
+          "name": "FloorButton",
+          "stereotype": "class",
+          "responsibility": "A call button on a landing",
+          "attributes": [
+            "floor"
+          ],
+          "methods": [
+            "describe"
+          ]
+        },
+        {
+          "name": "CarButton",
+          "stereotype": "class",
+          "responsibility": "A destination button inside the car",
+          "attributes": [
+            "floor"
+          ],
+          "methods": [
+            "describe"
+          ]
+        },
+        {
+          "name": "MovementPolicy",
+          "stereotype": "interface",
+          "responsibility": "Chooses the next stop from the pending requests",
+          "attributes": [],
+          "methods": [
+            "nextStop"
+          ]
+        },
+        {
+          "name": "NearestFirstPolicy",
+          "stereotype": "class",
+          "responsibility": "Picks the closest pending floor in the current direction",
+          "attributes": [],
+          "methods": [
+            "nextStop"
+          ]
+        },
+        {
+          "name": "Motor",
+          "stereotype": "class",
+          "responsibility": "Moves the car one floor at a time and can halt",
+          "attributes": [
+            "direction"
+          ],
+          "methods": [
+            "moveTo",
+            "halt"
+          ]
+        },
+        {
+          "name": "Door",
+          "stereotype": "class",
+          "responsibility": "Opens only when the car is stationary at a floor",
+          "attributes": [
+            "isOpen"
+          ],
+          "methods": [
+            "open",
+            "close"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "Elevator",
+          "to": "OperatingMode",
+          "kind": "has-a"
+        },
+        {
+          "from": "NormalMode",
+          "to": "OperatingMode",
+          "kind": "implements"
+        },
+        {
+          "from": "MaintenanceMode",
+          "to": "OperatingMode",
+          "kind": "implements"
+        },
+        {
+          "from": "EmergencyMode",
+          "to": "OperatingMode",
+          "kind": "implements"
+        },
+        {
+          "from": "Elevator",
+          "to": "FloorRequestQueue",
+          "kind": "has-a"
+        },
+        {
+          "from": "FloorRequestQueue",
+          "to": "Request",
+          "kind": "has-a"
+        },
+        {
+          "from": "Request",
+          "to": "RequestSource",
+          "kind": "has-a"
+        },
+        {
+          "from": "FloorButton",
+          "to": "RequestSource",
+          "kind": "implements"
+        },
+        {
+          "from": "CarButton",
+          "to": "RequestSource",
+          "kind": "implements"
+        },
+        {
+          "from": "Elevator",
+          "to": "MovementPolicy",
+          "kind": "uses"
+        },
+        {
+          "from": "NearestFirstPolicy",
+          "to": "MovementPolicy",
+          "kind": "implements"
+        },
+        {
+          "from": "MovementPolicy",
+          "to": "FloorRequestQueue",
+          "kind": "uses"
+        },
+        {
+          "from": "Elevator",
+          "to": "Motor",
+          "kind": "has-a"
+        },
+        {
+          "from": "Elevator",
+          "to": "Door",
+          "kind": "has-a"
+        },
+        {
+          "from": "EmergencyMode",
+          "to": "Motor",
+          "kind": "uses"
+        }
+      ],
+      "tradeoffs": "Three interfaces for a single car is more structure than a first version needs; each one sits where the brief says change arrives.",
+      "decisions": [
+        {
+          "what": "The car's mode is an object the Elevator holds, not a set of flags",
+          "alternative": "isMoving, isMaintenance, isEmergency booleans on Elevator",
+          "why": "Each mode says what it allows in one place; a new mode is a new class, not a new flag checked everywhere"
+        },
+        {
+          "what": "Next-stop selection lives behind MovementPolicy",
+          "alternative": "An if-chain inside Elevator",
+          "why": "Rush-hour and destination dispatch are policies, not elevator changes"
+        },
+        {
+          "what": "RequestSource is an interface even though there are two sources",
+          "alternative": "A source enum on Request",
+          "why": "A kiosk or an app is a third source without touching Request or Elevator"
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-serve",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "FloorButton",
+              "method": "describe",
+              "note": "the press becomes a Request"
+            },
+            {
+              "className": "Elevator",
+              "method": "receiveRequest",
+              "note": ""
+            },
+            {
+              "className": "OperatingMode",
+              "method": "allowsRequests",
+              "note": "normal mode says yes"
+            },
+            {
+              "className": "FloorRequestQueue",
+              "method": "addRequest",
+              "note": ""
+            },
+            {
+              "className": "MovementPolicy",
+              "method": "nextStop",
+              "note": ""
+            },
+            {
+              "className": "Motor",
+              "method": "moveTo",
+              "note": ""
+            },
+            {
+              "className": "Door",
+              "method": "open",
+              "note": "only once stationary"
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-emergency",
+          "outcome": "ok",
+          "steps": [
+            {
+              "className": "Elevator",
+              "method": "receiveRequest",
+              "note": "the emergency button is a request too"
+            },
+            {
+              "className": "OperatingMode",
+              "method": "onEmergency",
+              "note": "mode becomes EmergencyMode"
+            },
+            {
+              "className": "EmergencyMode",
+              "method": "allowsMovement",
+              "note": "no"
+            },
+            {
+              "className": "Motor",
+              "method": "halt",
+              "note": ""
+            },
+            {
+              "className": "FloorRequestQueue",
+              "method": "clear",
+              "note": "pending requests overridden"
+            }
+          ]
+        },
+        {
+          "scenarioId": "sc-maintenance",
+          "outcome": "refused",
+          "steps": [
+            {
+              "className": "FloorButton",
+              "method": "describe",
+              "note": ""
+            },
+            {
+              "className": "Elevator",
+              "method": "receiveRequest",
+              "note": ""
+            },
+            {
+              "className": "MaintenanceMode",
+              "method": "allowsRequests",
+              "note": "no"
+            },
+            {
+              "className": "Elevator",
+              "method": "refuseRequest",
+              "note": "the caller gets a refusal with the reason"
+            }
+          ]
+        }
+      ]
+    },
+    "elevator-does-everything": {
+      "assumptions": [],
+      "classes": [
+        {
+          "name": "Elevator",
+          "stereotype": "class",
+          "responsibility": "Manages floor requests, movement, and door operations",
+          "attributes": [
+            "currentFloor",
+            "targetQueue",
+            "direction",
+            "isMoving"
+          ],
+          "methods": [
+            "addRequest",
+            "processNextTarget",
+            "moveUp",
+            "moveDown",
+            "openDoor",
+            "closeDoor",
+            "emergencyStop",
+            "maintenanceMode"
+          ]
+        },
+        {
+          "name": "RequestQueue",
+          "stereotype": "class",
+          "responsibility": "Stores pending floor requests",
+          "attributes": [
+            "queue"
+          ],
+          "methods": [
+            "enqueue",
+            "dequeue",
+            "isEmpty"
+          ]
+        },
+        {
+          "name": "Door",
+          "stereotype": "class",
+          "responsibility": "Controls door open/close",
+          "attributes": [
+            "isOpen",
+            "lock"
+          ],
+          "methods": [
+            "open",
+            "close"
+          ]
+        },
+        {
+          "name": "DirectionPolicy",
+          "stereotype": "class",
+          "responsibility": "Provides next floor target",
+          "attributes": [],
+          "methods": [
+            "nextTarget"
+          ]
+        },
+        {
+          "name": "Button",
+          "stereotype": "class",
+          "responsibility": "Represents floor or car button",
+          "attributes": [
+            "floor",
+            "sourceType"
+          ],
+          "methods": [
+            "press"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "Elevator",
+          "to": "RequestQueue",
+          "kind": "has-a"
+        },
+        {
+          "from": "Elevator",
+          "to": "Door",
+          "kind": "has-a"
+        },
+        {
+          "from": "Elevator",
+          "to": "DirectionPolicy",
+          "kind": "uses"
+        },
+        {
+          "from": "Button",
+          "to": "Elevator",
+          "kind": "uses"
+        }
+      ],
+      "tradeoffs": "Simplified concurrency; no thread safety, leading to race condition",
+      "decisions": [
+        {
+          "what": "No synchronization for request queue, allowing concurrent enqueue without locks",
+          "alternative": "",
+          "why": ""
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-serve",
+          "steps": [
+            {
+              "className": "Button",
+              "method": "press",
+              "note": "enqueues floor request into elevator"
+            },
+            {
+              "className": "Elevator",
+              "method": "addRequest",
+              "note": "enqueues into targetQueue"
+            },
+            {
+              "className": "Elevator",
+              "method": "processNextTarget",
+              "note": "state & queue used to pick next floor"
+            },
+            {
+              "className": "Elevator",
+              "method": "moveUp",
+              "note": "direction policy applied"
+            },
+            {
+              "className": "Elevator",
+              "method": "openDoor",
+              "note": "door opens only when stationary"
+            },
+            {
+              "className": "Elevator",
+              "method": "closeDoor",
+              "note": "door closes after stop"
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-emergency",
+          "steps": [
+            {
+              "className": "Elevator",
+              "method": "moveUp",
+              "note": "moving up"
+            },
+            {
+              "className": "Elevator",
+              "method": "emergencyStop",
+              "note": "halt immediately, overrides direction"
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-maintenance",
+          "steps": [
+            {
+              "className": "Button",
+              "method": "press",
+              "note": "Thread1 requests floor"
+            },
+            {
+              "className": "Button",
+              "method": "press",
+              "note": "Thread2 requests floor concurrently"
+            },
+            {
+              "className": "Elevator",
+              "method": "addRequest",
+              "note": "race condition: both enqueue without lock"
+            },
+            {
+              "className": "Elevator",
+              "method": "processNextTarget",
+              "note": "queue inconsistent, one request missed"
+            }
+          ],
+          "outcome": "refused"
+        }
+      ]
+    },
+    "door-safety-violation": {
+      "assumptions": [],
+      "classes": [
+        {
+          "name": "Elevator",
+          "stereotype": "class",
+          "responsibility": "Manages current floor, movement, and door operations",
+          "attributes": [
+            "currentFloor",
+            "targetFloor",
+            "direction",
+            "isMoving",
+            "isStopped",
+            "door",
+            "requestQueue",
+            "policy"
+          ],
+          "methods": [
+            "receiveRequest",
+            "processQueue",
+            "moveToFloor",
+            "emergencyStop",
+            "openDoor",
+            "closeDoor"
+          ]
+        },
+        {
+          "name": "Door",
+          "stereotype": "class",
+          "responsibility": "Handles opening, closing, and locking of the door",
+          "attributes": [
+            "isOpen",
+            "isLocked"
+          ],
+          "methods": [
+            "open",
+            "close",
+            "lock",
+            "unlock"
+          ]
+        },
+        {
+          "name": "RequestQueue",
+          "stereotype": "class",
+          "responsibility": "Queues floor requests from passengers",
+          "attributes": [
+            "queue"
+          ],
+          "methods": [
+            "addRequest",
+            "nextRequest",
+            "isEmpty"
+          ]
+        },
+        {
+          "name": "MovementPolicy",
+          "stereotype": "interface",
+          "responsibility": "Determines next floor to move to",
+          "attributes": [],
+          "methods": [
+            "selectNextFloor"
+          ]
+        },
+        {
+          "name": "SimpleMovementPolicy",
+          "stereotype": "class",
+          "responsibility": "A basic ascend/descend policy",
+          "attributes": [],
+          "methods": [
+            "selectNextFloor"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "Elevator",
+          "to": "Door",
+          "kind": "has-a"
+        },
+        {
+          "from": "Elevator",
+          "to": "RequestQueue",
+          "kind": "has-a"
+        },
+        {
+          "from": "Elevator",
+          "to": "MovementPolicy",
+          "kind": "uses"
+        }
+      ],
+      "tradeoffs": "Simplified concurrency and door safety for brevity",
+      "decisions": [],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-serve",
+          "steps": [
+            {
+              "className": "Elevator",
+              "method": "receiveRequest",
+              "note": "adds floor to queue"
+            },
+            {
+              "className": "Elevator",
+              "method": "processQueue",
+              "note": "starts processing queue"
+            },
+            {
+              "className": "Elevator",
+              "method": "moveToFloor",
+              "note": "sets isMoving=true then calls Door.open (door opens while moving)"
+            },
+            {
+              "className": "Door",
+              "method": "open",
+              "note": "opens without checking movement"
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-emergency",
+          "steps": [
+            {
+              "className": "Elevator",
+              "method": "receiveRequest",
+              "note": "adds floor to queue"
+            },
+            {
+              "className": "Elevator",
+              "method": "processQueue",
+              "note": "starts processing queue"
+            },
+            {
+              "className": "Elevator",
+              "method": "moveToFloor",
+              "note": "sets isMoving=true then calls Door.open (door opens while moving)"
+            },
+            {
+              "className": "Elevator",
+              "method": "emergencyStop",
+              "note": "sets isStopped=true but isMoving remains true"
+            },
+            {
+              "className": "Elevator",
+              "method": "openDoor",
+              "note": "calls Door.open again while isMoving=true (door opens during halt)"
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-maintenance",
+          "steps": [
+            {
+              "className": "Elevator",
+              "method": "receiveRequest",
+              "note": "Thread1 adds floor 3"
+            },
+            {
+              "className": "Elevator",
+              "method": "receiveRequest",
+              "note": "Thread2 adds floor 7 (race condition on queue)"
+            }
+          ],
+          "outcome": "refused"
+        }
+      ]
+    }
+  },
+  "critiquePairs": [
+    {
+      "id": "cp-1",
+      "left": "strong",
+      "right": "elevator-does-everything",
+      "question": "Rush-hour express mode arrives next month. Which design absorbs it without editing the class that already works? Click the class that makes it possible.",
+      "targetsConcept": "open-closed",
+      "answer": {
+        "design": "strong",
+        "className": "MovementPolicy"
+      },
+      "telling": "On the left, the next stop is an answer the car asks for — MovementPolicy.nextStop — so rush hour is a second policy and the car does not change. On the right, the rule is inside Elevator next to the queue and the door, and a second rule is a branch in a method that already works."
+    },
+    {
+      "id": "cp-2",
+      "left": "strong",
+      "right": "door-safety-violation",
+      "question": "A floor button is pressed during maintenance. Which design can say, in one place, that the request is refused? Click the class that holds that answer.",
+      "targetsConcept": "state-modeling",
+      "answer": {
+        "design": "strong",
+        "className": "OperatingMode"
+      },
+      "telling": "On the left, what the car allows right now is a mode object — MaintenanceMode.allowsRequests says no, and nothing else has to know. On the right, the same fact is a boolean on Elevator that every method has to remember to check, and the one that forgets queues the request anyway."
+    }
+  ],
+  "calibrationSet": [
+    {
+      "designId": "strong",
+      "label": "strong",
+      "expectedBands": {
+        "requirement-coverage": [
+          3,
+          4
+        ],
+        "class-responsibilities": [
+          3,
+          4
+        ],
+        "coupling-cohesion": [
+          3,
+          4
+        ],
+        "abstraction-use": [
+          3,
+          4
+        ],
+        "behaviour": [
+          3,
+          4
+        ],
+        "edge-cases": [
+          2,
+          4
+        ]
+      }
+    },
+    {
+      "designId": "elevator-does-everything",
+      "label": "elevator-does-everything",
+      "expectedBands": {
+        "requirement-coverage": [
+          2,
+          4
+        ],
+        "class-responsibilities": [
+          1,
+          3
+        ],
+        "coupling-cohesion": [
+          2,
+          4
+        ],
+        "abstraction-use": [
+          0,
+          1
+        ],
+        "behaviour": [
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "designId": "door-safety-violation",
+      "label": "door-safety-violation",
+      "expectedBands": {
+        "requirement-coverage": [
+          1,
+          3
+        ],
+        "class-responsibilities": [
+          0,
+          1
+        ],
+        "coupling-cohesion": [
+          1,
+          3
+        ],
+        "abstraction-use": [
+          0,
+          1
+        ],
+        "behaviour": [
+          0,
+          2
+        ]
+      }
+    }
+  ],
+  "nextProblems": [
+    "vending-machine",
+    "parking-lot"
+  ]
+}
