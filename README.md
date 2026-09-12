@@ -54,7 +54,7 @@ npx tsx apps/api/scripts/live-llm.ts god-class defend   # exercise the live prov
 ```
 
 ```bash
-npm test         # 201 tests, including a calibration suite over 13 gold designs
+npm test         # 205 tests, including a calibration suite over 13 gold designs
 npm run typecheck
 ```
 
@@ -155,9 +155,12 @@ tests/             148 tests: state machine, parser, every check, grounding, dif
 
 Stated plainly, with the full list in [DESIGN.md §11](DESIGN.md):
 
-- **4 of the 20 catalogued problems are playable.** Instrumenting one to this depth — scenarios,
-  hidden changes, probes, three or four gold designs, critique pairs, calibration bands — is a few
-  hours of authoring, so the rest are hidden rather than offered as a loop the evaluator cannot serve.
+- **Not every catalogued problem is playable.** Instrumenting one to this depth — scenarios, hidden
+  changes, probes, three gold designs, critique pairs, calibration bands — is hours of authoring by
+  hand. `apps/api/scripts/author-problem.ts` drafts one with the model and gates it with the
+  evaluator (the strong design is repaired from its own findings until it clears par); a person then
+  reviews the draft and promotes it. See `content/PROVENANCE.md` for what the reviewer catches that
+  the gate cannot.
 - **No auth.** `learnerId` is threaded through every layer, but everyone is `learner-demo`.
 - **The stub evaluator is a heuristic, not a model.** Good enough to demo and calibrate; not a
   substitute for the real thing on the two read criteria.

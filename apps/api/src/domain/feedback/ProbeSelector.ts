@@ -29,13 +29,22 @@ export function selectProbes(probes: readonly Probe[], findings: readonly Criter
 
   const triggered: SelectedProbe[] = []
   const defaults: SelectedProbe[] = []
+  const untriggered: SelectedProbe[] = []
 
   for (const probe of probes) {
     const trigger = probe.triggerWhen
     const finding = trigger ? byCriterion.get(trigger.criterionId) : undefined
 
     if (trigger) {
-      if (!finding || finding.score > trigger.maxScore) continue
+      if (!finding || finding.score > trigger.maxScore) {
+        // Its trigger did not fire, but it is still a fair question about this
+        // problem — a strong design deserves three questions too, and a probe
+        // whose class slot is empty falls back to "your design".
+        const cited = finding?.evidence.find((e) => e.kind === 'class')
+        const aboutClass = cited && cited.kind === 'class' ? cited.name : null
+        untriggered.push({ ...probe, prompt: fill(probe.prompt, aboutClass), triggered: false, aboutClass })
+        continue
+      }
       const cited = finding.evidence.find((e) => e.kind === 'class')
       const aboutClass = cited && cited.kind === 'class' ? cited.name : null
       triggered.push({ ...probe, prompt: fill(probe.prompt, aboutClass), triggered: true, aboutClass })
@@ -53,7 +62,8 @@ export function selectProbes(probes: readonly Probe[], findings: readonly Criter
     return sa - sb
   })
 
-  return [...triggered, ...defaults].slice(0, MAX_PROBES)
+  // Triggered, then the authored defaults, then whatever is left — up to three.
+  return [...triggered, ...defaults, ...untriggered].slice(0, MAX_PROBES)
 }
 
 /**

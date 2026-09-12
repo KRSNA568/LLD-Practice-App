@@ -34,7 +34,8 @@ type ChatCompletion = {
 }
 
 const DEFAULT_TIMEOUT_MS = 20_000
-const MAX_RATE_LIMIT_WAIT_MS = 30_000
+/** Overridable for offline jobs (content authoring) that can afford to wait out a whole window. */
+const MAX_RATE_LIMIT_WAIT_MS = Number(process.env.LLD_LLM_MAX_WAIT_MS ?? 30_000)
 
 export class OpenAiCompatibleLlmClient implements LlmClient {
   readonly id: string

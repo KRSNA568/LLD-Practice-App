@@ -96,7 +96,7 @@ export class ContentStore {
    * gold design that does not exist, or an answer naming a class that design does
    * not contain, is a content bug that should fail at boot, not in front of a learner.
    */
-  private static assertCoherent(problem: Problem, file: string): void {
+  static assertCoherent(problem: Problem, file: string): void {
     const fail = (msg: string): never => {
       throw new Error(`content/problems/${file}: ${msg}`)
     }

@@ -1,0 +1,1131 @@
+{
+  "id": "library-management",
+  "version": "2.0.0",
+  "rubricId": "lld-core",
+  "rubricVersion": "2.0.0",
+  "title": "Library Management",
+  "tier": 1,
+  "minutes": 30,
+  "domain": "inventory",
+  "brief": "Design the class structure for a library management system. The system tracks books, members, and loans. You are designing the object model — not the UI or persistence.",
+  "requirements": [
+    {
+      "id": "r1",
+      "text": "Books have immutable bibliographic data and a mutable availability status.",
+      "conceptHints": [
+        "domain-modeling",
+        "immutability"
+      ],
+      "keywords": [
+        "book",
+        "title",
+        "author",
+        "isbn",
+        "immutable",
+        "status",
+        "availab"
+      ]
+    },
+    {
+      "id": "r2",
+      "text": "Members can borrow up to a limited number of books concurrently.",
+      "conceptHints": [
+        "association-modeling",
+        "cohesion"
+      ],
+      "keywords": [
+        "member",
+        "borrow",
+        "limit",
+        "loan",
+        "checkout",
+        "capacity",
+        "concurrent"
+      ]
+    },
+    {
+      "id": "r3",
+      "text": "Loans record the book, member, loan date, and due date; they cannot be altered after creation.",
+      "conceptHints": [
+        "domain-modeling",
+        "immutability"
+      ],
+      "keywords": [
+        "loan",
+        "record",
+        "date",
+        "duedate",
+        "immutable",
+        "borrow",
+        "association"
+      ]
+    },
+    {
+      "id": "r4",
+      "text": "When a book is returned, its availability status is updated and any overdue fine is calculated.",
+      "conceptHints": [
+        "association-modeling",
+        "cohesion"
+      ],
+      "keywords": [
+        "return",
+        "update",
+        "status",
+        "overdue",
+        "fine",
+        "calc",
+        "book"
+      ]
+    },
+    {
+      "id": "r5",
+      "text": "The system must prevent borrowing a book that is already loaned out.",
+      "conceptHints": [
+        "error-modeling",
+        "domain-modeling"
+      ],
+      "keywords": [
+        "borrow",
+        "refuse",
+        "unavailable",
+        "stock",
+        "check",
+        "availability",
+        "prevent"
+      ]
+    }
+  ],
+  "constraints": [
+    "Single-threaded operations; one transaction at a time",
+    "No persistence layer; data lives in memory",
+    "Only books and members; no multimedia items"
+  ],
+  "variationPoints": [
+    {
+      "id": "v1",
+      "name": "borrowing policy",
+      "why": "Loan limits and loan periods differ by member type — students, staff, visitors — and change with the academic calendar",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract"
+      ],
+      "nameHints": [
+        "borrow",
+        "lending",
+        "limit",
+        "period",
+        "membership",
+        "entitle"
+      ]
+    },
+    {
+      "id": "v2",
+      "name": "fine calculation policy",
+      "why": "Libraries may use a flat fee or a per‑day rate for overdue items",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract",
+        "enum"
+      ],
+      "nameHints": [
+        "fine",
+        "penalty",
+        "overdue",
+        "policy",
+        "calc"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "sc-borrow",
+      "title": "Member borrows an available book",
+      "description": "Member selects a book, the system creates a loan and marks the book as unavailable. Walk through which objects act.",
+      "expectsFailurePath": false,
+      "mustInvolve": [
+        "book",
+        "member",
+        "loan",
+        "availability",
+        "borrow",
+        "status"
+      ]
+    },
+    {
+      "id": "sc-return",
+      "title": "Member returns a book on time",
+      "description": "Member returns a previously borrowed book, the system updates availability and records no fine. Walk through the steps.",
+      "expectsFailurePath": false,
+      "mustInvolve": [
+        "book",
+        "member",
+        "loan",
+        "return",
+        "status",
+        "fine",
+        "overdue"
+      ]
+    },
+    {
+      "id": "sc-borrow-unavailable",
+      "title": "Member attempts to borrow a loaned-out book",
+      "description": "Member selects a book that is already loaned, the system refuses the operation. Walk through the failure path.",
+      "expectsFailurePath": true,
+      "mustInvolve": [
+        "book",
+        "member",
+        "loan",
+        "unavailable",
+        "refuse",
+        "error",
+        "status"
+      ]
+    }
+  ],
+  "hiddenChanges": [
+    {
+      "id": "hc-member-types",
+      "prompt": "The library is introducing member types. Students may hold 3 books for 14 days; staff may hold 10 for 30; visitors may hold 1 for 7 and may not renew. Revise your design so each type's limits apply when a member borrows — and say what you touched and why.",
+      "targetsConcept": "open-closed",
+      "mustIntroduce": [
+        "student",
+        "staff",
+        "visitor",
+        "type",
+        "tier",
+        "period",
+        "limit",
+        "policy"
+      ],
+      "expectedSeam": "v1",
+      "goodSignal": [
+        "adds one policy class per member type behind an abstraction the library already held",
+        "the borrow walkthrough is unchanged apart from which policy answers",
+        "names where the loan period comes from now"
+      ],
+      "badSignal": [
+        "adds a memberType flag and branches on it",
+        "puts the limits inside Member or Library as conditionals",
+        "changes Loan or Book to absorb it"
+      ]
+    },
+    {
+      "id": "hc-fine",
+      "prompt": "The library wants a tiered fine policy: a grace period, then a per‑day rate up to a maximum cap. Update the design to accommodate this — and explain what you changed.",
+      "targetsConcept": "strategy",
+      "mustIntroduce": [
+        "grace",
+        "tier",
+        "perday",
+        "maxcap",
+        "exemption",
+        "overdue",
+        "limit",
+        "policy"
+      ],
+      "expectedSeam": "v2",
+      "goodSignal": [
+        "creates a new fine policy implementation class",
+        "parameterizes fine calculation without altering existing policies",
+        "keeps FinePolicy interface unchanged",
+        "expresses grace period and caps in the new class"
+      ],
+      "badSignal": [
+        "adds extra fields to FlatFinePolicy",
+        "uses if‑else inside existing fine calculation method",
+        "hard‑codes limits in Library",
+        "ignores the interface"
+      ]
+    }
+  ],
+  "probes": [
+    {
+      "id": "p-borrow",
+      "prompt": "When a member attempts to borrow a book, which class decides whether the loan can be created — {{class}}, or something else — and how many places would you have to check to be sure?",
+      "targetsConcept": "srp",
+      "triggerWhen": {
+        "criterionId": "class-responsibilities",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names one class that owns the answer",
+        "says it is one place"
+      ],
+      "badSignal": [
+        "checks several flags",
+        "cannot name where"
+      ]
+    },
+    {
+      "id": "p-overdue",
+      "prompt": "{{class}} holds loan records, member data and fine calculations. Which of those three would you extract first, and who would call it afterwards?",
+      "targetsConcept": "srp",
+      "triggerWhen": {
+        "criterionId": "abstraction-use",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names one responsibility and its new owner",
+        "names the caller"
+      ],
+      "badSignal": [
+        "says it is fine",
+        "moves data without behaviour"
+      ]
+    },
+    {
+      "id": "p-unavailable",
+      "prompt": "A member tries to loan a book that is already on loan. Which class knows that, when does it discover the conflict, and what does the user see?",
+      "targetsConcept": "error-modeling",
+      "triggerWhen": {
+        "criterionId": "behaviour",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names the class",
+        "says before dispensing",
+        "names a refusal the customer sees"
+      ],
+      "badSignal": [
+        "finds out after dispensing",
+        "returns null",
+        "no class named"
+      ]
+    },
+    {
+      "id": "p-fine-amount",
+      "prompt": "Is the fine stored as an integer in your design? If so, what cannot be expressed — and does it affect exact fine calculation?",
+      "targetsConcept": "encapsulation",
+      "goodSignal": [
+        "names denominations or currency as the thing lost",
+        "connects it to exact change"
+      ],
+      "badSignal": [
+        "an int is fine",
+        "no consequence named"
+      ]
+    },
+    {
+      "id": "p-extend",
+      "prompt": "A member asks for a due-date extension. Loans cannot be altered after creation — so which class produces the new state, what happens to the old Loan, and who else has to know?",
+      "targetsConcept": "immutability",
+      "triggerWhen": {
+        "criterionId": "edge-cases",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names one class that creates a replacement or a new loan",
+        "says what the old record becomes",
+        "names the caller that must see the new due date"
+      ],
+      "badSignal": [
+        "mutates the due date in place",
+        "cannot say where the extension is decided"
+      ]
+    }
+  ],
+  "conceptTags": [
+    "domain-modeling",
+    "association-modeling",
+    "cohesion",
+    "immutability"
+  ],
+  "commonFailureModes": [
+    {
+      "id": "f1",
+      "name": "Mutable bibliographic data",
+      "description": "Book class allows title or ISBN to be changed after creation, breaking immutability.",
+      "concept": "immutability",
+      "frequency": "high"
+    },
+    {
+      "id": "f2",
+      "name": "God object Library",
+      "description": "A single Library class holds books, members, and loans and performs all logic, violating cohesion.",
+      "concept": "srp",
+      "frequency": "very-high"
+    },
+    {
+      "id": "f3",
+      "name": "Direct collection exposure",
+      "description": "Internal lists of books or members are returned directly, allowing external modification.",
+      "concept": "encapsulation",
+      "frequency": "high"
+    }
+  ],
+  "goldDesigns": {
+    "strong": {
+      "assumptions": [
+        "Each book has a single copy in the catalog",
+        "Members are identified by a unique ID",
+        "Fine is computed only when a book is returned",
+        "The catalog fits in memory for the default implementation"
+      ],
+      "classes": [
+        {
+          "name": "Book",
+          "stereotype": "class",
+          "responsibility": "Represents a book with bibliographic data and availability status",
+          "attributes": [
+            "title",
+            "author",
+            "isbn",
+            "status"
+          ],
+          "methods": [
+            "isAvailable",
+            "setStatus"
+          ]
+        },
+        {
+          "name": "Member",
+          "stereotype": "class",
+          "responsibility": "Represents a library member with borrowing capacity",
+          "attributes": [
+            "name",
+            "maxLoans",
+            "currentLoans"
+          ],
+          "methods": [
+            "canBorrow",
+            "addLoan",
+            "removeLoan"
+          ]
+        },
+        {
+          "name": "Loan",
+          "stereotype": "class",
+          "responsibility": "Represents a loan of a book to a member",
+          "attributes": [
+            "book",
+            "member",
+            "loanDate",
+            "dueDate"
+          ],
+          "methods": [
+            "isOverdue"
+          ]
+        },
+        {
+          "name": "Library",
+          "stereotype": "class",
+          "responsibility": "Manages borrowing and returning of books",
+          "attributes": [
+            "catalog",
+            "finePolicy",
+            "loans"
+          ],
+          "methods": [
+            "borrowBook",
+            "returnBook",
+            "createLoan",
+            "rejectBorrow"
+          ]
+        },
+        {
+          "name": "FinePolicy",
+          "stereotype": "interface",
+          "responsibility": "Calculates overdue fine",
+          "attributes": [],
+          "methods": [
+            "calculateFine"
+          ]
+        },
+        {
+          "name": "FlatFinePolicy",
+          "stereotype": "class",
+          "responsibility": "Calculates a fixed overdue fine",
+          "attributes": [
+            "flatFee"
+          ],
+          "methods": [
+            "calculateFine"
+          ]
+        },
+        {
+          "name": "PerDayFinePolicy",
+          "stereotype": "class",
+          "responsibility": "Calculates a per‑day overdue fine",
+          "attributes": [
+            "dailyRate"
+          ],
+          "methods": [
+            "calculateFine"
+          ]
+        },
+        {
+          "name": "Catalog",
+          "stereotype": "class",
+          "responsibility": "Finds books by ISBN",
+          "attributes": [
+            "books"
+          ],
+          "methods": [
+            "findByIsbn",
+            "add"
+          ]
+        },
+        {
+          "name": "BorrowingPolicy",
+          "stereotype": "interface",
+          "responsibility": "Decides whether a member may take another loan and for how long",
+          "attributes": [],
+          "methods": [
+            "canBorrow",
+            "loanPeriodFor"
+          ]
+        },
+        {
+          "name": "StandardBorrowingPolicy",
+          "stereotype": "class",
+          "responsibility": "Applies the default loan limit and period to every member",
+          "attributes": [
+            "maxLoans",
+            "loanDays"
+          ],
+          "methods": [
+            "canBorrow",
+            "loanPeriodFor"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "Library",
+          "to": "FinePolicy",
+          "kind": "uses"
+        },
+        {
+          "from": "Library",
+          "to": "Loan",
+          "kind": "has-a"
+        },
+        {
+          "from": "Loan",
+          "to": "Book",
+          "kind": "has-a"
+        },
+        {
+          "from": "Loan",
+          "to": "Member",
+          "kind": "has-a"
+        },
+        {
+          "from": "FlatFinePolicy",
+          "to": "FinePolicy",
+          "kind": "implements"
+        },
+        {
+          "from": "PerDayFinePolicy",
+          "to": "FinePolicy",
+          "kind": "implements"
+        },
+        {
+          "from": "Library",
+          "to": "Catalog",
+          "kind": "has-a"
+        },
+        {
+          "from": "Library",
+          "to": "BorrowingPolicy",
+          "kind": "uses"
+        },
+        {
+          "from": "StandardBorrowingPolicy",
+          "to": "BorrowingPolicy",
+          "kind": "implements"
+        }
+      ],
+      "tradeoffs": "BookLookup and BookPersistence split catalog responsibilities, enabling independent read/write implementations; FinePolicy implementations are now concrete strategies; Library depends only on interfaces, improving testability and swapping implementations.",
+      "decisions": [
+        {
+          "what": "Borrowing limits live behind a BorrowingPolicy interface the Library holds",
+          "alternative": "Check the limit inside Library.borrowBook, or inside Member",
+          "why": "Limits and periods change by member type and by term; the library's borrowing steps do not"
+        },
+        {
+          "what": "Expose FinePolicy as strategy interface",
+          "alternative": "Hard‑code fine logic in Library",
+          "why": "Allows interchangeable fine calculations"
+        },
+        {
+          "what": "Keep borrowing logic in Library rather than a separate service",
+          "alternative": "Create LoanService class",
+          "why": "Keeps model simple for the given scope"
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-borrow",
+          "steps": [
+            {
+              "className": "Library",
+              "method": "borrowBook",
+              "note": "member and ISBN arrive"
+            },
+            {
+              "className": "Catalog",
+              "method": "findByIsbn",
+              "note": ""
+            },
+            {
+              "className": "Book",
+              "method": "isAvailable",
+              "note": ""
+            },
+            {
+              "className": "BorrowingPolicy",
+              "method": "canBorrow",
+              "note": "limit and period come from the policy, not the library"
+            },
+            {
+              "className": "Library",
+              "method": "createLoan",
+              "note": ""
+            },
+            {
+              "className": "Member",
+              "method": "addLoan",
+              "note": ""
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-return",
+          "steps": [
+            {
+              "className": "Library",
+              "method": "returnBook",
+              "note": ""
+            },
+            {
+              "className": "Loan",
+              "method": "isOverdue",
+              "note": ""
+            },
+            {
+              "className": "FinePolicy",
+              "method": "calculateFine",
+              "note": ""
+            },
+            {
+              "className": "Book",
+              "method": "setStatus",
+              "note": ""
+            },
+            {
+              "className": "Member",
+              "method": "removeLoan",
+              "note": ""
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-borrow-unavailable",
+          "steps": [
+            {
+              "className": "Library",
+              "method": "borrowBook",
+              "note": ""
+            },
+            {
+              "className": "Catalog",
+              "method": "findByIsbn",
+              "note": ""
+            },
+            {
+              "className": "Book",
+              "method": "isAvailable",
+              "note": "returns false"
+            },
+            {
+              "className": "Library",
+              "method": "rejectBorrow",
+              "note": "refused"
+            }
+          ],
+          "outcome": "refused"
+        }
+      ]
+    },
+    "mutable-bibliographic-data": {
+      "assumptions": [],
+      "classes": [
+        {
+          "name": "Book",
+          "stereotype": "class",
+          "responsibility": "Represents a book with bibliographic data and availability status",
+          "attributes": [
+            "title",
+            "author",
+            "isbn",
+            "status"
+          ],
+          "methods": [
+            "setTitle",
+            "setIsbn",
+            "getTitle",
+            "getIsbn",
+            "getStatus",
+            "setStatus"
+          ]
+        },
+        {
+          "name": "Member",
+          "stereotype": "class",
+          "responsibility": "Represents a library member with borrowing limits",
+          "attributes": [
+            "name",
+            "memberId",
+            "loanLimit",
+            "currentLoans"
+          ],
+          "methods": [
+            "borrowBook",
+            "returnBook",
+            "canBorrow"
+          ]
+        },
+        {
+          "name": "Loan",
+          "stereotype": "class",
+          "responsibility": "Records an immutable loan of a book to a member",
+          "attributes": [
+            "book",
+            "member",
+            "loanDate",
+            "dueDate"
+          ],
+          "methods": [
+            "getBook",
+            "getMember",
+            "getLoanDate",
+            "getDueDate"
+          ]
+        },
+        {
+          "name": "CatalogRepository",
+          "stereotype": "interface",
+          "responsibility": "Abstracts storage of the book catalog",
+          "attributes": [],
+          "methods": [
+            "findByIsbn",
+            "addBook",
+            "removeBook"
+          ]
+        },
+        {
+          "name": "FinePolicy",
+          "stereotype": "interface",
+          "responsibility": "Defines how overdue fines are calculated",
+          "attributes": [],
+          "methods": [
+            "calculateFine"
+          ]
+        },
+        {
+          "name": "Library",
+          "stereotype": "class",
+          "responsibility": "Coordinates borrowing, returning and enforces policies",
+          "attributes": [
+            "catalog",
+            "policy"
+          ],
+          "methods": [
+            "borrowBook",
+            "returnBook",
+            "isAvailable"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "Library",
+          "to": "CatalogRepository",
+          "kind": "uses"
+        },
+        {
+          "from": "Library",
+          "to": "FinePolicy",
+          "kind": "uses"
+        },
+        {
+          "from": "Library",
+          "to": "Book",
+          "kind": "has-a"
+        },
+        {
+          "from": "Library",
+          "to": "Member",
+          "kind": "has-a"
+        },
+        {
+          "from": "Library",
+          "to": "Loan",
+          "kind": "has-a"
+        },
+        {
+          "from": "Member",
+          "to": "Loan",
+          "kind": "has-a"
+        }
+      ],
+      "tradeoffs": "Simple design but Book allows mutable bibliographic fields, breaking immutability.",
+      "decisions": [
+        {
+          "what": "Use interfaces for storage and fine calculation to allow variation points",
+          "alternative": "",
+          "why": ""
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-borrow",
+          "steps": [
+            {
+              "className": "Library",
+              "method": "borrowBook",
+              "note": "checks book.status, creates Loan, updates status"
+            },
+            {
+              "className": "Member",
+              "method": "canBorrow",
+              "note": "ensures limit not exceeded"
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-return",
+          "steps": [
+            {
+              "className": "Library",
+              "method": "returnBook",
+              "note": "updates book.status, uses FinePolicy to calculate fine"
+            },
+            {
+              "className": "Member",
+              "method": "returnBook",
+              "note": "removes Loan from currentLoans"
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-borrow-unavailable",
+          "steps": [
+            {
+              "className": "Library",
+              "method": "borrowBook",
+              "note": "refuses borrowing because book.status not available"
+            },
+            {
+              "className": "Library",
+              "method": "borrowBook",
+              "note": "records error"
+            }
+          ],
+          "outcome": "ok"
+        }
+      ]
+    },
+    "god-object-library": {
+      "assumptions": [
+        "isbn uniquely identifies a book",
+        "memberId uniquely identifies a member"
+      ],
+      "classes": [
+        {
+          "name": "Library",
+          "stereotype": "class",
+          "responsibility": "Central manager that stores books, members, loans and handles borrowing, returning and fine calculation",
+          "attributes": [
+            "books",
+            "members",
+            "loans",
+            "finePolicy"
+          ],
+          "methods": [
+            "addBook",
+            "registerMember",
+            "checkAvailability",
+            "borrowBook",
+            "returnBook",
+            "createLoan",
+            "updateBookStatus",
+            "calculateFine"
+          ]
+        },
+        {
+          "name": "Book",
+          "stereotype": "class",
+          "responsibility": "Represents a book with immutable bibliographic data and mutable availability status",
+          "attributes": [
+            "title",
+            "author",
+            "isbn",
+            "isAvailable"
+          ],
+          "methods": [
+            "setAvailability"
+          ]
+        },
+        {
+          "name": "Member",
+          "stereotype": "class",
+          "responsibility": "Represents a library member with borrowing limit and current loan count",
+          "attributes": [
+            "name",
+            "memberId",
+            "loanLimit",
+            "currentLoans"
+          ],
+          "methods": [
+            "canBorrow",
+            "addLoan",
+            "removeLoan"
+          ]
+        },
+        {
+          "name": "Loan",
+          "stereotype": "class",
+          "responsibility": "Immutable record of a book loan with dates",
+          "attributes": [
+            "book",
+            "member",
+            "loanDate",
+            "dueDate"
+          ],
+          "methods": []
+        },
+        {
+          "name": "FinePolicy",
+          "stereotype": "class",
+          "responsibility": "Calculates overdue fine according to library policy",
+          "attributes": [],
+          "methods": [
+            "calculateFine"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "Library",
+          "to": "Book",
+          "kind": "has-a"
+        },
+        {
+          "from": "Library",
+          "to": "Member",
+          "kind": "has-a"
+        },
+        {
+          "from": "Library",
+          "to": "Loan",
+          "kind": "has-a"
+        },
+        {
+          "from": "Library",
+          "to": "FinePolicy",
+          "kind": "uses"
+        },
+        {
+          "from": "Member",
+          "to": "Loan",
+          "kind": "has-a"
+        },
+        {
+          "from": "Loan",
+          "to": "Book",
+          "kind": "has-a"
+        },
+        {
+          "from": "Loan",
+          "to": "Member",
+          "kind": "has-a"
+        }
+      ],
+      "tradeoffs": "All core logic resides in Library, making it a God object; easy to prototype but poor cohesion and testability.",
+      "decisions": [
+        {
+          "what": "catalogStorage",
+          "alternative": "",
+          "why": ""
+        },
+        {
+          "what": "finePolicy",
+          "alternative": "",
+          "why": ""
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-borrow",
+          "steps": [
+            {
+              "className": "Library",
+              "method": "checkAvailability",
+              "note": "verifies book.isAvailable is true"
+            },
+            {
+              "className": "Library",
+              "method": "borrowBook",
+              "note": "creates Loan via createLoan and updates status"
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-return",
+          "steps": [
+            {
+              "className": "Library",
+              "method": "returnBook",
+              "note": "sets book.isAvailable true and invokes calculateFine"
+            },
+            {
+              "className": "Library",
+              "method": "calculateFine",
+              "note": "computes overdue fine if return is late"
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-borrow-unavailable",
+          "steps": [
+            {
+              "className": "Library",
+              "method": "checkAvailability",
+              "note": "finds book.isAvailable false"
+            },
+            {
+              "className": "Library",
+              "method": "borrowBook",
+              "note": "refuses borrowing and returns error"
+            }
+          ],
+          "outcome": "error"
+        }
+      ]
+    }
+  },
+  "critiquePairs": [
+    {
+      "id": "cp-1",
+      "left": "strong",
+      "right": "god-object-library",
+      "question": "Next term, students and staff get different loan limits. Which design absorbs that without editing working code? Click the class that makes it possible.",
+      "targetsConcept": "open-closed",
+      "answer": {
+        "design": "strong",
+        "className": "BorrowingPolicy"
+      },
+      "telling": "On the left, the limit is an answer the Library asks for — BorrowingPolicy.canBorrow — so a second member type is a second class that answers differently, and borrowBook does not change. On the right, the limit is a number inside Library.borrowBook, and a second type is a branch inside the method that already works. The design that can say who decides in one place is the one that survives the change."
+    },
+    {
+      "id": "cp-2",
+      "left": "mutable-bibliographic-data",
+      "right": "god-object-library",
+      "question": "Which design keeps the Library class focused, avoiding it knowing fine‑calculation details?",
+      "targetsConcept": "srp",
+      "answer": {
+        "design": "mutable-bibliographic-data",
+        "className": "Library"
+      },
+      "telling": "In the mutable‑bibliographic‑data design the Library collaborates with a FinePolicy interface, delegating all fine calculations. Library’s responsibility stays limited to orchestrating loans and members. In the god‑object‑library design the Library also contains the fine‑calculation logic, bloating its responsibilities and violating the Single‑Responsibility Principle."
+    }
+  ],
+  "calibrationSet": [
+    {
+      "designId": "strong",
+      "label": "strong",
+      "expectedBands": {
+        "requirement-coverage": [
+          3,
+          4
+        ],
+        "class-responsibilities": [
+          3,
+          4
+        ],
+        "coupling-cohesion": [
+          3,
+          4
+        ],
+        "abstraction-use": [
+          3,
+          4
+        ],
+        "behaviour": [
+          3,
+          4
+        ],
+        "edge-cases": [
+          2,
+          4
+        ]
+      }
+    },
+    {
+      "designId": "mutable-bibliographic-data",
+      "label": "mutable-bibliographic-data",
+      "expectedBands": {
+        "requirement-coverage": [
+          3,
+          4
+        ],
+        "class-responsibilities": [
+          1,
+          3
+        ],
+        "coupling-cohesion": [
+          2,
+          4
+        ],
+        "abstraction-use": [
+          0,
+          2
+        ],
+        "behaviour": [
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "designId": "god-object-library",
+      "label": "god-object-library",
+      "expectedBands": {
+        "requirement-coverage": [
+          3,
+          4
+        ],
+        "class-responsibilities": [
+          0,
+          2
+        ],
+        "coupling-cohesion": [
+          1,
+          3
+        ],
+        "abstraction-use": [
+          0,
+          2
+        ],
+        "behaviour": [
+          0,
+          2
+        ]
+      }
+    }
+  ],
+  "nextProblems": [
+    "shopping-cart-discounts",
+    "parking-lot"
+  ]
+}

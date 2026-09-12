@@ -82,3 +82,27 @@ produce — `*Manager` god classes, fat interfaces forcing stubbed methods, type
 Concrete()` inside high-level classes, overrides that throw, flag-based state. These are encoded in
 each problem's `commonFailureModes[]`, which is what lets the rule analyzer name a failure precisely
 rather than describing it vaguely.
+
+## Model-drafted problems, and how they earn their place
+
+From `library-management` onward, problem files are **drafted by a model and gated by the
+evaluator**, then reviewed by a person. The two scripts are the whole workflow:
+
+- `apps/api/scripts/author-problem.ts <id>` — four stages, each a separate call with a hand-authored
+  problem as the exemplar: the spec (brief, requirements with keywords, variation points, scenarios,
+  failure modes); the strong design; two weak designs, one per failure mode; the instrumentation
+  (hidden changes, probes, critique pairs). The strong design is then **measured** with the same
+  checks a learner faces, and the findings go back to the model as the repair prompt — up to three
+  rounds, until it clears par on every measured criterion. The output is a `.draft.json` and a
+  report of what every gold design actually scored.
+- `apps/api/scripts/measure-problem.ts <file> [--write-bands]` — after a person edits the draft:
+  re-measure, check coherence, and record calibration bands — `[3, 4]` for the strong design (a bar),
+  ±1 around the actual score for each weak design (a regression band a reviewer may tighten).
+
+What the person is for, concretely, from the first run: the model wrote a hidden change about
+*database storage* into a problem whose constraints say *no persistence layer*, and a probe about
+*reservations* into a problem with no reservations requirement. The evaluator cannot catch either —
+they are coherent and well-formed. A reviewer replaced the storage seam with a domain seam
+(*borrowing policy varies by member type*), rewrote the probe around the immutability requirement
+that was actually there, and re-ran the gate. Every model-drafted file records this in the commit
+that promotes it from `.draft.json`.

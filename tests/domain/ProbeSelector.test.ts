@@ -58,3 +58,22 @@ describe('selectProbes', () => {
     expect(selectProbes(parkingLot.probes, findings)).toEqual(selectProbes(parkingLot.probes, findings))
   })
 })
+
+describe('a strong design still gets three questions', () => {
+  it('fills the remaining slots with probes whose trigger did not fire', async () => {
+    const { selectProbes } = await import('../../apps/api/src/domain/feedback/ProbeSelector.js')
+    const probes = [
+      { id: 'a', prompt: 'A about {{class}}?', targetsConcept: 'x', triggerWhen: { criterionId: 'abstraction-use' as const, maxScore: 2 }, goodSignal: [], badSignal: [] },
+      { id: 'b', prompt: 'B?', targetsConcept: 'x', triggerWhen: { criterionId: 'behaviour' as const, maxScore: 2 }, goodSignal: [], badSignal: [] },
+      { id: 'c', prompt: 'C?', targetsConcept: 'x', goodSignal: [], badSignal: [] },
+    ]
+    const strong = [
+      { criterionId: 'abstraction-use' as const, stage: 'design' as const, score: 4 as const, evidence: [], concern: '', suggestion: '', confidence: 'high' as const, evaluatorId: 'r', evaluatorKind: 'deterministic' as const },
+      { criterionId: 'behaviour' as const, stage: 'design' as const, score: 4 as const, evidence: [], concern: '', suggestion: '', confidence: 'high' as const, evaluatorId: 'r', evaluatorKind: 'deterministic' as const },
+    ]
+    const picked = selectProbes(probes, strong)
+    expect(picked.map((p) => p.id)).toEqual(['c', 'a', 'b'])
+    expect(picked.every((p) => !p.triggered)).toBe(true)
+    expect(picked[1]!.prompt).toBe('A about your design?')
+  })
+})
