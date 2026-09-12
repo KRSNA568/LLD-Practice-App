@@ -19,12 +19,17 @@ export type LlmProvider = (typeof LLM_PROVIDERS)[number]
  */
 const OPENAI_COMPATIBLE: Record<
   Exclude<LlmProvider, 'anthropic' | 'stub'>,
-  { baseUrl: string; model: string; keyVar: string | null }
+  { baseUrl: string; model: string; mentorModel?: string; keyVar: string | null; reasoningEffort?: boolean }
 > = {
   groq: {
     baseUrl: 'https://api.groq.com/openai/v1',
     model: 'openai/gpt-oss-120b',
+    // Groq's free tier is 8k tokens/minute *per model*. Judgement stays on the
+    // large model; notes, lessons and follow-ups run on the small one, in a
+    // separate budget — and they are conversation, not scoring.
+    mentorModel: 'openai/gpt-oss-20b',
     keyVar: 'GROQ_API_KEY',
+    reasoningEffort: true,
   },
   gemini: {
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
@@ -71,7 +76,9 @@ export function resolveLlmProvider(env: NodeJS.ProcessEnv = process.env): LlmPro
  * either way. Setting a key upgrades the judgement criteria; it does not unlock
  * the product.
  */
-export function resolveLlmClient(env: NodeJS.ProcessEnv = process.env): LlmClient {
+export type LlmRole = 'evaluator' | 'mentor'
+
+export function resolveLlmClient(env: NodeJS.ProcessEnv = process.env, role: LlmRole = 'evaluator'): LlmClient {
   const provider = resolveLlmProvider(env)
   if (provider === 'stub') return new StubLlmClient()
   if (provider === 'anthropic') return new AnthropicLlmClient()
@@ -81,11 +88,15 @@ export function resolveLlmClient(env: NodeJS.ProcessEnv = process.env): LlmClien
   if (row.keyVar && !apiKey) {
     throw new Error(`LLD_LLM_PROVIDER=${provider} needs ${row.keyVar} to be set`)
   }
-  const model = env.LLD_LLM_MODEL?.trim() || row.model
+  const model =
+    role === 'mentor'
+      ? env.LLD_LLM_MENTOR_MODEL?.trim() || row.mentorModel || env.LLD_LLM_MODEL?.trim() || row.model
+      : env.LLD_LLM_MODEL?.trim() || row.model
   return new OpenAiCompatibleLlmClient({
     id: `${provider}:${model}`,
     baseUrl: env.LLD_LLM_BASE_URL?.trim() || row.baseUrl,
     model,
     apiKey,
+    reasoningEffort: row.reasoningEffort ?? false,
   })
 }

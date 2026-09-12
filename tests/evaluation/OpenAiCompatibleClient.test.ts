@@ -60,6 +60,14 @@ describe('OpenAiCompatibleLlmClient', () => {
     expect(body.response_format).toEqual({ type: 'json_object' })
   })
 
+  it('sends reasoning_effort only for providers that accept it', async () => {
+    const { fetch, calls } = fakeFetch(() => json(200, { choices: [{ message: { content: 'hi' } }] }))
+    await client(fetch, { reasoningEffort: true }).complete({ ...request, effort: 'low' })
+    await client(fetch).complete({ ...request, effort: 'low' })
+    expect(JSON.parse(String(calls[0]!.init.body)).reasoning_effort).toBe('low')
+    expect(JSON.parse(String(calls[1]!.init.body)).reasoning_effort).toBeUndefined()
+  })
+
   it('omits response_format and the auth header when not asked for them', async () => {
     const { fetch, calls } = fakeFetch(() => json(200, { choices: [{ message: { content: 'hi' } }] }))
     await client(fetch, { apiKey: undefined }).complete({ ...request, json: false })
@@ -193,5 +201,39 @@ describe('LlmEvaluator with a lossy model', () => {
     expect(results[0]!.score).toBe(3)
     expect(results[0]!.evidence).toEqual([{ kind: 'class', name: 'SpotAllocator' }])
     expect(evaluator.lastGrounding?.dropped[0]?.reason).toMatch(/malformed/)
+  })
+})
+
+describe('rate limits', () => {
+  it('parses the reset headers providers actually send', async () => {
+    const { resetAfterMs } = await import('../../apps/api/src/evaluation/llm/OpenAiCompatibleLlmClient.js')
+    expect(resetAfterMs(new Headers({ 'retry-after': '7' }))).toBe(7000)
+    expect(resetAfterMs(new Headers({ 'x-ratelimit-reset-tokens': '26.107s' }))).toBeCloseTo(26357, -1)
+    expect(resetAfterMs(new Headers({ 'x-ratelimit-reset-tokens': '1m3s' }))).toBe(63250)
+    expect(resetAfterMs(new Headers({}))).toBeUndefined()
+  })
+
+  it('waits out a short rate limit once, then succeeds', async () => {
+    let n = 0
+    const { fetch } = fakeFetch(() => {
+      n += 1
+      return n === 1
+        ? new Response('{}', { status: 429, headers: { 'retry-after': '0' } })
+        : json(200, { choices: [{ message: { content: 'ok' } }] })
+    })
+    expect((await client(fetch).complete(request)).text).toBe('ok')
+    expect(n).toBe(2)
+  })
+
+  it('does not wait for a limit that resets too far away', async () => {
+    const { fetch } = fakeFetch(() => new Response('{}', { status: 429, headers: { 'retry-after': '600' } }))
+    await expect(client(fetch).complete(request)).rejects.toThrow(/Rate limited/)
+  })
+
+  it('picks the mentor model per role', async () => {
+    expect(resolveLlmClient({ GROQ_API_KEY: 'g' }, 'mentor').id).toBe('groq:openai/gpt-oss-20b')
+    expect(resolveLlmClient({ GROQ_API_KEY: 'g' }, 'evaluator').id).toBe('groq:openai/gpt-oss-120b')
+    expect(resolveLlmClient({ GROQ_API_KEY: 'g', LLD_LLM_MENTOR_MODEL: 'x' }, 'mentor').id).toBe('groq:x')
+    expect(resolveLlmClient({ GEMINI_API_KEY: 'g' }, 'mentor').id).toBe('gemini:gemini-2.5-flash')
   })
 })

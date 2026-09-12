@@ -293,6 +293,22 @@ touches a score. `apps/api/src/coach/` is a separate module with its own prompt 
 |---|---|---|---|
 | **Reviewer's note** | 3–5 sentences over one stage: the finding that matters most, why here, what first | per sentence — any sentence naming a class the learner did not write is dropped; < 2 survivors → no note | after each stage's evaluation lands, on the queue |
 | **Micro-lesson** | the authored concept (`plain`, `tell`) explained through the learner's own classes, with a before/after | body and both halves of the example, same rule | on request, criteria scored ≤ 2 only |
+| **Socratic follow-up** | after the learner's first answer to a probe, one question that presses on the weakest part of it | must be a question, ≤ 60 words, no verdict phrases, names only classes in the design or the probe; else retried once, then not asked | during Defend, per probe, at most once |
+
+**Defend is a dialogue, not a form.** Georgia Tech's *Socratic Mind* is the strongest evidence in
+the research for any single mechanic here: being made to explain and justify, with follow-ups,
+produced significant learning gains across 5,000+ students. The shape is fixed at two learner
+turns per probe — answer, follow-up, reply — so it stays an interview rather than a chat, and the
+turn limit is enforced server-side. The mentor's turns live in `DialogueTurn`, never in the
+client, so a refresh loses nothing and a mentor question cannot be forged. On submit, the dialogue
+*is* the answer: the learner's turns joined become `response` (what `reasoning` is scored on) and
+the full exchange rides along as `transcript`, which the prompt shows as context. The prompt version
+moved to 2.1.0 for that, and the pin caught it in the integration test before anyone did.
+
+**Two models, one provider.** Groq's free tier is 8,000 tokens per minute *per model*. Judgement
+stays on the large model; notes, lessons and follow-ups run on the small one in a separate budget
+(`resolveLlmClient(env, 'mentor')`). That split is also the right one on merit: scoring needs the
+best reader available; a follow-up needs to be fast.
 
 **Grounding for prose** is coarser than for evidence. A citation resolves or it does not; a sentence
 can only be checked for the identifiers it names — anything in backticks or CamelCase. So the rule

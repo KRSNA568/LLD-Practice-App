@@ -96,10 +96,12 @@ beforeEach(async () => {
   await prisma.submission.deleteMany({})
   await prisma.attempt.deleteMany({})
   await prisma.aiNote.deleteMany({})
+  await prisma.dialogueTurn.deleteMany({})
   queue = new InProcessQueue({ maxRetries: 2, baseDelayMs: 1 })
   const content = ContentStore.load()
   service = new PracticeService(prisma, content, queue)
-  coach = new CoachService(prisma, content, (id, stage) => service.loadContext(id, stage), new StubLlmClient())
+  coach = new CoachService(prisma, content, (id, stage) => service.loadContext(id, stage), new StubLlmClient(), (id) => service.loadDefend(id))
+  service.transcriptsOf = (id) => coach.transcripts(id)
   service.onEvaluated = (id, stage) => queue.enqueue(() => coach.reviewStage(id, stage).then(() => undefined))
 })
 
@@ -154,7 +156,7 @@ describe('the design stage', () => {
     expect(settled.report!.rubricId).toBe('lld-core')
     expect(settled.report!.rubricVersion).toBe('2.0.0')
     const row = await prisma.evaluation.findFirst({ where: { attemptId: settled.id } })
-    expect(row.promptVersion).toBe('2.0.0')
+    expect(row.promptVersion).toBe('2.1.0')
   })
 
   it('persists the submission before evaluation begins', async () => {
@@ -459,5 +461,44 @@ describe('the mentor', () => {
     const settled = await designAndSettle(strongDesign)
     expect(settled.state).toBe('COMPLETED')
     expect((await broken.notesFor(settled.id, settled.report!.results)).review.design).toBeUndefined()
+  })
+})
+
+describe('defend as a dialogue', () => {
+  it('asks one follow-up, closes after two learner turns, and scores the whole exchange', async () => {
+    const settled = await throughChange(godClassDesign, flagRevision, 'Added a flag.')
+    await service.advance(settled.id)
+    const opened = await service.getAttempt(settled.id)
+    const probe = opened.probes![0]!
+
+    const first = await coach.turn(opened.id, probe.id, 'ParkingLotManager.calculateFee gets a new branch. Nothing else changes.')
+    expect(first.closed).toBe(false)
+    expect(first.transcript.map((t) => t.role)).toEqual(['learner', 'mentor'])
+    expect(first.transcript[1]!.text).toMatch(/\?$/)
+
+    const second = await coach.turn(opened.id, probe.id, 'Honestly, a PricingStrategy interface would be better than the branch.')
+    expect(second.closed).toBe(true)
+    await expect(coach.turn(opened.id, probe.id, 'one more')).rejects.toThrow(/finished/)
+
+    // The dialogue is on the attempt, server-held.
+    expect((await service.getAttempt(opened.id)).dialogue?.[probe.id]).toHaveLength(3)
+
+    // Submitting folds the dialogue into the answer: learner turns only in `response`.
+    await service.submit(opened.id, { stage: 'defend', answers: [] }, 'k-dialogue')
+    await queue.drain()
+    const done = await service.getAttempt(opened.id)
+    expect(done.state).toBe('COMPLETED')
+    const answer = done.answers!.find((a) => a.probeId === probe.id)!
+    expect(answer.response).toContain('PricingStrategy interface')
+    expect(answer.response).not.toContain(first.transcript[1]!.text)
+    expect(answer.transcript).toHaveLength(3)
+    expect(done.report!.results.find((r) => r.criterionId === 'reasoning')).toBeDefined()
+  })
+
+  it('refuses a turn on a probe that was not asked, or once the stage is closed', async () => {
+    const settled = await throughChange(godClassDesign, flagRevision)
+    await expect(coach.turn(settled.id, 'p-pricing', 'x')).rejects.toThrow(/not open/)
+    await service.advance(settled.id)
+    await expect(coach.turn(settled.id, 'p-nope', 'x')).rejects.toThrow(/not asked/)
   })
 })

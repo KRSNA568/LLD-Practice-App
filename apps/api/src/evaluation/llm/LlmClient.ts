@@ -43,6 +43,8 @@ export type LlmResponse = {
 
 export class LlmUnavailableError extends Error {
   readonly code = 'LLM_UNAVAILABLE' as const
+  /** Set on a rate limit when the provider said how long until it clears. */
+  retryAfterMs?: number
   constructor(message: string) {
     super(message)
     this.name = 'LlmUnavailableError'

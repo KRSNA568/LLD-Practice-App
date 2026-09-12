@@ -370,7 +370,20 @@ export default function ReportPage() {
                     return (
                       <li key={p.id} id={`answer-${p.id}`} className={`rounded-xl border px-4 py-3 transition-colors ${lit ? 'border-brand/50 bg-brand-soft' : 'border-line bg-raised/40'}`}>
                         <p className="text-[13px] font-medium">{p.prompt}</p>
-                        <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">{a?.response?.trim() || <em>No answer.</em>}</p>
+                        {a && a.transcript.length > 0 ? (
+                          <ol className="mt-2 space-y-1.5">
+                            {a.transcript.map((t, i) => (
+                              <li key={i} className={`text-[13px] leading-relaxed ${t.role === 'mentor' ? 'text-judged' : 'text-ink-muted'}`}>
+                                <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-wide">
+                                  {t.role === 'mentor' ? '◈ Interviewer' : 'You'}
+                                </span>
+                                {t.text}
+                              </li>
+                            ))}
+                          </ol>
+                        ) : (
+                          <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">{a?.response?.trim() || <em>No answer.</em>}</p>
+                        )}
                       </li>
                     )
                   })}

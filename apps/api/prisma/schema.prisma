@@ -141,3 +141,18 @@ model AiNote {
   @@unique([kind, key])
   @@index([attemptId])
 }
+
+/// The defend stage as a dialogue: the learner's turns and the mentor's follow-up
+/// questions, in order. Held server-side so the mentor's turn cannot be forged
+/// and a refresh loses nothing. Folded into the defend submission on submit.
+model DialogueTurn {
+  id        String   @id
+  attemptId String
+  probeId   String
+  turn      Int
+  role      String
+  text      String
+  createdAt DateTime @default(now())
+
+  @@unique([attemptId, probeId, turn])
+}

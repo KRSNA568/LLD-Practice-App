@@ -38,7 +38,7 @@ API loads it at startup):
 
 | Provider | Free tier | Put in `apps/api/.env.local` | Default model |
 |---|---|---|---|
-| **Groq** (recommended) | ~14k requests/day, no card | `GROQ_API_KEY=gsk_…` | `openai/gpt-oss-120b` |
+| **Groq** (recommended) | 8k tokens/min per model, no card | `GROQ_API_KEY=gsk_…` | `openai/gpt-oss-120b` scores; `gpt-oss-20b` mentors |
 | Gemini AI Studio | ~250 requests/day | `GEMINI_API_KEY=…` | `gemini-2.5-flash` |
 | OpenRouter | ~50 requests/day | `OPENROUTER_API_KEY=…` | `meta-llama/llama-3.3-70b-instruct:free` |
 | Ollama (local) | unlimited | `LLD_LLM_PROVIDER=ollama` | `llama3.1` |
@@ -54,7 +54,7 @@ npx tsx apps/api/scripts/live-llm.ts god-class defend   # exercise the live prov
 ```
 
 ```bash
-npm test         # 186 tests, including a calibration suite over 13 gold designs
+npm test         # 196 tests, including a calibration suite over 13 gold designs
 npm run typecheck
 ```
 
@@ -80,8 +80,9 @@ About ten minutes, and it shows every part of the product:
    Absorb it the lazy way: add an `isElectric` attribute to `Spot` and a `calculateKwhFee` method to
    the manager. Watch the blast-radius counter. Submit.
 5. *Handling change* scores **1** and names the flag. **Continue** again: three questions, each about
-   *your* `ParkingLotManager`. Answer them. *Reasoning* is scored from the answers, with the quote it
-   relied on as evidence.
+   *your* `ParkingLotManager`. Answer the first one lazily — *"calculateFee gets a branch"* — and
+   watch the interviewer come back with a follow-up about what you did not say. Reply. *Reasoning*
+   is scored from the whole exchange, with the quote it relied on as evidence.
 6. **Try again.** The form opens with your revision. Add `PricingStrategy` as an `interface`,
    `HourlyPricing` implementing it, point `ParkingLot` at the interface, spread the walkthrough steps,
    end the refusal scenario as *Refused*. This attempt is dealt a *different* change — reserved spots
@@ -99,7 +100,7 @@ measured findings still arrive, and the report says so honestly rather than show
 | **Change** | After the design is frozen and reviewed, a requirement change is revealed. You revise. The diff is the evidence. |
 | **Evaluation** | Eight criteria, one owner each. **Six measured** from the class graph, the walkthroughs and the diff. **Two read** by an LLM — the two that need reading. |
 | **Feedback** | Every finding cites a class, relationship, assumption, decision, walkthrough step or quote **in your submission**, verified to exist before you see it. |
-| **Defend** | Up to three probes, chosen by what the review found and worded around your own class names. |
+| **Defend** | Up to three probes, chosen by what the review found and worded around your own class names — each a short interview: your answer, one follow-up from the AI interviewer that presses on the weakest part of it, your reply. *Reasoning* is read from the whole exchange. |
 | **Mentor** | After each stage, an AI note over the findings — the one thing that matters most, in your class names. On any low criterion, a two-minute lesson on the concept behind it, illustrated with your own classes. Every sentence is checked against your design before you see it. |
 | **Honesty** | Measured findings and AI findings are visually distinct. Missing criteria are absent, never zero. The mentor's note is visibly AI and says why it can be trusted. |
 | **History** | Per-criterion trend across stages, a callout when the same criterion keeps failing, and a next problem chosen to exercise it. |
@@ -137,7 +138,7 @@ apps/api/src/
   evaluation/      Evaluator port         ← a new evaluator plugs in here
     rules/checks/  one file per measured check, each declaring its stage and facets
     llm/           prompt with band anchors, providers, EvidenceGroundingValidator
-  coach/           the mentor: prose grounding, prompts, Reviewer, LessonWriter, NoteStore (cache)
+  coach/           the mentor: prose grounding, prompts, Reviewer, LessonWriter, Dialogue, NoteStore
   app/             PracticeService — stages, submissions, critique, next problem; CoachService
   infra/           prisma · queue · content loader
 apps/web/          Next.js · Tailwind · Framer Motion

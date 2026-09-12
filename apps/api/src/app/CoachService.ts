@@ -1,10 +1,15 @@
 import type { PrismaClient } from '@prisma/client'
+import { randomUUID } from 'node:crypto'
 import {
+  MAX_LEARNER_TURNS,
   type AttemptNotes,
   type CriterionResult,
+  type DialogueTurn,
   type MicroLesson,
+  type Probe,
   type Stage,
 } from '@lld/contracts'
+import { Dialogue } from '../coach/Dialogue.js'
 import type { EvaluationContext } from '../evaluation/Evaluator.js'
 import type { LlmClient } from '../evaluation/llm/LlmClient.js'
 import { NoteStore } from '../coach/NoteStore.js'
@@ -19,6 +24,17 @@ export type ContextLoader = (
   stage: Stage,
 ) => Promise<{ ctx: EvaluationContext; results: CriterionResult[]; learnerId: string } | null>
 
+/** The defend stage while it is open: which probes were asked, on what design. */
+export type DefendLoader = (attemptId: string) => Promise<{ ctx: EvaluationContext; probes: Probe[] } | null>
+
+export class DialogueClosedError extends Error {
+  readonly code = 'DIALOGUE_CLOSED' as const
+  constructor(message: string) {
+    super(message)
+    this.name = 'DialogueClosedError'
+  }
+}
+
 export const LESSON_THRESHOLD = 2
 
 /**
@@ -31,16 +47,70 @@ export class CoachService {
   private readonly notes: NoteStore
   private readonly reviewer: Reviewer
   private readonly lessons: LessonWriter
+  private readonly dialogue: Dialogue
 
   constructor(
-    prisma: PrismaClient,
+    private readonly prisma: PrismaClient,
     private readonly content: ContentStore,
     private readonly loadContext: ContextLoader,
     private readonly llm: LlmClient,
+    private readonly loadDefend: DefendLoader = async () => null,
   ) {
     this.notes = new NoteStore(prisma)
     this.reviewer = new Reviewer(llm)
     this.lessons = new LessonWriter(llm)
+    this.dialogue = new Dialogue(llm)
+  }
+
+  /* --------------------------------------------------------------------- */
+  /* Defend as a dialogue                                                   */
+  /* --------------------------------------------------------------------- */
+
+  async transcripts(attemptId: string): Promise<Record<string, DialogueTurn[]>> {
+    const rows = await this.prisma.dialogueTurn.findMany({ where: { attemptId }, orderBy: [{ probeId: 'asc' }, { turn: 'asc' }] })
+    const out: Record<string, DialogueTurn[]> = {}
+    for (const row of rows) {
+      ;(out[row.probeId] ??= []).push({ role: row.role as DialogueTurn['role'], text: row.text })
+    }
+    return out
+  }
+
+  /**
+   * The learner speaks; the mentor may answer with one question. Turn limits are
+   * enforced here, not in the client: after the second learner turn the probe is
+   * closed and a third is refused.
+   */
+  async turn(attemptId: string, probeId: string, text: string): Promise<{ transcript: DialogueTurn[]; closed: boolean }> {
+    const loaded = await this.loadDefend(attemptId)
+    if (!loaded) throw new DialogueClosedError('The defend stage is not open on this attempt')
+    const probe = loaded.probes.find((p) => p.id === probeId)
+    if (!probe) throw new DialogueClosedError(`Probe "${probeId}" was not asked on this attempt`)
+
+    const existing = (await this.transcripts(attemptId))[probeId] ?? []
+    const learnerTurns = existing.filter((t) => t.role === 'learner').length
+    if (learnerTurns >= MAX_LEARNER_TURNS) throw new DialogueClosedError('This question is finished')
+
+    const transcript = [...existing, { role: 'learner' as const, text: text.trim() }]
+    await this.prisma.dialogueTurn.create({
+      data: { id: randomUUID(), attemptId, probeId, turn: existing.length, role: 'learner', text: text.trim() },
+    })
+
+    // One follow-up, after the first answer only. A follow-up that fails its own
+    // rules is simply not asked; the probe ends at one turn.
+    if (learnerTurns === 0) {
+      const question = await this.dialogue.followUp(loaded.ctx, probe, transcript).catch((error: unknown) => {
+        console.warn(`[coach] no follow-up for ${attemptId}/${probeId}:`, error instanceof Error ? error.message : error)
+        return null
+      })
+      if (question) {
+        await this.prisma.dialogueTurn.create({
+          data: { id: randomUUID(), attemptId, probeId, turn: transcript.length, role: 'mentor', text: question },
+        })
+        transcript.push({ role: 'mentor', text: question })
+        return { transcript, closed: false }
+      }
+    }
+    return { transcript, closed: true }
   }
 
   get live(): boolean {

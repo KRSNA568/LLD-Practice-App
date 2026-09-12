@@ -7,6 +7,7 @@ import type {
   ProgressPayload,
   AttemptSummary,
   CritiqueVerdict,
+  DialogueTurn,
   EvaluationReport,
   NextProblemSuggestion,
   ProblemSummary,
@@ -81,6 +82,12 @@ export const api = {
     request<{ attempt: Attempt; draft: RawStageInput | null }>('/attempts', {
       method: 'POST',
       body: JSON.stringify({ problemId }),
+    }),
+
+  defendTurn: (id: string, probeId: string, text: string) =>
+    request<{ transcript: DialogueTurn[]; closed: boolean }>(`/attempts/${id}/defend/${probeId}/turn`, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
     }),
 
   getNotes: (id: string) => request<AttemptNotes>(`/attempts/${id}/notes`),

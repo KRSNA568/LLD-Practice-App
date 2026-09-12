@@ -30,6 +30,8 @@ async function main(): Promise<void> {
 
   const queue = new InProcessQueue({
     maxRetries: 2,
+    // Retries exist mostly for rate limits, which clear in seconds, not milliseconds.
+    baseDelayMs: 4000,
     onError: (error, attempt, id) => {
       console.warn(
         `[queue] evaluation for ${id ?? 'unknown'} failed on attempt ${attempt + 1}:`,
@@ -43,7 +45,15 @@ async function main(): Promise<void> {
 
   // The mentor writes after each stage lands, on the same queue, never on the
   // learner's request path. If it fails the report simply has no note.
-  const coach = new CoachService(prisma, content, (id, stage) => service.loadContext(id, stage), llm)
+  const mentorLlm = resolveLlmClient(process.env, 'mentor')
+  const coach = new CoachService(
+    prisma,
+    content,
+    (id, stage) => service.loadContext(id, stage),
+    mentorLlm,
+    (id) => service.loadDefend(id),
+  )
+  service.transcriptsOf = (id) => coach.transcripts(id)
   service.onEvaluated = (attemptId, stage) => {
     queue.enqueue(
       async () => {
@@ -77,6 +87,7 @@ async function main(): Promise<void> {
         resolveLlmProvider() === 'stub' ? 'deterministic stub (no API key set)' : llm.id
       }`,
     )
+    if (resolveLlmProvider() !== 'stub') console.log(`[api] mentor: ${mentorLlm.id}`)
   })
 }
 

@@ -28,6 +28,7 @@ export class StubLlmClient implements LlmClient {
     const task = /^TASK: (\S+)/.exec(request.user)?.[1]
     if (task === 'reviewer-note') return { text: JSON.stringify(stubReviewerNote(request.user)) }
     if (task === 'micro-lesson') return { text: JSON.stringify(stubLesson(request.user)) }
+    if (task === 'follow-up') return { text: JSON.stringify(stubFollowUp(request.user)) }
 
     const submission = extractSubmission(request.user)
     const wanted = extractRequestedCriteria(request.user)
@@ -266,5 +267,20 @@ function stubLesson(prompt: string): { title: string; body: string; example: { b
       before: `Right now ${cls} carries this responsibility alongside its others. ${concern}`,
       after: `${suggestion} Once that is done, ${cls} keeps one job and the new responsibility has a home of its own.`,
     },
+  }
+}
+
+/**
+ * A follow-up that presses on the probe's own weak-answer signal, phrased around
+ * the first thing the learner said. Always a question; names only the classes the
+ * prompt allows.
+ */
+function stubFollowUp(prompt: string): { question: string } {
+  const weak = /What a weak answer does: ([^\n]+)/.exec(prompt)?.[1]?.split(';')[0]?.trim() ?? 'leaves the alternative unnamed'
+  const said = /Learner: ([^\n]+)/.exec(prompt)?.[1]?.trim() ?? ''
+  const cls = firstClass(prompt)
+  const opener = said ? `You said "${said.split(/\s+/).slice(0, 8).join(' ')}…"` : 'Take your answer'
+  return {
+    question: `${opener} — a weak answer here usually ${weak.replace(/\.$/, '')}. What would you have to change${cls ? ` in ${cls}` : ''} if that turned out to be true of yours?`,
   }
 }

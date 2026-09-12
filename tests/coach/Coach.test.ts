@@ -121,3 +121,43 @@ describe('LessonWriter', () => {
     expect(lesson?.example.before).toContain('ParkingLotManager')
   })
 })
+
+describe('Dialogue', () => {
+  const probe = {
+    id: 'p-pricing',
+    prompt: 'Weekend rates start next month. Which method in ParkingLotManager changes?',
+    targetsConcept: 'open-closed',
+    goodSignal: ['names a single class'],
+    badSignal: ['adds a branch'],
+  }
+  const ctx = designCtx(godClassDesign, { stage: 'defend' })
+  const transcript = [{ role: 'learner' as const, text: 'calculateFee gets a branch.' }]
+
+  it('accepts a grounded question and nothing else', async () => {
+    const { acceptable } = await import('../../apps/api/src/coach/Dialogue.js')
+    expect(acceptable('Which other method in ParkingLotManager would need to know?', ctx, probe)).toBeTruthy()
+    expect(acceptable('You should extract a PricingStrategy.', ctx, probe)).toBeNull() // not a question, a verdict
+    expect(acceptable('Would a PricingStrategy interface help?', ctx, probe)).toBeNull() // names a class they lack
+    expect(acceptable('Is that right?'.repeat(40), ctx, probe)).toBeNull() // too long
+  })
+
+  it('retries once on a bad follow-up, then gives up', async () => {
+    const { Dialogue } = await import('../../apps/api/src/coach/Dialogue.js')
+    let n = 0
+    const client = {
+      id: 'fake',
+      complete: async () => ({ text: JSON.stringify({ question: n++ === 0 ? 'Use a Strategy.' : 'What breaks in ParkingLotManager first?' }) }),
+    }
+    expect(await new Dialogue(client).followUp(ctx, probe, transcript)).toBe('What breaks in ParkingLotManager first?')
+    const bad = { id: 'fake', complete: async () => ({ text: JSON.stringify({ question: 'Use a Strategy.' }) }) }
+    expect(await new Dialogue(bad).followUp(ctx, probe, transcript)).toBeNull()
+  })
+
+  it('the stub asks a grounded question that quotes the learner', async () => {
+    const { Dialogue } = await import('../../apps/api/src/coach/Dialogue.js')
+    const q = await new Dialogue(new StubLlmClient()).followUp(ctx, probe, transcript)
+    expect(q).toMatch(/^You said "calculateFee gets a branch/)
+    expect(q).toMatch(/\?$/)
+    expect(q).toContain('ParkingLotManager')
+  })
+})

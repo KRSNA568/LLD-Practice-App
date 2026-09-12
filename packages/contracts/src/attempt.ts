@@ -71,9 +71,24 @@ export const changeSubmissionSchema = z.object({
 })
 export type ChangeSubmission = z.infer<typeof changeSubmissionSchema>
 
+/**
+ * One turn of the defend dialogue. The learner answers; the mentor may ask one
+ * follow-up; the learner answers again. That is the whole shape — two learner
+ * turns at most, so it stays an interview rather than a chat.
+ */
+export const dialogueTurnSchema = z.object({
+  role: z.enum(['learner', 'mentor']),
+  text: z.string().trim().min(1),
+})
+export type DialogueTurn = z.infer<typeof dialogueTurnSchema>
+export const MAX_LEARNER_TURNS = 2
+
 export const probeAnswerSchema = z.object({
   probeId: z.string().min(1),
+  /** The learner's words only, every turn joined — what `reasoning` is scored on. */
   response: z.string().trim().default(''),
+  /** The full exchange, when it happened as a dialogue. */
+  transcript: z.array(dialogueTurnSchema).default([]),
 })
 export type ProbeAnswer = z.infer<typeof probeAnswerSchema>
 
@@ -152,6 +167,8 @@ export type Attempt = {
   revealedChange: HiddenChange | null
   /** The probes chosen for this learner, exposed once the defend stage opens. */
   probes: Probe[] | null
+  /** The defend dialogue so far, per probe — server-held, so a refresh loses nothing. */
+  dialogue: Record<string, DialogueTurn[]> | null
   /**
    * One strong authored design for this problem, exposed only once the learner's
    * own design has been evaluated. A contrasting case shown *after* the attempt —

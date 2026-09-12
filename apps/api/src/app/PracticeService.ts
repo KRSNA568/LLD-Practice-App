@@ -12,6 +12,7 @@ import {
   type CriterionResult,
   type CritiqueVerdict,
   type DesignModel,
+  type DialogueTurn,
   type EvaluationReport,
   type FieldError,
   type HiddenChange,
@@ -191,7 +192,7 @@ export class PracticeService {
       return this.toAttempt(row, problem)
     }
 
-    const payload = this.parseInput(input, row, problem)
+    const payload = await this.parseInput(input, row, problem)
     assertTransition(row.state as AttemptState, 'SUBMITTED')
 
     const fingerprint = fingerprintOf(payload)
@@ -298,7 +299,7 @@ export class PracticeService {
     return this.toAttempt(updated, problem)
   }
 
-  private parseInput(input: RawStageInput, row: AttemptRow, problem: Problem): SubmissionPayload {
+  private async parseInput(input: RawStageInput, row: AttemptRow, problem: Problem): Promise<SubmissionPayload> {
     switch (input.stage) {
       case 'design': {
         const parsed = this.parser.parse(input.submission)
@@ -316,9 +317,23 @@ export class PracticeService {
         }
       }
       case 'defend': {
-        // Only answers to probes this learner was actually asked survive.
+        // Only answers to probes this learner was actually asked survive. Where a
+        // dialogue happened, it is the answer: the learner's turns joined, with the
+        // full exchange kept for the evaluator to read.
         const asked = new Set(this.probesFor(row, problem).map((p) => p.id))
-        const answers = input.answers.filter((a) => asked.has(a.probeId))
+        const dialogue = (await this.transcriptsOf?.(row.id)) ?? {}
+        const answers = input.answers
+          .filter((a) => asked.has(a.probeId))
+          .map((a) => ({ ...a, transcript: a.transcript ?? [] }))
+        for (const probeId of asked) {
+          const transcript = dialogue[probeId]
+          if (!transcript || transcript.length === 0) continue
+          const response = transcript.filter((t) => t.role === 'learner').map((t) => t.text).join('\n\n')
+          const i = answers.findIndex((a) => a.probeId === probeId)
+          const merged = { probeId, response, transcript }
+          if (i === -1) answers.push(merged)
+          else answers[i] = merged
+        }
         return { stage: 'defend', answers }
       }
     }
@@ -394,6 +409,18 @@ export class PracticeService {
 
     this.onEvaluated?.(attemptId, stage)
   }
+
+  /** The defend stage while it is open — for the dialogue. Null before or after. */
+  async loadDefend(attemptId: string): Promise<{ ctx: EvaluationContext; probes: Probe[] } | null> {
+    const row = await this.prisma.attempt.findUnique({ where: { id: attemptId }, include: WITH_ALL })
+    if (!row || row.stage !== 'defend' || row.state !== 'DRAFT') return null
+    const problem = this.requireProblem(row.problemId)
+    const ctx = { ...this.contextFor('defend', row, problem), rubric: this.content.rubricFor(problem) }
+    return { ctx, probes: [...(ctx.probes ?? [])] }
+  }
+
+  /** Supplied by the coach so the defend submission can be built from the dialogue. */
+  transcriptsOf: ((attemptId: string) => Promise<Record<string, DialogueTurn[]>>) | null = null
 
   /**
    * The context an evaluator saw for a completed stage, with its results — what
@@ -742,7 +769,7 @@ export class PracticeService {
     return new Set(rows.map((r) => r.problemId))
   }
 
-  private toAttempt(row: AttemptRow, problem: Problem): Attempt {
+  private async toAttempt(row: AttemptRow, problem: Problem): Promise<Attempt> {
     const payloads = payloadsOf(row)
     const stage = row.stage as Stage
     const rubric = this.content.rubricFor(problem)
@@ -783,6 +810,7 @@ export class PracticeService {
       // The change is on the wire only once the design it tests has been evaluated.
       revealedChange: designEvaluated ? this.changeFor(row, problem) : null,
       probes: stage === 'defend' ? this.probesFor(row, problem) : null,
+      dialogue: stage === 'defend' ? ((await this.transcriptsOf?.(row.id)) ?? {}) : null,
       exemplar: designEvaluated ? (problem.goldDesigns['strong'] ?? null) : null,
       report,
       failureReason: row.failureReason,

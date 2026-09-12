@@ -9,7 +9,7 @@ import type { EvaluationContext } from '../Evaluator.js'
  * mixing them would make the history screen lie. The version is stamped onto every
  * evaluation so that comparison can always be scoped correctly later.
  */
-export const PROMPT_VERSION = '2.0.0'
+export const PROMPT_VERSION = '2.1.0'
 
 /**
  * Three things keep the output usable, and all three are constraints rather than
@@ -85,13 +85,19 @@ export function buildUserPrompt(ctx: EvaluationContext, criteria: readonly Crite
 
   if (stage === 'defend') {
     submission.change = ctx.change ? { prompt: ctx.change.prompt, rationale: ctx.rationale ?? '' } : null
-    submission.probes = (ctx.probes ?? []).map((p) => ({
-      id: p.id,
-      prompt: p.prompt,
-      goodSignal: p.goodSignal,
-      badSignal: p.badSignal,
-      answer: ctx.answers?.find((a) => a.probeId === p.id)?.response ?? '',
-    }))
+    submission.probes = (ctx.probes ?? []).map((p) => {
+      const a = ctx.answers?.find((x) => x.probeId === p.id)
+      return {
+        id: p.id,
+        prompt: p.prompt,
+        goodSignal: p.goodSignal,
+        badSignal: p.badSignal,
+        answer: a?.response ?? '',
+        // The mentor's follow-up and the learner's reply, when the probe ran as a
+        // dialogue. Judge the learner's words; the mentor's question is context.
+        exchange: (a?.transcript ?? []).map((t) => `${t.role === 'learner' ? 'Learner' : 'Interviewer'}: ${t.text}`),
+      }
+    })
   }
 
   const exampleEvidence =

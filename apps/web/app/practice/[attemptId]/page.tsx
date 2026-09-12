@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
-import type { Attempt, FieldError, ProbeAnswer, PublicProblem, RawStageInput } from '@lld/contracts'
+import type { Attempt, DialogueTurn, FieldError, ProbeAnswer, PublicProblem, RawStageInput } from '@lld/contracts'
 import { api, ApiRequestError } from '@/lib/api'
 import { liveDiff } from '@/lib/diff'
 import { DesignForm, emptyForm, type FormState } from '@/components/DesignForm'
@@ -66,6 +66,8 @@ export default function PracticePage() {
           if (draft.stage === 'change') setRationale(draft.rationale)
         } else if (draft?.stage === 'defend') {
           setAnswers(draft.answers)
+          setDialogue(attempt.dialogue ?? {})
+          api.getNotes(attemptId).then((n) => setLive(n.live)).catch(() => undefined)
           setForm(emptyForm())
         } else {
           setForm(emptyForm())
@@ -120,9 +122,12 @@ export default function PracticePage() {
     setRationale(next)
     scheduleSave(input({ rationale: next }))
   }
-  function updateAnswers(next: ProbeAnswer[]) {
-    setAnswers(next)
-    scheduleSave(input({ answers: next }))
+  const [dialogue, setDialogue] = useState<Record<string, DialogueTurn[]>>({})
+  const [live, setLive] = useState(false)
+
+  async function turn(probeId: string, text: string) {
+    const { transcript } = await api.defendTurn(attemptId, probeId, text)
+    setDialogue((d) => ({ ...d, [probeId]: transcript }))
   }
 
   async function submit() {
@@ -168,8 +173,15 @@ export default function PracticePage() {
   const frozenRaw = attempt.design ? withBlanks(designToRaw(attempt.design)) : null
   const diff = stage === 'change' && frozenRaw ? liveDiff(frozenRaw, form) : null
 
+  const answered = attempt.probes?.filter((p) => (dialogue[p.id] ?? []).some((t) => t.role === 'learner')).length ?? 0
   const submitLabel =
-    stage === 'design' ? 'Submit for review' : stage === 'change' ? 'Submit the revision' : 'Submit answers'
+    stage === 'design'
+      ? 'Submit for review'
+      : stage === 'change'
+        ? 'Submit the revision'
+        : answered === (attempt.probes?.length ?? 0)
+          ? 'Submit answers'
+          : `Submit what I have (${answered}/${attempt.probes?.length ?? 0})`
 
   return (
     <div className="space-y-5">
@@ -297,7 +309,7 @@ export default function PracticePage() {
           )}
 
           {stage === 'defend' && attempt.probes && (
-            <ProbePanel probes={attempt.probes} answers={answers} onChange={updateAnswers} disabled={submitting} />
+            <ProbePanel probes={attempt.probes} dialogue={dialogue} onTurn={turn} disabled={submitting} live={live} />
           )}
 
           <div className="flex items-center gap-3">

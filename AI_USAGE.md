@@ -279,3 +279,25 @@ the model loses one sentence in three runs and the note is still good.
 down. It now retries once in plain mode, since every caller parses defensively anyway. And the
 free tier's per-minute token limit bit on the third run — a reminder that the mentor's calls sit
 on the queue behind the scores, never in front of them.
+
+## 13. The follow-up that never came: a reasoning model with no room to answer
+
+**Where:** first live run of the Socratic defend on Groq, `scratchpad/dialogue.mjs`.
+
+**What happened:** three probes, three answers, zero follow-ups — and the failure was silent,
+because a follow-up that fails its own rules is *meant* to be silently not asked. Adding a log line
+showed the real reason: `gpt-oss-20b returned no text content`. It is a reasoning model; with
+`maxTokens: 200` it spent the whole budget thinking and returned an empty message. The next probe
+then hit the free tier's per-minute token limit, which my own test scripts had just consumed.
+
+**Judgement call:** two fixes, and a line I chose not to cross. The adapter now passes the caller's
+`effort` through as Groq's `reasoning_effort`, opt-in per provider so an endpoint that does not
+know the field is not broken by it; and the follow-up gets 700 tokens of room. For the rate limit,
+the adapter waits out a reset it can see (`retry-after`, or Groq's `x-ratelimit-reset-tokens`), once,
+up to 30 seconds — and the mentor moved to the small model, whose budget is separate. What I did
+not do is make the client retry harder or hide the limit: a learner on a free tier should see
+"the AI half was skipped" rather than a report that arrives a minute late for no stated reason.
+
+**What the run showed once it worked:** *"If ParkingLotManager.findSpot returns null, how will the
+caller determine whether the null means all motorcycle spots are taken or that the vehicle type is
+unsupported?"* — 668 ms, grounded, and a better follow-up than the authored probe it followed.

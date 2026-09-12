@@ -56,6 +56,11 @@ export const critiqueAnswerRequestSchema = z.object({
 })
 export type CritiqueAnswerRequest = z.infer<typeof critiqueAnswerRequestSchema>
 
+export const dialogueTurnRequestSchema = z.object({
+  text: z.string().trim().min(1).max(2000),
+})
+export type DialogueTurnRequest = z.infer<typeof dialogueTurnRequestSchema>
+
 export { stageSchema }
 
 export type ProblemListResponse = {
@@ -85,6 +90,7 @@ export type ApiErrorCode =
   | 'INVALID_SUBMISSION'
   | 'INVALID_TRANSITION'
   | 'WRONG_STAGE'
+  | 'DIALOGUE_CLOSED'
   | 'EVALUATION_FAILED'
   | 'INTERNAL'
 

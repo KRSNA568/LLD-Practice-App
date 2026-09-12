@@ -2,6 +2,7 @@ import { Router, type Request, type Response, type NextFunction } from 'express'
 import { ZodError } from 'zod'
 import {
   critiqueAnswerRequestSchema,
+  dialogueTurnRequestSchema,
   saveDraftRequestSchema,
   startAttemptRequestSchema,
   submitAttemptRequestSchema,
@@ -14,7 +15,7 @@ import {
   type PracticeService,
 } from '../app/PracticeService.js'
 import { InvalidTransitionError } from '../domain/attempt/AttemptStateMachine.js'
-import type { CoachService } from '../app/CoachService.js'
+import { DialogueClosedError, type CoachService } from '../app/CoachService.js'
 import type { ContentStore } from '../infra/content/ContentStore.js'
 
 /**
@@ -39,6 +40,15 @@ export function createRouter(service: PracticeService, content: ContentStore, co
     '/problems',
     wrap(async (_req, res) => {
       res.json(await service.listProblems(DEMO_LEARNER_ID))
+    }),
+  )
+
+  router.post(
+    '/attempts/:id/defend/:probeId/turn',
+    wrap(async (req, res) => {
+      if (!coach) throw new NotFoundError('The mentor')
+      const { text } = dialogueTurnRequestSchema.parse(req.body)
+      res.json(await coach.turn(req.params.id!, req.params.probeId!, text))
     }),
   )
 
@@ -211,6 +221,10 @@ export function errorHandler(
   }
   if (error instanceof WrongStageError) {
     res.status(409).json({ error: { code: 'WRONG_STAGE', message: error.message } } satisfies ApiError)
+    return
+  }
+  if (error instanceof DialogueClosedError) {
+    res.status(409).json({ error: { code: 'DIALOGUE_CLOSED', message: error.message } } satisfies ApiError)
     return
   }
 
