@@ -301,3 +301,43 @@ not do is make the client retry harder or hide the limit: a learner on a free ti
 **What the run showed once it worked:** *"If ParkingLotManager.findSpot returns null, how will the
 caller determine whether the null means all motorcycle spots are taken or that the vehicle type is
 unsupported?"* — 668 ms, grounded, and a better follow-up than the authored probe it followed.
+
+## 14. The generator's teacher: the evaluator repaired the model's "strong" design
+
+**Where:** `apps/api/scripts/author-problem.ts`, first run on `library-management`.
+
+**What happened:** the model's first strong design scored 0 on class responsibilities, 1 on
+abstraction use and 2 on behaviour — list-shaped responsibility sentences, interfaces nothing
+implements, two classes no scenario touches. Exactly the three flaws I made by hand on the first
+four problems, now made by the model in one go. Rather than edit the prompt until the model
+happened to comply, the script feeds the evaluator's own findings back as the repair prompt; the
+second round cleared par on every measured criterion.
+
+**What the gate could not see, and a person had to:** a hidden change about *database storage* in
+a problem whose constraints say *no persistence layer*; a probe about *reservations* in a problem
+with no reservations requirement; a variation point ("catalog storage mechanism") that is
+infrastructure, not the object model. All three are well-formed, coherent, and wrong. I replaced
+the seam with *borrowing policy varies by member type*, the probe with one about the immutability
+requirement that was actually there, and re-ran the gate. Then found that the seam's own name hint
+(`policy`) also matched `FinePolicy` — an evaluator artefact the script surfaced by naming the
+class it had matched. Tightened the hints. The model authors; the evaluator gates; the person
+reads.
+
+## 15. A generated problem found a hole in the measured check
+
+**Where:** promoting `tic-tac-toe`, the second model-drafted problem, through the change stage.
+
+**What happened:** I ran the strong design through Change with a deliberately *wrong* revision —
+the change dealt was "make the board size configurable"; I added a computer player instead. It
+scored **4**. Two reasons, both in `BlastRadiusCheck`: "was the change absorbed" looked for the
+change's vocabulary anywhere in the revised design, and the strong design already said *grid* and
+*size* in v1; and "seam reused" credited *any* abstraction the new class implemented, not one that
+had anything to do with the change. Neither could fire on Parking Lot, whose EV change uses words
+no first design contains — which is why 148 tests and a calibration suite never noticed.
+
+**Judgement call:** absorption is now measured on the *delta* — classes added, classes reopened,
+new assumptions, the rationale — and a 4 requires the added class (or the rationale explaining it)
+to carry the change's vocabulary. The existing test that lets a learner name the class
+`MeteredPricing` and say "bills per kWh" in the rationale still passes; the unrelated-seam case now
+scores 0 with "none of them speaks to the requirement that changed". The generated problem was
+worth more as a test of the evaluator than as content.

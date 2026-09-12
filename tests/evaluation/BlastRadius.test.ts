@@ -125,3 +125,31 @@ describe('BlastRadiusCheck — the change-resilience bands', () => {
     expect(r.concern).toMatch(/rename/i)
   })
 })
+
+describe('the added class has to be about the change', () => {
+  it('scores 3, not 4, when a class is added behind a seam for some other reason', async () => {
+    const { parkingLot } = await import('../fixtures.js')
+    const strong = parkingLot.goldDesigns['strong']!
+    // A second allocator, behind SpotAllocator — real seam reuse, wrong change (EV kWh pricing).
+    const unrelated: DesignModel = {
+      ...strong,
+      classes: [...strong.classes, { name: 'NearestAllocator', stereotype: 'class', responsibility: 'Allocates the nearest free spot', attributes: [], methods: ['allocate'] }],
+      relationships: [...strong.relationships, { from: 'NearestAllocator', to: 'SpotAllocator', kind: 'implements' }],
+    }
+    const r = run(strong, unrelated, 'Added a nearest-first allocator.')
+    expect(r.score).toBe(0)
+    expect(r.concern).toMatch(/none of them speaks to the requirement/)
+  })
+
+  it('does not credit vocabulary the first design already had', async () => {
+    const { parkingLot } = await import('../fixtures.js')
+    const strong = parkingLot.goldDesigns['strong']!
+    const withWord: DesignModel = { ...strong, assumptions: [...strong.assumptions, 'EV charging spots may exist later'] }
+    const unrelated: DesignModel = {
+      ...withWord,
+      classes: [...withWord.classes, { name: 'NearestAllocator', stereotype: 'class', responsibility: 'Allocates the nearest free spot', attributes: [], methods: ['allocate'] }],
+      relationships: [...withWord.relationships, { from: 'NearestAllocator', to: 'SpotAllocator', kind: 'implements' }],
+    }
+    expect(run(withWord, unrelated, '').score).toBe(0)
+  })
+})

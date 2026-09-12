@@ -1,0 +1,1078 @@
+{
+  "id": "tic-tac-toe",
+  "version": "2.0.0",
+  "rubricId": "lld-core",
+  "rubricVersion": "2.0.0",
+  "title": "Tic Tac Toe",
+  "tier": 1,
+  "minutes": 25,
+  "domain": "games",
+  "brief": "Design the class structure for a Tic Tac Toe game. Two players place marks on a 3x3 grid; the game enforces turns, rejects illegal moves, and detects wins and draws. You are designing the object model — not the UI.",
+  "requirements": [
+    {
+      "id": "r1",
+      "text": "Players place their mark on an empty cell alternately",
+      "conceptHints": [
+        "domain-modeling",
+        "encapsulation"
+      ],
+      "keywords": [
+        "place",
+        "mark",
+        "turn",
+        "board",
+        "cell",
+        "move"
+      ]
+    },
+    {
+      "id": "r2",
+      "text": "The game detects a win when three identical marks align horizontally, vertically or diagonally",
+      "conceptHints": [
+        "domain-modeling",
+        "algorithm"
+      ],
+      "keywords": [
+        "win",
+        "line",
+        "three",
+        "align",
+        "check",
+        "condition"
+      ]
+    },
+    {
+      "id": "r3",
+      "text": "The game reports a draw when the board is full without a winner",
+      "conceptHints": [
+        "state-modeling",
+        "error-modeling"
+      ],
+      "keywords": [
+        "draw",
+        "full",
+        "stalemate",
+        "tie",
+        "boardfull",
+        "nowinner"
+      ]
+    },
+    {
+      "id": "r4",
+      "text": "Players can start a new game after a game ends",
+      "conceptHints": [
+        "lifecycle",
+        "state-modeling"
+      ],
+      "keywords": [
+        "reset",
+        "new",
+        "start",
+        "game",
+        "restart",
+        "clear"
+      ]
+    },
+    {
+      "id": "r5",
+      "text": "Attempting to place a mark on an occupied cell is rejected",
+      "conceptHints": [
+        "error-modeling",
+        "validation"
+      ],
+      "keywords": [
+        "invalid",
+        "occupied",
+        "reject",
+        "error",
+        "illegal",
+        "move"
+      ]
+    }
+  ],
+  "constraints": [
+    "Two human players for now",
+    "Single-threaded, one game at a time",
+    "A 3x3 grid by default"
+  ],
+  "variationPoints": [
+    {
+      "id": "v1",
+      "name": "board dimensions",
+      "why": "Different variants use larger grids or require a custom win length",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract",
+        "enum"
+      ],
+      "nameHints": [
+        "board",
+        "size",
+        "dimension",
+        "grid",
+        "layout"
+      ]
+    },
+    {
+      "id": "v2",
+      "name": "who chooses the move",
+      "why": "A computer opponent, a network opponent or a replay all supply moves differently; the game should not care",
+      "expectAbstraction": true,
+      "acceptableShapes": [
+        "interface",
+        "abstract"
+      ],
+      "nameHints": [
+        "player",
+        "mover",
+        "opponent",
+        "participant",
+        "strategy"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "sc-win",
+      "title": "A player wins with a horizontal line",
+      "description": "Players alternate placing marks; after the third mark in the top row the system detects the win and ends the game",
+      "expectsFailurePath": false,
+      "mustInvolve": [
+        "place",
+        "win",
+        "board",
+        "line",
+        "turn"
+      ]
+    },
+    {
+      "id": "sc-draw",
+      "title": "The game ends in a draw",
+      "description": "All nine cells are filled without any three‑in‑a‑row, the system reports a draw",
+      "expectsFailurePath": false,
+      "mustInvolve": [
+        "draw",
+        "board",
+        "full",
+        "turn",
+        "check"
+      ]
+    },
+    {
+      "id": "sc-invalid",
+      "title": "Attempt to place on an occupied cell",
+      "description": "A player tries to put a mark on a cell that already contains a mark, the move is rejected and an error is reported",
+      "expectsFailurePath": true,
+      "mustInvolve": [
+        "invalid",
+        "occupied",
+        "reject",
+        "error",
+        "move"
+      ]
+    }
+  ],
+  "hiddenChanges": [
+    {
+      "id": "hc-board-dim",
+      "prompt": "Allow different board sizes beyond 3x3. Revise your design so board dimension is configurable — and say what you touched and why.",
+      "targetsConcept": "open-closed",
+      "mustIntroduce": [
+        "size",
+        "dimension",
+        "grid",
+        "configurable",
+        "width",
+        "length",
+        "n"
+      ],
+      "expectedSeam": "v1",
+      "goodSignal": [
+        "adds a BoardFactory or parameterized Board implementation",
+        "keeps Game logic unchanged",
+        "StandardBoard implements new interface with size parameter",
+        "no conditionals in Game for size"
+      ],
+      "badSignal": [
+        "adds size checks inside Game",
+        "hardcodes 3 in multiple places",
+        "uses if statements for size",
+        "does not modify Board interface"
+      ]
+    },
+    {
+      "id": "hc-computer",
+      "prompt": "A computer opponent is being added: on its turn it picks a legal move by itself (random is fine for now). Revise your design so a game can be human-vs-computer — and say what you touched and why.",
+      "targetsConcept": "open-closed",
+      "mustIntroduce": [
+        "computer",
+        "bot",
+        "ai",
+        "random",
+        "cpu",
+        "automatic",
+        "opponent"
+      ],
+      "expectedSeam": "v2",
+      "goodSignal": [
+        "a new player implementation behind an abstraction the game already held",
+        "the turn loop in Game is unchanged",
+        "says where the computer's move choice lives"
+      ],
+      "badSignal": [
+        "adds an isComputer flag to Player and branches on it",
+        "puts move selection inside Game",
+        "changes Board to absorb it"
+      ]
+    }
+  ],
+  "probes": [
+    {
+      "id": "p-turn",
+      "prompt": "Which class decides whether a player can place a mark on their turn — {{class}}, or something else — and how many places would you have to check to be sure?",
+      "targetsConcept": "state-modeling",
+      "triggerWhen": {
+        "criterionId": "abstraction-use",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names Game (or TicTacToeGame) as the class that owns turn logic",
+        "says it is one place"
+      ],
+      "badSignal": [
+        "mentions multiple flags",
+        "cannot name where"
+      ]
+    },
+    {
+      "id": "p-evaluate",
+      "prompt": "When a move results in three in a row, which class determines the outcome, and when does it happen?",
+      "targetsConcept": "behaviour",
+      "triggerWhen": {
+        "criterionId": "behaviour",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "OutcomeEvaluator determines win",
+        "called after a successful move"
+      ],
+      "badSignal": [
+        "Game checks win inline",
+        "no class named"
+      ]
+    },
+    {
+      "id": "p-board",
+      "prompt": "The board needs to be reset for a new game. Which class owns the reset operation, and is it a single responsibility?",
+      "targetsConcept": "srp",
+      "goodSignal": [
+        "StandardBoard (or Board implementation) has reset method",
+        "single responsibility"
+      ],
+      "badSignal": [
+        "Game resets internal array directly",
+        "multiple responsibilities"
+      ]
+    },
+    {
+      "id": "p-validate",
+      "prompt": "{{class}} carries move validation alongside its other work. Which responsibility would you move out first, and who calls it afterwards?",
+      "targetsConcept": "srp",
+      "triggerWhen": {
+        "criterionId": "class-responsibilities",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names one responsibility and one new home for it",
+        "names the caller"
+      ],
+      "badSignal": [
+        "cannot say which comes out first",
+        "says it is fine as it is"
+      ]
+    },
+    {
+      "id": "p-opponent",
+      "prompt": "A computer opponent arrives next sprint. Which class in your design supplies its moves, and does Game have to change to let it?",
+      "targetsConcept": "open-closed",
+      "triggerWhen": {
+        "criterionId": "abstraction-use",
+        "maxScore": 2
+      },
+      "goodSignal": [
+        "names a player abstraction",
+        "says Game does not change"
+      ],
+      "badSignal": [
+        "adds a flag",
+        "puts the choice inside Game"
+      ]
+    }
+  ],
+  "conceptTags": [
+    "domain-modeling",
+    "interface-design",
+    "testability",
+    "abstraction"
+  ],
+  "commonFailureModes": [
+    {
+      "id": "f1",
+      "name": "Exposing the board array publicly",
+      "description": "The board is stored as a public 2D array, allowing external code to modify it directly",
+      "concept": "encapsulation",
+      "frequency": "high"
+    },
+    {
+      "id": "f2",
+      "name": "Combining game logic with UI handling",
+      "description": "A single class manages moves, win detection and prints the board, violating SRP",
+      "concept": "srp",
+      "frequency": "very-high"
+    },
+    {
+      "id": "f3",
+      "name": "Hard‑coding win checks for 3x3 only",
+      "description": "Win detection logic assumes a 3x3 grid, making it impossible to extend to larger boards",
+      "concept": "abstraction",
+      "frequency": "high"
+    }
+  ],
+  "goldDesigns": {
+    "strong": {
+      "assumptions": [
+        "Exactly two players alternate turns",
+        "The board is indexed from 0 to size‑1"
+      ],
+      "classes": [
+        {
+          "name": "Game",
+          "stereotype": "class",
+          "responsibility": "Coordinates turns",
+          "attributes": [
+            "board",
+            "players",
+            "currentPlayerIndex",
+            "status"
+          ],
+          "methods": [
+            "placeMark",
+            "reset",
+            "rejectMove"
+          ]
+        },
+        {
+          "name": "Player",
+          "stereotype": "interface",
+          "responsibility": "Chooses the next move for one side",
+          "attributes": [],
+          "methods": [
+            "chooseMove",
+            "marker"
+          ]
+        },
+        {
+          "name": "HumanPlayer",
+          "stereotype": "class",
+          "responsibility": "Takes the next move from a person",
+          "attributes": [
+            "marker"
+          ],
+          "methods": [
+            "chooseMove",
+            "marker"
+          ]
+        },
+        {
+          "name": "Board",
+          "stereotype": "interface",
+          "responsibility": "Abstracts grid size and win detection",
+          "attributes": [],
+          "methods": [
+            "placeMark",
+            "checkWin",
+            "isFull",
+            "reset"
+          ]
+        },
+        {
+          "name": "StandardBoard",
+          "stereotype": "class",
+          "responsibility": "Manages a grid and checks lines for a win",
+          "attributes": [
+            "size",
+            "cells",
+            "winLength"
+          ],
+          "methods": [
+            "placeMark",
+            "checkWin",
+            "isFull",
+            "reset"
+          ]
+        },
+        {
+          "name": "MoveValidator",
+          "stereotype": "class",
+          "responsibility": "Validates move legality",
+          "attributes": [
+            "board"
+          ],
+          "methods": [
+            "validateMove"
+          ]
+        },
+        {
+          "name": "OutcomeEvaluator",
+          "stereotype": "class",
+          "responsibility": "Determines game outcome",
+          "attributes": [
+            "board"
+          ],
+          "methods": [
+            "evaluate"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "Game",
+          "to": "Board",
+          "kind": "uses"
+        },
+        {
+          "from": "Game",
+          "to": "Player",
+          "kind": "has-a"
+        },
+        {
+          "from": "Game",
+          "to": "MoveValidator",
+          "kind": "uses"
+        },
+        {
+          "from": "Game",
+          "to": "OutcomeEvaluator",
+          "kind": "uses"
+        },
+        {
+          "from": "StandardBoard",
+          "to": "Board",
+          "kind": "implements"
+        },
+        {
+          "from": "MoveValidator",
+          "to": "Board",
+          "kind": "uses"
+        },
+        {
+          "from": "OutcomeEvaluator",
+          "to": "Board",
+          "kind": "uses"
+        },
+        {
+          "from": "HumanPlayer",
+          "to": "Player",
+          "kind": "implements"
+        }
+      ],
+      "tradeoffs": "Board interface enables variable dimensions and win lengths but adds indirection; separating validation and outcome logic clarifies responsibilities but introduces extra classes",
+      "decisions": [
+        {
+          "what": "Player is an interface the Game asks for a move",
+          "alternative": "A concrete Player class holding the person's input",
+          "why": "Who chooses the move is the thing most likely to change — a computer, a replay — and the turn logic should not"
+        },
+        {
+          "what": "Introduce Board interface",
+          "alternative": "Hardcode a 3x3 array inside Game",
+          "why": "Separate board concerns and allow alternative sizes without changing Game"
+        },
+        {
+          "what": "Split Game responsibilities",
+          "alternative": "Keep all logic in Game",
+          "why": "Extracting validation and outcome calculation reduces coupling and improves testability"
+        },
+        {
+          "what": "Let Game manage turn order",
+          "alternative": "Embed turn logic inside each Player",
+          "why": "Centralising turn state prevents inconsistent turn changes across players"
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-win",
+          "steps": [
+            {
+              "className": "HumanPlayer",
+              "method": "chooseMove",
+              "note": "chooses an empty cell"
+            },
+            {
+              "className": "MoveValidator",
+              "method": "validateMove",
+              "note": "confirms cell is free"
+            },
+            {
+              "className": "StandardBoard",
+              "method": "placeMark",
+              "note": "marks the cell"
+            },
+            {
+              "className": "OutcomeEvaluator",
+              "method": "evaluate",
+              "note": "detects horizontal win"
+            },
+            {
+              "className": "Game",
+              "method": "placeMark",
+              "note": "records winner"
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-draw",
+          "steps": [
+            {
+              "className": "HumanPlayer",
+              "method": "chooseMove",
+              "note": "fills the last empty cell"
+            },
+            {
+              "className": "MoveValidator",
+              "method": "validateMove",
+              "note": "confirms cell is free"
+            },
+            {
+              "className": "StandardBoard",
+              "method": "placeMark",
+              "note": "marks the cell"
+            },
+            {
+              "className": "OutcomeEvaluator",
+              "method": "evaluate",
+              "note": "detects no win and board full"
+            },
+            {
+              "className": "Game",
+              "method": "placeMark",
+              "note": "records draw"
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-invalid",
+          "steps": [
+            {
+              "className": "HumanPlayer",
+              "method": "chooseMove",
+              "note": "tries occupied cell"
+            },
+            {
+              "className": "MoveValidator",
+              "method": "validateMove",
+              "note": "rejects because cell occupied"
+            },
+            {
+              "className": "Game",
+              "method": "rejectMove",
+              "note": "refuses move"
+            }
+          ],
+          "outcome": "refused"
+        }
+      ]
+    },
+    "public-board-array": {
+      "assumptions": [
+        "players are human and use distinct markers",
+        "standard board is 3x3 with win length 3"
+      ],
+      "classes": [
+        {
+          "name": "TicTacToeGame",
+          "stereotype": "class",
+          "responsibility": "Manages the game flow, board state, turns and win/draw detection",
+          "attributes": [
+            "board",
+            "currentPlayer",
+            "players",
+            "size",
+            "winLength",
+            "isGameOver"
+          ],
+          "methods": [
+            "placeMark",
+            "reset",
+            "checkWin",
+            "checkDraw",
+            "switchTurn"
+          ]
+        },
+        {
+          "name": "Player",
+          "stereotype": "class",
+          "responsibility": "Represents a participant with a marker",
+          "attributes": [
+            "name",
+            "marker"
+          ],
+          "methods": []
+        },
+        {
+          "name": "Marker",
+          "stereotype": "class",
+          "responsibility": "Defines a symbol used on the board",
+          "attributes": [
+            "symbol"
+          ],
+          "methods": []
+        },
+        {
+          "name": "GameController",
+          "stereotype": "class",
+          "responsibility": "Coordinates player actions and game resets",
+          "attributes": [],
+          "methods": [
+            "startNewGame",
+            "makeMove"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "TicTacToeGame",
+          "to": "Player",
+          "kind": "has-a"
+        },
+        {
+          "from": "Player",
+          "to": "Marker",
+          "kind": "uses"
+        },
+        {
+          "from": "GameController",
+          "to": "TicTacToeGame",
+          "kind": "uses"
+        }
+      ],
+      "tradeoffs": "Public board array simplifies access for UI but breaks encapsulation and allows external modification.",
+      "decisions": [
+        {
+          "what": "Expose board as public 2D array",
+          "alternative": "",
+          "why": "Simplify UI access at cost of encapsulation"
+        },
+        {
+          "what": "Separate interaction via GameController",
+          "alternative": "",
+          "why": "Keep game logic independent of input handling"
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-win",
+          "steps": [
+            {
+              "className": "GameController",
+              "method": "makeMove",
+              "note": "player attempts place"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "places mark on board"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "checkWin",
+              "note": "detects horizontal line"
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-draw",
+          "steps": [
+            {
+              "className": "GameController",
+              "method": "makeMove",
+              "note": "player places mark"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "places mark"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "checkDraw",
+              "note": "board full, no win"
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-invalid",
+          "steps": [
+            {
+              "className": "GameController",
+              "method": "makeMove",
+              "note": "attempt on occupied cell"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "rejects illegal move"
+            }
+          ],
+          "outcome": "error"
+        }
+      ]
+    },
+    "logic-in-ui": {
+      "assumptions": [
+        "players are human and provide moves via console",
+        "board size defaults to 3x3"
+      ],
+      "classes": [
+        {
+          "name": "TicTacToeGame",
+          "stereotype": "class",
+          "responsibility": "Manages board state, player turns, validates moves, detects wins/draws, renders the board to console",
+          "attributes": [
+            "board",
+            "players",
+            "currentPlayerIndex",
+            "size",
+            "winLength",
+            "state"
+          ],
+          "methods": [
+            "placeMark",
+            "checkWin",
+            "checkDraw",
+            "reset",
+            "renderBoard"
+          ]
+        },
+        {
+          "name": "Player",
+          "stereotype": "class",
+          "responsibility": "Represents a game participant and its marker",
+          "attributes": [
+            "name",
+            "marker"
+          ],
+          "methods": [
+            "getMarker"
+          ]
+        },
+        {
+          "name": "Board",
+          "stereotype": "class",
+          "responsibility": "Stores cell contents and provides access utilities",
+          "attributes": [
+            "cells",
+            "size"
+          ],
+          "methods": [
+            "getCell",
+            "setCell",
+            "isFull"
+          ]
+        },
+        {
+          "name": "Marker",
+          "stereotype": "class",
+          "responsibility": "Symbol used to mark a cell",
+          "attributes": [
+            "symbol"
+          ],
+          "methods": [
+            "toString"
+          ]
+        },
+        {
+          "name": "ConsoleUI",
+          "stereotype": "class",
+          "responsibility": "Handles simple console input/output for the game",
+          "attributes": [
+            "outputStream"
+          ],
+          "methods": [
+            "print",
+            "readMove"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "from": "TicTacToeGame",
+          "to": "Board",
+          "kind": "has-a"
+        },
+        {
+          "from": "TicTacToeGame",
+          "to": "Player",
+          "kind": "has-a"
+        },
+        {
+          "from": "TicTacToeGame",
+          "to": "ConsoleUI",
+          "kind": "uses"
+        },
+        {
+          "from": "TicTacToeGame",
+          "to": "Marker",
+          "kind": "uses"
+        }
+      ],
+      "tradeoffs": "Simple and direct but mixes UI rendering with core game logic, violating SRP",
+      "decisions": [
+        {
+          "what": "Combine game rule processing and console rendering inside TicTacToeGame",
+          "alternative": "",
+          "why": ""
+        },
+        {
+          "what": "Fix board size to 3x3 and win length to 3 for now",
+          "alternative": "",
+          "why": ""
+        }
+      ],
+      "walkthroughs": [
+        {
+          "scenarioId": "sc-win",
+          "steps": [
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "player1 places X at (0,0) turn 1"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "player2 places O at (1,0) turn 2"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "player1 places X at (0,1) turn 3"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "player2 places O at (1,1) turn 4"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "player1 places X at (0,2) creates horizontal line win"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "renderBoard",
+              "note": "prints board showing win"
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-draw",
+          "steps": [
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "p1 X (0,0)"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "p2 O (0,1)"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "p1 X (0,2)"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "p2 O (1,0)"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "p1 X (1,1)"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "p2 O (1,2)"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "p1 X (2,0)"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "p2 O (2,1)"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "p1 X (2,2) fills board, no win"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "checkDraw",
+              "note": "detects full board draw"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "renderBoard",
+              "note": "prints final board"
+            }
+          ],
+          "outcome": "ok"
+        },
+        {
+          "scenarioId": "sc-invalid",
+          "steps": [
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "p1 X at (0,0) valid"
+            },
+            {
+              "className": "TicTacToeGame",
+              "method": "placeMark",
+              "note": "p2 O at (0,0) invalid occupied cell, rejected"
+            }
+          ],
+          "outcome": "ok"
+        }
+      ]
+    }
+  },
+  "critiquePairs": [
+    {
+      "id": "cp-1",
+      "left": "strong",
+      "right": "public-board-array",
+      "question": "A mark is placed on an occupied cell. Which design can say, in one place, whether a move is legal? Click the class that holds that answer.",
+      "targetsConcept": "encapsulation",
+      "answer": {
+        "design": "strong",
+        "className": "MoveValidator"
+      },
+      "telling": "On the left, legality is one question to one class — MoveValidator.validateMove — and nothing else can put a mark down without asking it. On the right the board is an array anyone can write to, so every caller has to remember to check, and the day one of them forgets, the game has two marks in one cell and no class to blame."
+    },
+    {
+      "id": "cp-2",
+      "left": "strong",
+      "right": "logic-in-ui",
+      "question": "A computer opponent is added next sprint. Which design absorbs it without touching the turn logic? Click the class that makes that possible.",
+      "targetsConcept": "open-closed",
+      "answer": {
+        "design": "strong",
+        "className": "Player"
+      },
+      "telling": "On the left, Game asks a Player for a move and does not care who answers — a ComputerPlayer is a second implementation and the turn loop is untouched. On the right, the move comes from the console UI directly, so a computer opponent means rewriting the loop that already works."
+    }
+  ],
+  "calibrationSet": [
+    {
+      "designId": "strong",
+      "label": "strong",
+      "expectedBands": {
+        "requirement-coverage": [
+          3,
+          4
+        ],
+        "class-responsibilities": [
+          3,
+          4
+        ],
+        "coupling-cohesion": [
+          3,
+          4
+        ],
+        "abstraction-use": [
+          3,
+          4
+        ],
+        "behaviour": [
+          3,
+          4
+        ],
+        "edge-cases": [
+          2,
+          4
+        ]
+      }
+    },
+    {
+      "designId": "public-board-array",
+      "label": "public-board-array",
+      "expectedBands": {
+        "requirement-coverage": [
+          3,
+          4
+        ],
+        "class-responsibilities": [
+          0,
+          2
+        ],
+        "coupling-cohesion": [
+          3,
+          4
+        ],
+        "abstraction-use": [
+          0,
+          2
+        ],
+        "behaviour": [
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "designId": "logic-in-ui",
+      "label": "logic-in-ui",
+      "expectedBands": {
+        "requirement-coverage": [
+          3,
+          4
+        ],
+        "class-responsibilities": [
+          0,
+          2
+        ],
+        "coupling-cohesion": [
+          2,
+          4
+        ],
+        "abstraction-use": [
+          0,
+          2
+        ],
+        "behaviour": [
+          0,
+          2
+        ]
+      }
+    }
+  ],
+  "nextProblems": [
+    "vending-machine",
+    "parking-lot"
+  ]
+}

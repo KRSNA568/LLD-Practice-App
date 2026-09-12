@@ -336,6 +336,14 @@ standing per concept (`new` / `developing` / `solid`, with the evidence count sh
 Concepts page and dashboard read that — nothing is graded a second time. Loading the concept graph
 at boot and checking the rubric against it found two concepts the rubric named that the graph lacked.
 
+**Content is where the model generates.** The one place AI *produces* structure rather than
+reading it is offline: `author-problem.ts` drafts a problem in four staged calls against a
+hand-authored exemplar, and then the strong gold design is *measured* by the same checks a learner
+faces and the findings are sent back as the repair prompt — "class-responsibilities scored 1:
+`Library` lists 4 separate responsibilities in one sentence…" — until it clears par. The evaluator
+is the generator's teacher. What it cannot judge — whether a hidden change belongs in the problem's
+world at all — is the reviewer's job, and `content/PROVENANCE.md` records what that job caught.
+
 ## 12. Limitations
 
 - **Requirement coverage matches vocabulary.** Authored keywords stop `Vehicle` from covering the fee

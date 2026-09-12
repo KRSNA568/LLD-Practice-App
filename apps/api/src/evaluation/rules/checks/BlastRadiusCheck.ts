@@ -43,21 +43,33 @@ export class BlastRadiusCheck implements DesignCheck {
     const evidence: EvidenceRef[] = []
     const notes: string[] = []
 
-    // Was the change absorbed at all? Look for the new vocabulary anywhere in the
-    // revised design — class names, responsibilities, attributes, methods, rationale.
-    const corpus = [
-      ...design.classes.flatMap((c) => [c.name, c.responsibility, ...c.attributes, ...c.methods]),
-      ...design.assumptions,
+    // Was the change absorbed at all? Look for the new vocabulary in what CHANGED —
+    // the classes added, the classes reopened, the rationale, any new assumption.
+    // A first design that already used the word "grid" says nothing about whether
+    // the revision handled a grid-size change; only the delta can.
+    const previousAssumptions = new Set(previousDesign.assumptions.map((a) => a.toLowerCase()))
+    const classText = (c: { name: string; responsibility: string; attributes: string[]; methods: string[] }) =>
+      [c.name, c.responsibility, ...c.attributes, ...c.methods].join(' ')
+    const addedText = diff.added.map(classText).join(' ')
+    const deltaCorpus = [
+      addedText,
+      ...diff.modified.map((m) => classText(m.after)),
+      ...design.assumptions.filter((a) => !previousAssumptions.has(a.toLowerCase())),
       ctx.rationale ?? '',
     ].join(' ')
-    const absorbed = change.mustIntroduce.length === 0 || containsAny(corpus, change.mustIntroduce)
+    const absorbed = change.mustIntroduce.length === 0 || containsAny(deltaCorpus, change.mustIntroduce)
+    // For a 4 the new class has to be about the change — in its own words or in the
+    // rationale explaining it. A class added behind a seam for some other reason is
+    // not this change being absorbed.
+    const addedCarriesChange =
+      change.mustIntroduce.length === 0 || containsAny(`${addedText} ${ctx.rationale ?? ''}`, change.mustIntroduce)
 
     if (!absorbed) {
       const hint = change.mustIntroduce[0] ?? 'the new behaviour'
       return this.result(
         0,
         [],
-        `Nothing in the revised design owns ${hint}. ${diff.added.length + diff.modified.length === 0 ? 'The design was resubmitted unchanged.' : 'Classes changed, but none of them speaks to the requirement that changed.'}`,
+        `Nothing that changed owns ${hint}. ${diff.added.length + diff.modified.length === 0 ? 'The design was resubmitted unchanged.' : 'Classes changed, but none of them speaks to the requirement that changed.'}`,
         'Name the class that owns the new behaviour, then decide whether it is a new implementation of something that already exists or a change to something that already works.',
       )
     }
@@ -81,7 +93,7 @@ export class BlastRadiusCheck implements DesignCheck {
     let score: Score
     if (diff.added.length === 0) {
       score = flags.length > 0 ? 1 : 2
-    } else if (seams.length > 0 && radius <= 1 && flags.length === 0) {
+    } else if (seams.length > 0 && radius <= 1 && flags.length === 0 && addedCarriesChange) {
       score = 4
     } else if (flags.length > 0) {
       score = 1
@@ -127,7 +139,9 @@ export class BlastRadiusCheck implements DesignCheck {
           ? `What if ${flags[0]!.cls} were handed the varying behaviour as an object instead of asking which kind it is?`
           : diff.added.length === 0
             ? 'Try again with a rule: you may add classes, but you may only edit one existing one. The one you have to edit is where the seam should go.'
-            : seams.length === 0
+            : !addedCarriesChange
+              ? `${diff.added[0]!.name} does not speak to the change that was asked for. The new behaviour needs a class of its own behind the seam.`
+              : seams.length === 0
               ? `Make ${diff.added[0]!.name} implement an interface the existing code already depends on — if there is none, that interface is what was missing in the first design.`
               : `Reduce the wiring: only one existing class should need to know ${diff.added[0]!.name} exists.`
 
