@@ -44,6 +44,11 @@ API loads it at startup):
 | Ollama (local) | unlimited | `LLD_LLM_PROVIDER=ollama` | `llama3.1` |
 | Anthropic | paid | `ANTHROPIC_API_KEY=sk-ant-…` | `claude-opus-5` |
 
+Groq's free tier is also capped at 200k tokens/day per model (1,000 requests/day on the 120b
+scorer) on top of the 8k tokens/minute limit above — a full attempt (design + change + defend,
+plus mentor notes and follow-ups) runs 15k–20k tokens across both models, so plan on roughly
+10 full attempts per model per day before it waits out the reset.
+
 `LLD_LLM_PROVIDER` picks explicitly when more than one key is present; `LLD_LLM_MODEL` overrides
 the model; `LLD_FORCE_STUB=1` keeps the heuristic regardless. The startup log and `/api/health`
 say which one is live. Every provider except Anthropic goes through one OpenAI-compatible adapter,
@@ -54,7 +59,7 @@ npx tsx apps/api/scripts/live-llm.ts god-class defend   # exercise the live prov
 ```
 
 ```bash
-npm test         # 205 tests, including a calibration suite over 13 gold designs
+npm test         # 215 tests, including a calibration suite over 23 gold designs across 7 problems
 npm run typecheck
 ```
 

@@ -156,7 +156,10 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
       const error = new LlmUnavailableError(
         `Rate limited by ${this.id} — the AI half of this report was skipped${detail ? ` (${detail})` : ''}`,
       )
-      error.retryAfterMs = resetAfterMs(response.headers)
+      // Groq's headers are the primary source, but under load they are sometimes
+      // absent while the body still says e.g. "Please try again in 4.62s" — that
+      // number is exactly as good for deciding whether to wait it out.
+      error.retryAfterMs = resetAfterMs(response.headers) ?? secondsFromDetail(detail)
       return error
     }
     if (status === 400 || status === 404 || status === 422) {
@@ -180,4 +183,20 @@ export function resetAfterMs(headers: Headers): number | undefined {
     ms += Number(n) * (unit === 'ms' ? 1 : unit === 's' ? 1000 : unit === 'm' ? 60_000 : 3_600_000)
   }
   return ms > 0 ? Math.ceil(ms) + 250 : undefined
+}
+
+/**
+ * Fallback for when the headers above are missing or unparseable but the error
+ * body still says how long to wait, e.g. Groq's "Please try again in 4.62s.".
+ * A 250ms pad avoids retrying a hair before the window actually rolls over.
+ */
+export function secondsFromDetail(detail?: string): number | undefined {
+  if (!detail) return undefined
+  const match = detail.match(/try again in\s+([\d.]+)\s*(ms|s|m)?/i)
+  if (!match) return undefined
+  const amount = Number(match[1])
+  if (!Number.isFinite(amount)) return undefined
+  const unit = (match[2] ?? 's').toLowerCase()
+  const ms = unit === 'ms' ? amount : unit === 'm' ? amount * 60_000 : amount * 1000
+  return Math.ceil(ms) + 250
 }

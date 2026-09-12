@@ -230,6 +230,27 @@ describe('rate limits', () => {
     await expect(client(fetch).complete(request)).rejects.toThrow(/Rate limited/)
   })
 
+  it('falls back to the wait time in the error body when Groq sends no usable header', async () => {
+    let n = 0
+    const { fetch } = fakeFetch(() => {
+      n += 1
+      return n === 1
+        ? json(429, { error: { message: 'Rate limit reached. Please try again in 4.62s.' } })
+        : json(200, { choices: [{ message: { content: 'ok' } }] })
+    })
+    expect((await client(fetch).complete(request)).text).toBe('ok')
+    expect(n).toBe(2)
+  })
+
+  it('parses the body fallback in ms and minutes too', async () => {
+    const { secondsFromDetail } = await import('../../apps/api/src/evaluation/llm/OpenAiCompatibleLlmClient.js')
+    expect(secondsFromDetail('try again in 4.62s')).toBeCloseTo(4870, -1)
+    expect(secondsFromDetail('try again in 250ms.')).toBe(500)
+    expect(secondsFromDetail('try again in 1.5m')).toBe(90_250)
+    expect(secondsFromDetail(undefined)).toBeUndefined()
+    expect(secondsFromDetail('no wait time here')).toBeUndefined()
+  })
+
   it('picks the mentor model per role', async () => {
     expect(resolveLlmClient({ GROQ_API_KEY: 'g' }, 'mentor').id).toBe('groq:openai/gpt-oss-20b')
     expect(resolveLlmClient({ GROQ_API_KEY: 'g' }, 'evaluator').id).toBe('groq:openai/gpt-oss-120b')
