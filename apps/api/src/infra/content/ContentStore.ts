@@ -1,7 +1,9 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
+  conceptGraphSchema,
   problemSchema,
+  type Concept,
   type Problem,
   type ProblemSummary,
   type PublicProblem,
@@ -37,6 +39,7 @@ export class ContentStore {
   private readonly problems = new Map<string, Problem>()
   private readonly rubrics = new Map<string, Rubric>()
   private readonly order: string[] = []
+  private concepts: Concept[] = []
 
   private constructor() {}
 
@@ -45,6 +48,16 @@ export class ContentStore {
 
     const rubric = read<Rubric>('rubrics/lld-core.json')
     store.rubrics.set(rubric.id, rubric)
+
+    const graph = conceptGraphSchema.safeParse(read<unknown>('concepts/concept-graph.json'))
+    if (!graph.success) throw new Error(`content/concepts/concept-graph.json is invalid: ${graph.error.message}`)
+    store.concepts = graph.data.concepts
+    const known = new Set(store.concepts.map((c) => c.id))
+    for (const criterion of rubric.criteria) {
+      for (const id of criterion.conceptIds) {
+        if (!known.has(id)) throw new Error(`rubric criterion ${criterion.id} names unknown concept "${id}"`)
+      }
+    }
 
     const catalog = read<{ problems: CatalogEntry[] }>('problems/catalog.json')
 
@@ -113,6 +126,10 @@ export class ContentStore {
     for (const entry of problem.calibrationSet) {
       if (!problem.goldDesigns[entry.designId]) fail(`calibration entry "${entry.label}" references missing gold design "${entry.designId}"`)
     }
+  }
+
+  listConcepts(): Concept[] {
+    return this.concepts
   }
 
   listProblems(): Problem[] {

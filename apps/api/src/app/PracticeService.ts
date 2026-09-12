@@ -8,6 +8,7 @@ import {
   type Attempt,
   type AttemptState,
   type AttemptSummary,
+  type ConceptsPayload,
   type CriterionResult,
   type CritiqueVerdict,
   type DesignModel,
@@ -18,6 +19,7 @@ import {
   type Probe,
   type ProbeAnswer,
   type Problem,
+  type ProgressPayload,
   type PublicCritiquePair,
   type RawStageInput,
   type RecurringWeakness,
@@ -28,6 +30,7 @@ import { assertTransition } from '../domain/attempt/AttemptStateMachine.js'
 import { DesignGraph } from '../domain/design/DesignGraph.js'
 import { scoresByCriterion, summarise } from '../domain/feedback/ScoreAggregator.js'
 import { detectRecurringWeaknesses } from '../domain/feedback/RecurringWeakness.js'
+import { conceptMastery, streakDays } from '../domain/feedback/ConceptMastery.js'
 import { selectProbes } from '../domain/feedback/ProbeSelector.js'
 import { suggestNextProblem } from '../domain/feedback/NextProblem.js'
 import {
@@ -522,6 +525,103 @@ export class PracticeService {
     const next = recent ? (await this.getHistory(learnerId, recent.problemId)).next : null
 
     return { problems, next }
+  }
+
+  /* --------------------------------------------------------------------- */
+  /* Progress across problems                                               */
+  /* --------------------------------------------------------------------- */
+
+  /**
+   * One read for the dashboard and the progress page. Everything here is a fold
+   * over data the per-problem history already exposes; the point is to show the
+   * learner a curriculum, not a list of problems.
+   */
+  async getProgress(learnerId: string): Promise<ProgressPayload> {
+    const rows = await this.prisma.attempt.findMany({
+      where: { learnerId },
+      include: { evaluations: true, submissions: { select: { submittedAt: true } } },
+      orderBy: { createdAt: 'desc' },
+    })
+    const critiques = await this.prisma.critique.findMany({ where: { learnerId } })
+
+    const recent: ProgressPayload['recent'] = []
+    const stagesCompleted = { design: 0, change: 0, defend: 0 }
+    const perCriterion = new Map<string, number[]>()
+    let rubric = this.content.rubricFor(this.content.listProblems()[0]!)
+
+    for (const row of rows) {
+      const problem = this.content.getProblem(row.problemId)
+      if (!problem) continue
+      rubric = this.content.rubricFor(problem)
+      const results = resultsOf(row)
+      const done = stagesOf(row.evaluations)
+      for (const s of done) stagesCompleted[s] += 1
+      const scores = scoresByCriterion(results)
+      for (const [id, score] of Object.entries(scores)) {
+        if (score !== undefined) perCriterion.set(id, [...(perCriterion.get(id) ?? []), score])
+      }
+      recent.push({
+        id: row.id,
+        problemId: row.problemId,
+        problemTitle: problem.title,
+        attemptNumber: row.attemptNumber,
+        stage: row.stage as Stage,
+        state: row.state as AttemptState,
+        stagesCompleted: done,
+        overall: results.length > 0 ? summarise(results, rubric, done).overall : null,
+        scores,
+        createdAt: row.createdAt.toISOString(),
+      })
+    }
+
+    const scored = recent.filter((a) => a.overall !== null).map((a) => ({ scores: a.scores }))
+    const criterionAverages: Record<string, number> = {}
+    for (const [id, list] of perCriterion) {
+      criterionAverages[id] = list.reduce((a, b) => a + b, 0) / list.length
+    }
+    const recurringWeaknesses = detectRecurringWeaknesses(scored, rubric)
+
+    const open = rows.find((r) => r.state === 'DRAFT' || ADVANCEABLE_STATES.includes(r.state as AttemptState))
+    const openProblem = open ? this.content.getProblem(open.problemId) : undefined
+    const openAttempt =
+      open && openProblem && !(open.stage === 'defend' && open.state !== 'DRAFT')
+        ? {
+            attemptId: open.id,
+            problemId: open.problemId,
+            problemTitle: openProblem.title,
+            stage: open.stage as Stage,
+            attemptNumber: open.attemptNumber,
+          }
+        : null
+
+    const mostRecentScored = rows.find((r) => r.evaluations.length > 0)
+    const next = mostRecentScored ? (await this.getHistory(learnerId, mostRecentScored.problemId)).next : null
+
+    return {
+      attempts: rows.length,
+      problemsTried: new Set(rows.map((r) => r.problemId)).size,
+      stagesCompleted,
+      criterionAverages,
+      criteriaAtPar: Object.values(criterionAverages).filter((v) => v >= 3).length,
+      conceptMastery: conceptMastery(scored, rubric, this.content.listConcepts()),
+      streakDays: streakDays(rows.flatMap((r) => r.submissions.map((s) => s.submittedAt))),
+      recurringWeaknesses,
+      critique: { answered: critiques.length, correct: critiques.filter((c) => c.correct).length },
+      openAttempt,
+      recent,
+      next,
+    }
+  }
+
+  async getConcepts(learnerId: string): Promise<ConceptsPayload> {
+    const progress = await this.getProgress(learnerId)
+    const practice: ConceptsPayload['practice'] = {}
+    for (const problem of this.content.listProblems()) {
+      for (const tag of problem.conceptTags) {
+        practice[tag] = [...(practice[tag] ?? []), { id: problem.id, title: problem.title }]
+      }
+    }
+    return { concepts: this.content.listConcepts(), mastery: progress.conceptMastery, practice }
   }
 
   /* --------------------------------------------------------------------- */

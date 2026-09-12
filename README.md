@@ -27,7 +27,9 @@ npm run seed     # creates the SQLite database, validates every content file, se
 npm run dev      # API on :4000, web on :3000
 ```
 
-Open **http://localhost:3000**.
+Open **http://localhost:3000**. Four places: **Dashboard** (where you are), **Learn** (the
+problems, by level), **Concepts** (the curriculum map with your standing on each idea),
+**Progress** (every attempt, every criterion, the habit worth breaking).
 
 With no key set, the two read criteria (*edge cases*, *reasoning*) are scored by a deterministic
 heuristic that parses the same prompt the real model would see, so the whole loop works on a fresh
@@ -52,7 +54,7 @@ npx tsx apps/api/scripts/live-llm.ts god-class defend   # exercise the live prov
 ```
 
 ```bash
-npm test         # 165 tests, including a calibration suite over 13 gold designs
+npm test         # 172 tests, including a calibration suite over 13 gold designs
 npm run typecheck
 ```
 
@@ -99,6 +101,7 @@ measured findings still arrive, and the report says so honestly rather than show
 | **Defend** | Up to three probes, chosen by what the review found and worded around your own class names. |
 | **Honesty** | Measured findings and AI findings are visually distinct. Missing criteria are absent, never zero. |
 | **History** | Per-criterion trend across stages, a callout when the same criterion keeps failing, and a next problem chosen to exercise it. |
+| **Curriculum** | 22 concepts in five tiers. Your standing on each is folded from the criteria that produce evidence about it — no separate grading. The dashboard shows your path; the map shows what depends on what and where to practise it. |
 
 ## Key decisions
 
@@ -126,7 +129,7 @@ Full reasoning in [DESIGN.md](DESIGN.md); the short version:
 apps/api/src/
   domain/          pure — no framework, no I/O. The product is legible from here alone.
     design/        DesignGraph · DesignDiff · Walkthrough
-    feedback/      ScoreAggregator · RecurringWeakness · ProbeSelector · NextProblem
+    feedback/      ScoreAggregator · RecurringWeakness · ProbeSelector · NextProblem · ConceptMastery
     attempt/       AttemptStateMachine
   submission/      SubmissionParser port  ← a new capture format plugs in here, declaring its facets
   evaluation/      Evaluator port         ← a new evaluator plugs in here

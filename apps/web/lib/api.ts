@@ -1,6 +1,8 @@
 import type {
   ApiError,
   Attempt,
+  ConceptsPayload,
+  ProgressPayload,
   AttemptSummary,
   CritiqueVerdict,
   EvaluationReport,
@@ -52,6 +54,10 @@ export type HistoryPayload = {
 }
 
 export const api = {
+  getProgress: () => request<ProgressPayload>('/learners/me/progress'),
+
+  getConcepts: () => request<ConceptsPayload>('/concepts'),
+
   listProblems: () =>
     request<{ problems: ProblemSummary[]; next: NextProblemSuggestion | null }>('/problems'),
 

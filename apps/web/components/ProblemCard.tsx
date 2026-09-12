@@ -4,9 +4,10 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import type { ProblemSummary } from '@lld/contracts'
+import type { ConceptMastery, ProblemSummary } from '@lld/contracts'
 import { api } from '@/lib/api'
 import { TIER_LABEL, scoreTone } from '@/lib/format'
+import { MasteryDot } from './Mastery'
 import { riseIn } from './motion'
 
 const TONE_TEXT = {
@@ -15,7 +16,16 @@ const TONE_TEXT = {
   positive: 'text-positive',
 } as const
 
-export function ProblemCard({ problem }: { problem: ProblemSummary }) {
+export function ProblemCard({
+  problem,
+  mastery,
+  conceptNames,
+}: {
+  problem: ProblemSummary
+  /** When present, each concept tag carries the learner's standing on it. */
+  mastery?: Map<string, ConceptMastery>
+  conceptNames?: Map<string, string>
+}) {
   const router = useRouter()
   const [starting, setStarting] = useState(false)
 
@@ -61,7 +71,8 @@ export function ProblemCard({ problem }: { problem: ProblemSummary }) {
         <div className="mt-4 flex flex-wrap gap-1.5">
           {problem.conceptTags.slice(0, 4).map((tag) => (
             <span key={tag} className="chip !py-0.5 !text-[11px]">
-              {tag.replace(/-/g, ' ')}
+              {mastery && <MasteryDot level={mastery.get(tag)?.level ?? 'new'} />}
+              {conceptNames?.get(tag) ?? tag.replace(/-/g, ' ')}
             </span>
           ))}
         </div>

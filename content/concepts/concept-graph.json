@@ -47,7 +47,9 @@
       "name": "Association Modelling",
       "plain": "Choosing correctly between owns-a, has-a, uses-a and is-a.",
       "tell": "Everything drawn as has-a because the distinction was never considered.",
-      "prerequisites": ["abstraction"]
+      "prerequisites": [
+        "abstraction"
+      ]
     },
     {
       "id": "domain-modeling",
@@ -55,7 +57,10 @@
       "name": "Domain Modelling",
       "plain": "Naming classes after real things in the problem, and telling entities from values.",
       "tell": "Class names like DataManager or InfoHandler that name no real concept.",
-      "prerequisites": ["abstraction", "cohesion"]
+      "prerequisites": [
+        "abstraction",
+        "cohesion"
+      ]
     },
     {
       "id": "srp",
@@ -63,7 +68,9 @@
       "name": "Single Responsibility",
       "plain": "A class should have one reason to change.",
       "tell": "A god class named *Manager or *Service that touches everything.",
-      "prerequisites": ["cohesion"]
+      "prerequisites": [
+        "cohesion"
+      ]
     },
     {
       "id": "interface-design",
@@ -71,7 +78,10 @@
       "name": "Interface Design",
       "plain": "A contract that says what, never how, and is hard to misuse.",
       "tell": "Interfaces that leak their implementation in method names or return types.",
-      "prerequisites": ["abstraction", "encapsulation"]
+      "prerequisites": [
+        "abstraction",
+        "encapsulation"
+      ]
     },
     {
       "id": "polymorphism",
@@ -79,7 +89,9 @@
       "name": "Polymorphism",
       "plain": "Different types answering the same message in their own way.",
       "tell": "switch or if-else chains on a type field.",
-      "prerequisites": ["abstraction"]
+      "prerequisites": [
+        "abstraction"
+      ]
     },
     {
       "id": "open-closed",
@@ -87,7 +99,11 @@
       "name": "Open/Closed",
       "plain": "Add behaviour by adding code, not by editing working code.",
       "tell": "Every new feature means another branch inside an existing method.",
-      "prerequisites": ["abstraction", "coupling", "polymorphism"]
+      "prerequisites": [
+        "abstraction",
+        "coupling",
+        "polymorphism"
+      ]
     },
     {
       "id": "lsp",
@@ -95,7 +111,9 @@
       "name": "Liskov Substitution",
       "plain": "A subtype must work anywhere its parent does, without surprises.",
       "tell": "An override that throws UnsupportedOperation, or tightens what the parent accepted.",
-      "prerequisites": ["polymorphism"]
+      "prerequisites": [
+        "polymorphism"
+      ]
     },
     {
       "id": "isp",
@@ -103,7 +121,9 @@
       "name": "Interface Segregation",
       "plain": "Small focused contracts beat one fat one.",
       "tell": "Implementers stubbing out methods they do not need.",
-      "prerequisites": ["interface-design"]
+      "prerequisites": [
+        "interface-design"
+      ]
     },
     {
       "id": "dip",
@@ -111,7 +131,10 @@
       "name": "Dependency Inversion",
       "plain": "Depend on abstractions; let the concrete thing be handed in.",
       "tell": "new ConcreteThing() inside a constructor of a high-level class.",
-      "prerequisites": ["coupling", "interface-design"]
+      "prerequisites": [
+        "coupling",
+        "interface-design"
+      ]
     },
     {
       "id": "composition-over-inheritance",
@@ -119,7 +142,10 @@
       "name": "Composition over Inheritance",
       "plain": "Prefer assembling behaviour from parts over inheriting it.",
       "tell": "Deep hierarchies, or subclasses created just to vary one value.",
-      "prerequisites": ["association-modeling", "polymorphism"]
+      "prerequisites": [
+        "association-modeling",
+        "polymorphism"
+      ]
     },
     {
       "id": "state-modeling",
@@ -127,7 +153,9 @@
       "name": "State Modelling",
       "plain": "Making the legal lifecycle explicit instead of implied by flags.",
       "tell": "Several booleans that must agree, like isPaid plus isShipped plus isCancelled.",
-      "prerequisites": ["domain-modeling"]
+      "prerequisites": [
+        "domain-modeling"
+      ]
     },
     {
       "id": "immutability",
@@ -135,7 +163,10 @@
       "name": "Immutability & Value Objects",
       "plain": "Values that never change are safe to share and easy to reason about.",
       "tell": "Money or Date passed around as a mutable object with setters.",
-      "prerequisites": ["encapsulation", "domain-modeling"]
+      "prerequisites": [
+        "encapsulation",
+        "domain-modeling"
+      ]
     },
     {
       "id": "error-modeling",
@@ -143,7 +174,9 @@
       "name": "Error Modelling",
       "plain": "Treat failure as part of the domain, not an afterthought.",
       "tell": "Returning null or false to mean five different problems.",
-      "prerequisites": ["domain-modeling"]
+      "prerequisites": [
+        "domain-modeling"
+      ]
     },
     {
       "id": "testability",
@@ -151,7 +184,9 @@
       "name": "Testability",
       "plain": "A design you can test without standing up the world.",
       "tell": "Business logic that cannot run without a clock, a network or a database.",
-      "prerequisites": ["dip"]
+      "prerequisites": [
+        "dip"
+      ]
     },
     {
       "id": "extensibility",
@@ -159,7 +194,10 @@
       "name": "Extensibility",
       "plain": "Putting the seam where the requirement will actually change.",
       "tell": "Abstractions everywhere except the one place the spec said varies.",
-      "prerequisites": ["srp", "open-closed"]
+      "prerequisites": [
+        "srp",
+        "open-closed"
+      ]
     },
     {
       "id": "concurrency-safety",
@@ -167,7 +205,32 @@
       "name": "Concurrency Safety",
       "plain": "Shared state stays correct when two things happen at once.",
       "tell": "check-then-act on shared state with no guard around it.",
-      "prerequisites": ["state-modeling", "immutability"]
+      "prerequisites": [
+        "state-modeling",
+        "immutability"
+      ]
+    },
+    {
+      "id": "collaboration",
+      "tier": "behaviour",
+      "name": "Object collaboration",
+      "plain": "Objects do a job by asking each other, not by one object doing everything.",
+      "tell": "A walkthrough where one class performs every step and the rest are data.",
+      "prerequisites": [
+        "coupling",
+        "srp"
+      ]
+    },
+    {
+      "id": "design-rationale",
+      "tier": "practice",
+      "name": "Design rationale",
+      "plain": "Every structural choice has an alternative you rejected, and you can say why.",
+      "tell": "A decision described as 'the obvious way' with no alternative named.",
+      "prerequisites": [
+        "abstraction",
+        "extensibility"
+      ]
     }
   ]
 }

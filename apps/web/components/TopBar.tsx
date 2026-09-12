@@ -12,6 +12,18 @@ const CHOICES: Array<{ value: ThemeChoice; label: string; glyph: string }> = [
   { value: 'dark', label: 'Dark', glyph: '☾' },
 ]
 
+/**
+ * The four places a learner goes. Dashboard is where you are; Learn is what you
+ * can do; Concepts is why; Progress is how it is going. Practice and report pages
+ * hang off Learn and are reached from cards, never from here.
+ */
+const NAV: Array<{ href: string; label: string; match: (p: string) => boolean }> = [
+  { href: '/', label: 'Dashboard', match: (p) => p === '/' },
+  { href: '/learn', label: 'Learn', match: (p) => p.startsWith('/learn') || p.startsWith('/practice') || p.startsWith('/report') || p.startsWith('/critique') || p.startsWith('/history') },
+  { href: '/concepts', label: 'Concepts', match: (p) => p.startsWith('/concepts') },
+  { href: '/progress', label: 'Progress', match: (p) => p.startsWith('/progress') },
+]
+
 export function TopBar() {
   const pathname = usePathname()
   const [choice, setChoice] = useState<ThemeChoice>('system')
@@ -44,13 +56,31 @@ export function TopBar() {
             D
           </span>
           <span className="text-[15px] font-semibold tracking-tight">Deliberate</span>
-          <span className="hidden text-xs text-ink-faint sm:inline">LLD practice</span>
+          <span className="hidden text-xs text-ink-faint md:inline">learn design by doing</span>
         </Link>
 
-        <nav className="ml-2 hidden items-center gap-1 sm:flex">
-          <NavLink href="/" active={pathname === '/'}>
-            Problems
-          </NavLink>
+        <nav className="ml-2 flex items-center gap-0.5 overflow-x-auto">
+          {NAV.map((item) => {
+            const active = item.match(pathname ?? '')
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`relative rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                  active ? 'text-ink' : 'text-ink-muted hover:text-ink'
+                }`}
+              >
+                {active && (
+                  <motion.span
+                    layoutId="nav-pill"
+                    className="absolute inset-0 rounded-lg bg-raised"
+                    transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                  />
+                )}
+                <span className="relative">{item.label}</span>
+              </Link>
+            )
+          })}
         </nav>
 
         <div className="ml-auto flex items-center gap-1 rounded-xl border border-line bg-surface p-1">
@@ -78,26 +108,5 @@ export function TopBar() {
         </div>
       </div>
     </header>
-  )
-}
-
-function NavLink({
-  href,
-  active,
-  children,
-}: {
-  href: string
-  active: boolean
-  children: React.ReactNode
-}) {
-  return (
-    <Link
-      href={href}
-      className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
-        active ? 'bg-raised text-ink' : 'text-ink-muted hover:text-ink'
-      }`}
-    >
-      {children}
-    </Link>
   )
 }

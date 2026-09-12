@@ -42,6 +42,20 @@ export function createRouter(service: PracticeService, content: ContentStore): R
   )
 
   router.get(
+    '/learners/me/progress',
+    wrap(async (_req, res) => {
+      res.json(await service.getProgress(DEMO_LEARNER_ID))
+    }),
+  )
+
+  router.get(
+    '/concepts',
+    wrap(async (_req, res) => {
+      res.json(await service.getConcepts(DEMO_LEARNER_ID))
+    }),
+  )
+
+  router.get(
     '/problems/:id',
     wrap(async (req, res) => {
       const problem = content.getProblem(req.params.id!)

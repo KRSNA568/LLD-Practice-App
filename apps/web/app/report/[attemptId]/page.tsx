@@ -10,6 +10,7 @@ import {
   nextStage,
   STAGES,
   type Attempt,
+  type EvaluationReport,
   type EvidenceRef,
   type PublicProblem,
   type Rubric,
@@ -215,6 +216,7 @@ export default function ReportPage() {
             <h1 className="mt-0.5 text-[26px] font-semibold tracking-tight">
               {finished ? 'Full review' : `Review so far`}
             </h1>
+            <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-ink-muted">{whatThisMeans(report, rubric)}</p>
           </div>
 
           <div className="flex items-center gap-5">
@@ -412,4 +414,19 @@ function EvaluatingState({ label }: { label: string }) {
       <p className="mt-1.5 text-xs text-ink-faint">Your submission is already saved. This page updates itself.</p>
     </div>
   )
+}
+
+/**
+ * One sentence over the whole report: the two lowest criteria, named, with the
+ * stage they came from. A deterministic stand-in for the mentor's note, so the
+ * layout has a place for it and a learner without an AI key still gets a summary.
+ */
+function whatThisMeans(report: EvaluationReport, rubric: Rubric | null): string {
+  const byId = new Map((rubric?.criteria ?? []).map((c) => [c.id, c]))
+  const sorted = [...report.results].sort((a, b) => a.score - b.score)
+  const low = sorted.filter((r) => r.score <= 2).slice(0, 2)
+  if (low.length === 0) return 'Nothing scored below par. The next problem up is where this gets interesting.'
+  const names = low.map((r) => (byId.get(r.criterionId)?.name ?? r.criterionId).toLowerCase())
+  const first = names.length === 1 ? names[0]! : `${names[0]} and ${names[1]}`
+  return `The findings that matter most are about ${first}. Start with the top card below — its evidence chips point at the exact rows.`
 }

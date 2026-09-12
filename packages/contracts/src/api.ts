@@ -11,6 +11,7 @@ import {
 import { probeAnswerSchema } from './attempt.js'
 import type { CritiqueVerdict, PublicCritiquePair, PublicProblem, ProblemSummary } from './problem.js'
 import type { Rubric } from './rubric.js'
+import type { Concept, ConceptMastery } from './concept.js'
 
 /** Wire shapes for the HTTP boundary. The API speaks these; the domain never does. */
 
@@ -95,3 +96,37 @@ export type ApiError = {
   }
 }
 export type { CritiqueVerdict }
+
+/** The learner's standing across every problem — what the dashboard and progress pages read. */
+export type ProgressPayload = {
+  attempts: number
+  problemsTried: number
+  /** Stages completed across all attempts, e.g. 7 design, 4 change, 2 defend. */
+  stagesCompleted: Record<'design' | 'change' | 'defend', number>
+  /** Mean score per criterion over every scored attempt; absent if never scored. */
+  criterionAverages: Record<string, number>
+  criteriaAtPar: number
+  conceptMastery: ConceptMastery[]
+  /** Consecutive calendar days (ending today) with at least one submission. */
+  streakDays: number
+  recurringWeaknesses: RecurringWeakness[]
+  critique: { answered: number; correct: number }
+  /** The most recent attempt still open, if any — the "continue" affordance. */
+  openAttempt: {
+    attemptId: string
+    problemId: string
+    problemTitle: string
+    stage: 'design' | 'change' | 'defend'
+    attemptNumber: number
+  } | null
+  /** Every attempt across problems, newest first. */
+  recent: Array<AttemptSummary & { problemTitle: string }>
+  next: NextProblemSuggestion | null
+}
+
+export type ConceptsPayload = {
+  concepts: Concept[]
+  mastery: ConceptMastery[]
+  /** Playable problem ids per concept, so the map can point at practice. */
+  practice: Record<string, Array<{ id: string; title: string }>>
+}
