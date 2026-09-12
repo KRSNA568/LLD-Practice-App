@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import type { ProgressPayload, Rubric } from '@lld/contracts'
 import { api } from '@/lib/api'
 import { averageTone, CRITERION_ORDER, relativeTime, scoreTone, STAGE_LABEL, pluralise } from '@/lib/format'
-import { NextForYou } from '@/components/NextForYou'
+import { CoachCard } from '@/components/CoachCard'
 import { StatStrip } from '@/components/StatStrip'
 import { riseIn, stagger } from '@/components/motion'
 
@@ -89,7 +89,7 @@ export default function ProgressPage() {
             </motion.div>
           )}
 
-          {progress.next && <NextForYou next={progress.next} />}
+          <CoachCard note={progress.coach} next={progress.next} />
 
           <motion.section initial="hidden" animate="show" variants={riseIn} className="card p-5">
             <h2 className="text-sm font-semibold tracking-tight">By criterion</h2>

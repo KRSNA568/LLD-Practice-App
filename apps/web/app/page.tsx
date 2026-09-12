@@ -8,7 +8,7 @@ import type { Concept, ProblemSummary, ProgressPayload } from '@lld/contracts'
 import { api } from '@/lib/api'
 import { pluralise, scoreTone } from '@/lib/format'
 import { ProblemCard } from '@/components/ProblemCard'
-import { NextForYou } from '@/components/NextForYou'
+import { CoachCard } from '@/components/CoachCard'
 import { ContinueCard } from '@/components/ContinueCard'
 import { StatStrip } from '@/components/StatStrip'
 import { ConceptChip, MasteryRing } from '@/components/Mastery'
@@ -62,7 +62,9 @@ export default function DashboardPage() {
 
       <div className="space-y-4">
         {progress.openAttempt && <ContinueCard open={progress.openAttempt} />}
-        {progress.next && !progress.openAttempt && <NextForYou next={progress.next} />}
+        {(progress.coach || (progress.next && !progress.openAttempt)) && (
+          <CoachCard note={progress.coach} next={progress.openAttempt ? null : progress.next} />
+        )}
 
         <StatStrip
           stats={[

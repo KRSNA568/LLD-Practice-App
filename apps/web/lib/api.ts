@@ -90,6 +90,9 @@ export const api = {
       body: JSON.stringify({ text }),
     }),
 
+  requestExplanation: (id: string, criterionId: string) =>
+    request<{ explanation: { text: string; modelId: string } } | undefined>(`/attempts/${id}/explain/${criterionId}`, { method: 'POST' }),
+
   getNotes: (id: string) => request<AttemptNotes>(`/attempts/${id}/notes`),
 
   requestLesson: (id: string, criterionId: string) =>

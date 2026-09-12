@@ -10,6 +10,8 @@ import {
   type Stage,
 } from '@lld/contracts'
 import { Dialogue } from '../coach/Dialogue.js'
+import { Explainer } from '../coach/Explainer.js'
+import { Coach, type CoachInput } from '../coach/Coach.js'
 import type { EvaluationContext } from '../evaluation/Evaluator.js'
 import type { LlmClient } from '../evaluation/llm/LlmClient.js'
 import { NoteStore } from '../coach/NoteStore.js'
@@ -48,6 +50,8 @@ export class CoachService {
   private readonly reviewer: Reviewer
   private readonly lessons: LessonWriter
   private readonly dialogue: Dialogue
+  private readonly explainer: Explainer
+  private readonly coach: Coach
 
   constructor(
     private readonly prisma: PrismaClient,
@@ -60,6 +64,48 @@ export class CoachService {
     this.reviewer = new Reviewer(llm)
     this.lessons = new LessonWriter(llm)
     this.dialogue = new Dialogue(llm)
+    this.explainer = new Explainer(llm)
+    this.coach = new Coach(llm)
+  }
+
+  /* --------------------------------------------------------------------- */
+  /* Explain a finding                                                      */
+  /* --------------------------------------------------------------------- */
+
+  async explain(attemptId: string, criterionId: string): Promise<{ text: string; modelId: string } | null> {
+    const stage = await this.stageOf(attemptId, criterionId)
+    if (!stage) return null
+    const loaded = await this.loadContext(attemptId, stage)
+    if (!loaded) return null
+    const result = loaded.results.find((r) => r.criterionId === criterionId)
+    if (!result) return null
+    const key = NoteStore.key('explain', COACH_PROMPT_VERSION, {
+      criterionId,
+      design: loaded.ctx.design,
+      score: result.score,
+      concern: result.concern,
+    })
+    return this.notes.getOrGenerate({ kind: 'explain', key, learnerId: loaded.learnerId, attemptId, stage, refId: criterionId }, () =>
+      this.explainer.explain(loaded.ctx, result),
+    )
+  }
+
+  /* --------------------------------------------------------------------- */
+  /* The coach across problems                                              */
+  /* --------------------------------------------------------------------- */
+
+  async coachNote(learnerId: string, input: CoachInput): Promise<{ text: string; modelId: string } | null> {
+    if (input.attempts === 0) return null
+    // Keyed by the numbers the note is about, so it regenerates exactly when a
+    // new evaluation could change what it should say.
+    const key = NoteStore.key('coach', COACH_PROMPT_VERSION, {
+      learnerId,
+      attempts: input.attempts,
+      averages: input.criterionAverages,
+      weaknesses: input.weaknesses.map((w) => [w.criterionId, w.occurrences]),
+      next: input.next?.problemId ?? null,
+    })
+    return this.notes.getOrGenerate({ kind: 'coach', key, learnerId }, () => this.coach.note(input))
   }
 
   /* --------------------------------------------------------------------- */
@@ -167,17 +213,21 @@ export class CoachService {
     const rows = await this.notes.forAttempt(attemptId)
     const review: AttemptNotes['review'] = {}
     const lessons: AttemptNotes['lessons'] = {}
+    const explanations: AttemptNotes['explanations'] = {}
     for (const row of rows) {
       const json = JSON.parse(row.json) as Record<string, unknown>
       if (row.kind === 'review' && row.stage) {
         review[row.stage as Stage] = { text: String(json.text ?? ''), modelId: row.modelId }
       } else if (row.kind === 'lesson' && row.refId) {
         lessons[row.refId] = { ...(json as MicroLesson & { conceptId: string }), modelId: row.modelId }
+      } else if (row.kind === 'explain' && row.refId) {
+        explanations[row.refId] = { text: String(json.text ?? ''), modelId: row.modelId }
       }
     }
     return {
       review,
       lessons,
+      explanations,
       lessonable: results.filter((r) => r.score <= LESSON_THRESHOLD).map((r) => r.criterionId),
       live: this.live,
     }

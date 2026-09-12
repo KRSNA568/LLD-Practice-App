@@ -54,7 +54,7 @@ npx tsx apps/api/scripts/live-llm.ts god-class defend   # exercise the live prov
 ```
 
 ```bash
-npm test         # 196 tests, including a calibration suite over 13 gold designs
+npm test         # 201 tests, including a calibration suite over 13 gold designs
 npm run typecheck
 ```
 
@@ -101,7 +101,8 @@ measured findings still arrive, and the report says so honestly rather than show
 | **Evaluation** | Eight criteria, one owner each. **Six measured** from the class graph, the walkthroughs and the diff. **Two read** by an LLM — the two that need reading. |
 | **Feedback** | Every finding cites a class, relationship, assumption, decision, walkthrough step or quote **in your submission**, verified to exist before you see it. |
 | **Defend** | Up to three probes, chosen by what the review found and worded around your own class names — each a short interview: your answer, one follow-up from the AI interviewer that presses on the weakest part of it, your reply. *Reasoning* is read from the whole exchange. |
-| **Mentor** | After each stage, an AI note over the findings — the one thing that matters most, in your class names. On any low criterion, a two-minute lesson on the concept behind it, illustrated with your own classes. Every sentence is checked against your design before you see it. |
+| **Mentor** | After each stage, an AI note over the findings — the one thing that matters most, in your class names. On any card, *why does this matter here?*; on any low one, a two-minute lesson on the concept behind it, illustrated with your own classes. Every sentence is checked against your design before you see it. |
+| **Coach** | On the dashboard and progress page: what you keep doing across problems, why it is worth breaking, what to look for next — over the deterministic next-problem choice. |
 | **Honesty** | Measured findings and AI findings are visually distinct. Missing criteria are absent, never zero. The mentor's note is visibly AI and says why it can be trusted. |
 | **History** | Per-criterion trend across stages, a callout when the same criterion keeps failing, and a next problem chosen to exercise it. |
 | **Curriculum** | 22 concepts in five tiers. Your standing on each is folded from the criteria that produce evidence about it — no separate grading. The dashboard shows your path; the map shows what depends on what and where to practise it. |
@@ -138,7 +139,8 @@ apps/api/src/
   evaluation/      Evaluator port         ← a new evaluator plugs in here
     rules/checks/  one file per measured check, each declaring its stage and facets
     llm/           prompt with band anchors, providers, EvidenceGroundingValidator
-  coach/           the mentor: prose grounding, prompts, Reviewer, LessonWriter, Dialogue, NoteStore
+  coach/           the mentor: prose grounding, prompts, Reviewer, LessonWriter, Explainer,
+                   Dialogue, Coach, NoteStore (content-addressed cache)
   app/             PracticeService — stages, submissions, critique, next problem; CoachService
   infra/           prisma · queue · content loader
 apps/web/          Next.js · Tailwind · Framer Motion

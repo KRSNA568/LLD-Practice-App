@@ -128,6 +128,19 @@ export default function ReportPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attemptId, settledStages])
 
+  const [explaining, setExplaining] = useState<string | null>(null)
+  async function explain(criterionId: string) {
+    setExplaining(criterionId)
+    try {
+      const r = await api.requestExplanation(attemptId, criterionId)
+      if (r?.explanation) setNotes((n) => (n ? { ...n, explanations: { ...n.explanations, [criterionId]: r.explanation } } : n))
+    } catch {
+      /* the card still stands without it */
+    } finally {
+      setExplaining(null)
+    }
+  }
+
   async function learn(criterionId: string, title: string) {
     const cached = notes?.lessons[criterionId]
     if (cached) {
@@ -405,6 +418,9 @@ export default function ReportPage() {
                           : undefined
                       }
                       learnLabel={notes?.lessons[result.criterionId] ? 'Reopen the lesson' : 'Learn the concept behind this'}
+                      onExplain={notes ? () => explain(result.criterionId) : undefined}
+                      explanation={notes?.explanations[result.criterionId] ?? null}
+                      explaining={explaining === result.criterionId}
                     />
                   ))}
               </motion.ul>

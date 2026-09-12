@@ -293,6 +293,8 @@ touches a score. `apps/api/src/coach/` is a separate module with its own prompt 
 |---|---|---|---|
 | **Reviewer's note** | 3–5 sentences over one stage: the finding that matters most, why here, what first | per sentence — any sentence naming a class the learner did not write is dropped; < 2 survivors → no note | after each stage's evaluation lands, on the queue |
 | **Micro-lesson** | the authored concept (`plain`, `tell`) explained through the learner's own classes, with a before/after | body and both halves of the example, same rule | on request, criteria scored ≤ 2 only |
+| **Explain this finding** | on any card, measured or read: why it matters for this problem, what goes wrong later, the smallest move — in the learner's classes | per sentence, same rule; < 2 survivors → nothing | on request, cached by (design, score, concern) |
+| **Coach across problems** | 2–3 sentences over the progress page: the habit the numbers show, why break it, what to look for in the next problem | may name only criteria and problems the prompt listed; anything else → no note | on read of progress, cached by the numbers it is about |
 | **Socratic follow-up** | after the learner's first answer to a probe, one question that presses on the weakest part of it | must be a question, ≤ 60 words, no verdict phrases, names only classes in the design or the probe; else retried once, then not asked | during Defend, per probe, at most once |
 
 **Defend is a dialogue, not a form.** Georgia Tech's *Socratic Mind* is the strongest evidence in

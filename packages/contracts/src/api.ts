@@ -128,6 +128,8 @@ export type ProgressPayload = {
   /** Every attempt across problems, newest first. */
   recent: Array<AttemptSummary & { problemTitle: string }>
   next: NextProblemSuggestion | null
+  /** The coach's note over everything above; null when no model wrote one. */
+  coach: { text: string; modelId: string } | null
 }
 
 export type ConceptsPayload = {

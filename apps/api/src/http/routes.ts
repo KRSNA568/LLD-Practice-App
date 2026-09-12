@@ -57,7 +57,11 @@ export function createRouter(service: PracticeService, content: ContentStore, co
     wrap(async (req, res) => {
       const attempt = await service.getAttempt(req.params.id!)
       const results = attempt.report?.results ?? []
-      res.json(coach ? await coach.notesFor(attempt.id, results) : { review: {}, lessons: {}, lessonable: [], live: false })
+      res.json(
+        coach
+          ? await coach.notesFor(attempt.id, results)
+          : { review: {}, lessons: {}, explanations: {}, lessonable: [], live: false },
+      )
     }),
   )
 
@@ -74,10 +78,44 @@ export function createRouter(service: PracticeService, content: ContentStore, co
     }),
   )
 
+  router.post(
+    '/attempts/:id/explain/:criterionId',
+    wrap(async (req, res) => {
+      if (!coach) throw new NotFoundError('The mentor')
+      const explanation = await coach.explain(req.params.id!, req.params.criterionId!)
+      if (!explanation) {
+        res.status(204).end()
+        return
+      }
+      res.json({ explanation })
+    }),
+  )
+
   router.get(
     '/learners/me/progress',
     wrap(async (_req, res) => {
-      res.json(await service.getProgress(DEMO_LEARNER_ID))
+      const progress = await service.getProgress(DEMO_LEARNER_ID)
+      // The coach's note is generated on read and cached by the numbers it is
+      // about, so the dashboard costs one call per new evaluation, not per visit.
+      const rubric = content.rubricFor(content.listProblems()[0]!)
+      const coachNote = coach
+        ? await coach
+            .coachNote(DEMO_LEARNER_ID, {
+              rubric,
+              attempts: progress.attempts,
+              problemsTried: progress.problemsTried,
+              criterionAverages: progress.criterionAverages,
+              weaknesses: progress.recurringWeaknesses,
+              next: progress.next,
+              recent: progress.recent.map((a) => ({
+                problemTitle: a.problemTitle,
+                overall: a.overall,
+                lowest: lowestCriterion(a.scores, rubric),
+              })),
+            })
+            .catch(() => null)
+        : null
+      res.json({ ...progress, coach: coachNote })
     }),
   )
 
@@ -231,4 +269,13 @@ export function errorHandler(
   const message = error instanceof Error ? error.message : 'Unexpected error'
   console.error('[api]', error)
   res.status(500).json({ error: { code: 'INTERNAL', message } } satisfies ApiError)
+}
+
+function lowestCriterion(scores: Record<string, number | undefined>, rubric: { criteria: Array<{ id: string; name: string }> }): string | null {
+  let best: { name: string; score: number } | null = null
+  for (const c of rubric.criteria) {
+    const score = scores[c.id]
+    if (score !== undefined && (best === null || score < best.score)) best = { name: c.name, score }
+  }
+  return best?.name ?? null
 }

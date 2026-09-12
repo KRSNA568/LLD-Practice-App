@@ -593,7 +593,7 @@ export class PracticeService {
    * over data the per-problem history already exposes; the point is to show the
    * learner a curriculum, not a list of problems.
    */
-  async getProgress(learnerId: string): Promise<ProgressPayload> {
+  async getProgress(learnerId: string): Promise<Omit<ProgressPayload, 'coach'>> {
     const rows = await this.prisma.attempt.findMany({
       where: { learnerId },
       include: { evaluations: true, submissions: { select: { submittedAt: true } } },

@@ -27,6 +27,9 @@ export function CriterionCard({
   onCite,
   onLearn,
   learnLabel,
+  onExplain,
+  explanation,
+  explaining,
 }: {
   result: CriterionResult
   criterion: Criterion | undefined
@@ -34,6 +37,10 @@ export function CriterionCard({
   /** When set, a low score offers a lesson on the concept behind it. */
   onLearn?: () => void
   learnLabel?: string
+  /** When set, any finding can be explained on request. */
+  onExplain?: () => void
+  explanation?: { text: string; modelId: string } | null
+  explaining?: boolean
 }) {
   const tone = TONE[scoreTone(result.score)]
   const isMachine = result.evaluatorKind === 'deterministic'
@@ -111,14 +118,37 @@ export function CriterionCard({
             </div>
           )}
 
-          {onLearn && (
-            <button
-              onClick={onLearn}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-judged/30 bg-judged/[0.06] px-3 py-1.5 text-[12px] font-medium text-judged transition-colors hover:bg-judged/[0.12]"
-            >
-              <span aria-hidden>◈</span>
-              {learnLabel ?? 'Learn the concept'}
-            </button>
+          {(onLearn || onExplain) && (
+            <div className="flex flex-wrap gap-2">
+              {onExplain && !explanation && (
+                <button
+                  onClick={onExplain}
+                  disabled={explaining}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-1.5 text-[12px] font-medium text-ink-muted transition-colors hover:border-judged/40 hover:text-judged disabled:opacity-60"
+                >
+                  <span aria-hidden className="text-judged">◈</span>
+                  {explaining ? 'Thinking…' : 'Why does this matter here?'}
+                </button>
+              )}
+              {onLearn && (
+                <button
+                  onClick={onLearn}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-judged/30 bg-judged/[0.06] px-3 py-1.5 text-[12px] font-medium text-judged transition-colors hover:bg-judged/[0.12]"
+                >
+                  <span aria-hidden>◈</span>
+                  {learnLabel ?? 'Learn the concept'}
+                </button>
+              )}
+            </div>
+          )}
+
+          {explanation && (
+            <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-judged/25 bg-judged/[0.04] px-3.5 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-judged">
+                <span aria-hidden>◈ </span>Why it matters here{explanation.modelId.startsWith('stub') && ' · stand-in'}
+              </p>
+              <p className="mt-1 text-[13px] leading-relaxed">{explanation.text}</p>
+            </motion.div>
           )}
 
           {result.evidence.length > 0 && (

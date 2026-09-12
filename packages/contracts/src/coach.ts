@@ -31,6 +31,8 @@ export type MicroLesson = z.infer<typeof microLessonSchema>
 export type AttemptNotes = {
   review: Partial<Record<z.infer<typeof stageSchema>, { text: string; modelId: string }>>
   lessons: Record<string, MicroLesson & { conceptId: string; modelId: string }>
+  /** On-demand explanations of a finding, by criterion id. */
+  explanations: Record<string, { text: string; modelId: string }>
   /** Which criteria a lesson can be requested for (scored ≤ 2). */
   lessonable: string[]
   /** True when a model is configured; false means the stub stands in. */

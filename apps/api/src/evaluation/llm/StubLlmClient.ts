@@ -29,6 +29,8 @@ export class StubLlmClient implements LlmClient {
     if (task === 'reviewer-note') return { text: JSON.stringify(stubReviewerNote(request.user)) }
     if (task === 'micro-lesson') return { text: JSON.stringify(stubLesson(request.user)) }
     if (task === 'follow-up') return { text: JSON.stringify(stubFollowUp(request.user)) }
+    if (task === 'explain-finding') return { text: JSON.stringify(stubExplain(request.user)) }
+    if (task === 'coach-note') return { text: JSON.stringify(stubCoach(request.user)) }
 
     const submission = extractSubmission(request.user)
     const wanted = extractRequestedCriteria(request.user)
@@ -282,5 +284,27 @@ function stubFollowUp(prompt: string): { question: string } {
   const opener = said ? `You said "${said.split(/\s+/).slice(0, 8).join(' ')}…"` : 'Take your answer'
   return {
     question: `${opener} — a weak answer here usually ${weak.replace(/\.$/, '')}. What would you have to change${cls ? ` in ${cls}` : ''} if that turned out to be true of yours?`,
+  }
+}
+
+function stubExplain(prompt: string): { explanation: string } {
+  const criterion = /criterion: ([^—\n]+)/.exec(prompt)?.[1]?.trim() ?? 'this criterion'
+  const suggestion = /suggestion: (.+)/.exec(prompt)?.[1]?.trim() ?? ''
+  const cls = firstClass(prompt) ?? 'the class it cites'
+  return {
+    explanation: `${criterion} is the kind of thing that costs nothing today and a rewrite later: the next requirement lands on ${cls} and everything that touches it. The smallest move is the suggestion on the card — ${suggestion.replace(/\.$/, '')} — done before anything else changes, so you can see whether the rest of the design gets simpler.`,
+  }
+}
+
+function stubCoach(prompt: string): { note: string } {
+  const weak = /RECURRING WEAKNESS[^\n]*\n  - ([^:]+):/.exec(prompt)?.[1]?.trim()
+  const next = /NEXT PROBLEM ALREADY CHOSEN: ([^—\n]+)/.exec(prompt)?.[1]?.trim()
+  const lowest = [...prompt.matchAll(/  - (.+?): ([\d.]+)\n/g)]
+    .map((m) => ({ name: m[1]!, v: Number(m[2]) }))
+    .sort((a, b) => a.v - b.v)[0]?.name
+  const habit = weak ?? lowest
+  if (!habit) return { note: 'Not enough scored attempts to see a habit yet. Two more and the picture appears.' }
+  return {
+    note: `The habit these numbers show is ${habit}: it is the criterion that has moved least. It is worth breaking because it is the one an interviewer follows up on.${next && next !== '(none)' ? ` In ${next}, look for the place that criterion bites before you draw a single class.` : ''}`,
   }
 }

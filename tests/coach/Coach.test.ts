@@ -5,7 +5,7 @@ import { Reviewer } from '../../apps/api/src/coach/Reviewer.js'
 import { LessonWriter } from '../../apps/api/src/coach/Lesson.js'
 import { StubLlmClient } from '../../apps/api/src/evaluation/llm/StubLlmClient.js'
 import { DesignGraph } from '../../apps/api/src/domain/design/DesignGraph.js'
-import { designCtx, godClassDesign, strongDesign } from '../fixtures.js'
+import { designCtx, godClassDesign, rubric, strongDesign } from '../fixtures.js'
 import type { Concept, CriterionResult } from '@lld/contracts'
 
 const graph = new DesignGraph(strongDesign)
@@ -159,5 +159,48 @@ describe('Dialogue', () => {
     expect(q).toMatch(/^You said "calculateFee gets a branch/)
     expect(q).toMatch(/\?$/)
     expect(q).toContain('ParkingLotManager')
+  })
+})
+
+describe('Explainer', () => {
+  it('returns a grounded explanation, or nothing', async () => {
+    const { Explainer } = await import('../../apps/api/src/coach/Explainer.js')
+    const ok = new Explainer(canned(JSON.stringify({ explanation: 'ParkingLotManager will grow a branch per rate. Move the rule out first.' })))
+    expect((await ok.explain(designCtx(godClassDesign), result()))?.text).toContain('ParkingLotManager')
+    const bad = new Explainer(canned(JSON.stringify({ explanation: 'Add a RateEngine. Then a FeeTable.' })))
+    expect(await bad.explain(designCtx(godClassDesign), result())).toBeNull()
+  })
+
+  it('the stub explains from the card itself', async () => {
+    const { Explainer } = await import('../../apps/api/src/coach/Explainer.js')
+    const e = await new Explainer(new StubLlmClient()).explain(designCtx(godClassDesign), result())
+    expect(e?.text).toContain('Introduce an abstraction for pricing')
+  })
+})
+
+describe('Coach', () => {
+  const input = {
+    rubric,
+    attempts: 4,
+    problemsTried: 2,
+    criterionAverages: { 'abstraction-use': 1.2, 'coupling-cohesion': 3.5 },
+    weaknesses: [{ criterionId: 'abstraction-use', criterionName: 'Use of Abstraction', occurrences: 3, windowSize: 3, averageScore: 1.2 }],
+    next: { problemId: 'vending-machine', title: 'Vending Machine', reason: 'exercises it' },
+    recent: [{ problemTitle: 'Parking Lot', overall: 1.5, lowest: 'Use of Abstraction' }],
+  }
+
+  it('accepts a note that names only known criteria and problems', async () => {
+    const { Coach } = await import('../../apps/api/src/coach/Coach.js')
+    const good = new Coach(canned(JSON.stringify({ note: 'Use of Abstraction is the habit. In Vending Machine, find the seam first.' })))
+    expect((await good.note(input))?.text).toContain('Vending Machine')
+    const bad = new Coach(canned(JSON.stringify({ note: 'Try the Elevator System next.' })))
+    expect(await bad.note(input)).toBeNull()
+  })
+
+  it('the stub names the recurring weakness and the next problem', async () => {
+    const { Coach } = await import('../../apps/api/src/coach/Coach.js')
+    const n = await new Coach(new StubLlmClient()).note(input)
+    expect(n?.text).toContain('Use of Abstraction')
+    expect(n?.text).toContain('Vending Machine')
   })
 })
