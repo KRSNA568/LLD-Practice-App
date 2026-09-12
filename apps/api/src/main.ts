@@ -1,3 +1,8 @@
+import { loadLocalEnv } from './infra/env.js'
+
+// Before anything reads process.env: a key in apps/api/.env.local counts.
+const loadedEnv = loadLocalEnv()
+
 import express from 'express'
 import cors from 'cors'
 import { PrismaClient } from '@prisma/client'
@@ -5,6 +10,7 @@ import { PracticeService } from './app/PracticeService.js'
 import { ContentStore } from './infra/content/ContentStore.js'
 import { InProcessQueue } from './infra/queue/InProcessQueue.js'
 import { createRouter, DEMO_LEARNER_ID, errorHandler } from './http/routes.js'
+import { resolveLlmClient, resolveLlmProvider } from './evaluation/llm/index.js'
 
 const PORT = Number(process.env.PORT ?? 4000)
 
@@ -31,7 +37,8 @@ async function main(): Promise<void> {
     },
   })
 
-  const service = new PracticeService(prisma, content, queue)
+  const llm = resolveLlmClient()
+  const service = new PracticeService(prisma, content, queue, llm)
 
   const app = express()
   app.use(cors())
@@ -40,7 +47,8 @@ async function main(): Promise<void> {
     res.json({
       ok: true,
       problems: content.listProblems().length,
-      evaluator: process.env.ANTHROPIC_API_KEY ? 'anthropic' : 'stub',
+      evaluator: llm.id,
+      provider: resolveLlmProvider(),
     })
   })
   app.use('/api', createRouter(service, content))
@@ -50,8 +58,11 @@ async function main(): Promise<void> {
     const playable = content.listProblems().map((p) => p.id).join(', ')
     console.log(`[api] listening on http://localhost:${PORT}`)
     console.log(`[api] playable problems: ${playable}`)
+    if (loadedEnv.length > 0) console.log(`[api] loaded from .env.local: ${loadedEnv.join(', ')}`)
     console.log(
-      `[api] evaluator: ${process.env.ANTHROPIC_API_KEY ? 'anthropic' : 'deterministic stub (no API key set)'}`,
+      `[api] evaluator: ${
+        resolveLlmProvider() === 'stub' ? 'deterministic stub (no API key set)' : llm.id
+      }`,
     )
   })
 }

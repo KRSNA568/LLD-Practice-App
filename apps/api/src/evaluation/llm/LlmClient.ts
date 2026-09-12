@@ -28,6 +28,12 @@ export type LlmRequest = {
    * rubric, the constrained output shape and the grounding check instead.
    */
   effort?: 'low' | 'medium' | 'high'
+  /**
+   * The caller will parse the reply as a single JSON object. Providers that offer a
+   * JSON mode switch it on; the rest ignore the flag. Either way the caller still
+   * validates the shape — this is a hint, not a guarantee.
+   */
+  json?: boolean
 }
 
 export type LlmResponse = {

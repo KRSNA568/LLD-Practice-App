@@ -64,6 +64,9 @@ const flagRevision: DesignModel = {
 }
 
 beforeAll(async () => {
+  // Deterministic by construction: whatever keys the developer has lying around,
+  // this suite talks to the stub. The live provider is exercised by hand.
+  process.env.LLD_FORCE_STUB = '1'
   rmSync(dbFile, { force: true })
   execFileSync('npx', ['prisma', 'db', 'push', '--skip-generate', '--accept-data-loss'], {
     cwd: apiDir,

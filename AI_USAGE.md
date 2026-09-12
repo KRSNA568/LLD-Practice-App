@@ -236,3 +236,24 @@ The pattern across all five decisions above is the same, and it is the actual fi
 strongest where it was verifiable and weakest where it was merely plausible.** Every problem worth
 catching was caught by re-reading the requirements, reading the current API docs, or running a test —
 never by reading the code more carefully.
+
+## 11. The free-tier model got the evidence right and the schema wrong
+
+**Where:** first live run of the evaluator against Groq (`openai/gpt-oss-120b`), after the
+provider adapter landed.
+
+**What happened:** on the defend stage the model returned a correct band score and a sensible
+concern, then failed schema validation twice and the whole result was dropped — because one of
+its three evidence references was a `prose` ref without its `quote`. The score was right; one
+field in one citation was missing.
+
+**Judgement call:** failing the whole result for one malformed reference punished the learner for
+the model's formatting, which is the opposite of what the grounding rule is for. The evaluator now
+strips malformed references *before* validation and reports them in the grounding drop list, so
+the score survives and the omission is still visible. The same run found that Groq had retired
+the Llama model I had assumed as the default; the model list is now checked against the provider,
+and the default is what the free tier actually serves.
+
+**Also:** a key had been pasted into the tracked `apps/api/.env`, which Prisma auto-loads — so the
+deterministic test suite silently started calling the network. Key moved to the gitignored
+`.env.local`; the integration suite now pins `LLD_FORCE_STUB=1` regardless of environment.

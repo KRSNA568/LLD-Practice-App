@@ -1,7 +1,9 @@
 import {
+  evidenceRefSchema,
   llmEvaluationResponseSchema,
   type CriterionId,
   type CriterionResult,
+  type EvidenceRef,
   type Score,
 } from '@lld/contracts'
 import type { EvaluationContext, Evaluator } from '../Evaluator.js'
@@ -61,9 +63,11 @@ export class LlmEvaluator implements Evaluator {
         maxTokens: this.options.maxTokens ?? 2048,
         // Rubric criteria are a judgement task, not a lookup — worth the thinking.
         effort: 'medium',
+        json: true,
       })
 
-      const parsed = llmEvaluationResponseSchema.safeParse(readJson(response.text))
+      const { raw, malformed } = dropMalformedEvidence(readJson(response.text))
+      const parsed = llmEvaluationResponseSchema.safeParse(raw)
       if (!parsed.success) {
         lastError = parsed.error
         continue
@@ -91,7 +95,7 @@ export class LlmEvaluator implements Evaluator {
         rationale: ctx.rationale,
         answers: ctx.answers,
       })
-      this.lastGrounding = report
+      this.lastGrounding = { kept: report.kept, dropped: [...malformed, ...report.dropped] }
       return results
     }
 
@@ -103,8 +107,36 @@ export class LlmEvaluator implements Evaluator {
   }
 }
 
+/**
+ * A model that scores correctly but mangles one evidence reference — a prose ref
+ * without its quote is the common case — should lose that reference, not the whole
+ * result. Malformed refs are removed before schema validation and reported alongside
+ * the grounding drops, so the omission is visible rather than silent.
+ */
+function dropMalformedEvidence(raw: unknown): { raw: unknown; malformed: GroundingReport['dropped'] } {
+  const malformed: GroundingReport['dropped'] = []
+  if (!raw || typeof raw !== 'object' || !Array.isArray((raw as { results?: unknown }).results)) {
+    return { raw, malformed }
+  }
+  const results = ((raw as { results: unknown[] }).results ?? []).map((r) => {
+    if (!r || typeof r !== 'object' || !Array.isArray((r as { evidence?: unknown }).evidence)) return r
+    const item = r as { criterionId?: unknown; evidence: unknown[] }
+    const evidence = item.evidence.filter((ref) => {
+      if (evidenceRefSchema.safeParse(ref).success) return true
+      malformed.push({
+        criterionId: typeof item.criterionId === 'string' ? item.criterionId : 'unknown',
+        ref: ref as EvidenceRef,
+        reason: 'malformed evidence reference',
+      })
+      return false
+    })
+    return { ...item, evidence }
+  })
+  return { raw: { ...(raw as object), results }, malformed }
+}
+
 /** Models still wrap JSON in fences no matter how firmly asked not to. */
-function readJson(text: string): unknown {
+export function readJson(text: string): unknown {
   const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
   const open = cleaned.indexOf('{')
   const close = cleaned.lastIndexOf('}')

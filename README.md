@@ -19,7 +19,7 @@ of your design survives.
 
 ## Running it
 
-Node 20+. Nothing else — **no API key needed.**
+Node 20+. Nothing else — **no API key needed**; a free one makes the AI half real.
 
 ```bash
 npm install
@@ -29,17 +29,30 @@ npm run dev      # API on :4000, web on :3000
 
 Open **http://localhost:3000**.
 
-With no `ANTHROPIC_API_KEY` set, the two read criteria (*edge cases*, *reasoning*) are scored by a
-deterministic heuristic that parses the same prompt the real model would see, so the whole loop
-works on a fresh clone. Set a key to swap in Claude for those two:
+With no key set, the two read criteria (*edge cases*, *reasoning*) are scored by a deterministic
+heuristic that parses the same prompt the real model would see, so the whole loop works on a fresh
+clone. To have a real model read them, put **one** key in `apps/api/.env.local` (gitignored; the
+API loads it at startup):
+
+| Provider | Free tier | Put in `apps/api/.env.local` | Default model |
+|---|---|---|---|
+| **Groq** (recommended) | ~14k requests/day, no card | `GROQ_API_KEY=gsk_…` | `openai/gpt-oss-120b` |
+| Gemini AI Studio | ~250 requests/day | `GEMINI_API_KEY=…` | `gemini-2.5-flash` |
+| OpenRouter | ~50 requests/day | `OPENROUTER_API_KEY=…` | `meta-llama/llama-3.3-70b-instruct:free` |
+| Ollama (local) | unlimited | `LLD_LLM_PROVIDER=ollama` | `llama3.1` |
+| Anthropic | paid | `ANTHROPIC_API_KEY=sk-ant-…` | `claude-opus-5` |
+
+`LLD_LLM_PROVIDER` picks explicitly when more than one key is present; `LLD_LLM_MODEL` overrides
+the model; `LLD_FORCE_STUB=1` keeps the heuristic regardless. The startup log and `/api/health`
+say which one is live. Every provider except Anthropic goes through one OpenAI-compatible adapter,
+so a new one is a row in a table.
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-npm run dev      # startup log now says: evaluator: anthropic
+npx tsx apps/api/scripts/live-llm.ts god-class defend   # exercise the live provider end to end
 ```
 
 ```bash
-npm test         # 148 tests, including a calibration suite over 13 gold designs
+npm test         # 165 tests, including a calibration suite over 13 gold designs
 npm run typecheck
 ```
 

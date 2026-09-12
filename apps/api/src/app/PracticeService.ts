@@ -38,7 +38,7 @@ import { EvaluationPipeline } from '../evaluation/EvaluationPipeline.js'
 import type { EvaluationContext } from '../evaluation/Evaluator.js'
 import { RuleEvaluator } from '../evaluation/rules/RuleEvaluator.js'
 import { LlmEvaluator } from '../evaluation/llm/LlmEvaluator.js'
-import { resolveLlmClient } from '../evaluation/llm/index.js'
+import { resolveLlmClient, type LlmClient } from '../evaluation/llm/index.js'
 import { PROMPT_VERSION } from '../evaluation/llm/PromptBuilder.js'
 import type { ContentStore } from '../infra/content/ContentStore.js'
 import type { JobQueue } from '../infra/queue/InProcessQueue.js'
@@ -95,11 +95,9 @@ export class PracticeService {
     private readonly prisma: PrismaClient,
     private readonly content: ContentStore,
     private readonly queue: JobQueue,
+    llm: LlmClient = resolveLlmClient(),
   ) {
-    this.pipeline = new EvaluationPipeline([
-      new RuleEvaluator(),
-      new LlmEvaluator(resolveLlmClient()),
-    ])
+    this.pipeline = new EvaluationPipeline([new RuleEvaluator(), new LlmEvaluator(llm)])
   }
 
   /* --------------------------------------------------------------------- */

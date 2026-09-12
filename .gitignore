@@ -9,3 +9,4 @@ dist/
 # runs with no setup. Real secrets go in .env.local, which is not.
 .env.local
 .env.*.local
+*.tsbuildinfo
