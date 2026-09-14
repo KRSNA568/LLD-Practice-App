@@ -1,146 +1,153 @@
-# Build Plan — what gets written, in what order
+# Build Plan — finalized
 
 Companion to [PRODUCT_PLAN.md](PRODUCT_PLAN.md). That document is strategy: what to validate, what
-to measure, what to test, what could kill this. **This one is the engineering queue.** Each phase is
-a unit of work I can execute end to end, ending in something you can see or decide with.
+could kill this, what to measure. **This is the locked build queue.** No conditionals, no options.
+Each phase is a unit I execute end to end, ending in an artifact you can read or a thing you can do.
 
-**Ordering principle:** a phase earns its place by unblocking the *next decision*, not by being the
-next most obvious thing to build. Phase 1 exists because you cannot answer "is the score valid"
-without it. Phase 3 exists because you cannot let strangers in without it. Nothing is built for
-completeness.
+**How this is ordered.** Not by what is most obvious to build next, but by a single test:
+*is this work correct no matter how validation turns out?* Phases 1 and 2 pass that test, so they
+start now. Phases 3 onward are bets on the answer being yes, so they wait for it.
+
+**What gates what.** The build track is **not** blocked on your six open questions in PRODUCT_PLAN
+§Open questions. The research track is. Phases 1 and 2 need nothing from you but a go-ahead.
 
 **Status key:** ⬜ not started · 🟦 in progress · ✅ done
 
-| # | Phase | Unblocks | Size | Status |
-|---|---|---|---|---|
-| 1 | Many learners, measurable | The six-person validity study | 1 session | ⬜ |
-| 2 | Reachable | Unsupervised sessions, remote raters | 1 session | ⬜ |
-| 3 | Safe for strangers | Closed beta | 2 sessions | ⬜ |
-| 4 | Change without fear | Touching prompts or the rubric safely | 2 sessions | ⬜ |
-| 5 | Content to twenty | Breadth, SEO surface | continuous | ⬜ |
-| 6 | Beta mechanics | Running a cohort and learning from it | 1–2 sessions | ⬜ |
+| # | Phase | Ends with | Needs from you | Size | Status |
+|---|---|---|---|---|---|
+| 1 | Evidence without asking anyone | A findings document | Nothing | 1 session | ⬜ |
+| 2 | Make the study runnable | Six sessions you can run | Nothing | 1 session | ⬜ |
+| 3 | Reachable | A link you can send | Go-ahead after the study | 1 session | ⬜ |
+| 4 | Safe for strangers | Closed beta can open | Go-ahead | 2 sessions | ⬜ |
+| 5 | Confidence and content | Changes stop being scary | Paid inference budget | continuous | ⬜ |
 
 ---
 
-## Phase 1 — Many learners, measurable
+## Phase 1 — Evidence without asking anyone ⬜
 
-**Unblocks:** the six-person senior-vs-junior study, which is the cheapest possible falsification of
-the core claim. Today six people on one instance would share the identity `learner-demo` and read
-each other's attempts, and there is no way to get their scores out as data.
+**Why this is first.** PRODUCT_PLAN puts validity ahead of everything, and every validity study
+looked like it needed recruiting. One does not. **V4, adversarial resistance, is pure engineering**
+and answers a real question about the product: *can someone score well without designing well?*
+I can produce that evidence alone, today, with no participants and no deployment. It also becomes a
+permanent test suite, so it is validation and infrastructure in the same work.
 
-**Work:**
+**Tasks**
 
-1. **Learner identity without auth.** First visit asks for a name, creates or finds a `Learner`,
-   stores the id client-side, sends it on every request. No passwords, no email, no sessions table.
-   Deliberately throwaway: real auth replaces it in Phase 3 and this code gets deleted.
-   Lands in `routes.ts` (a `POST /learners`, an identity middleware), `apps/web/lib/api.ts` (one
-   header), and a first-run prompt in the web shell.
-2. **Thread and assert `learnerId`.** The ten attempt-addressed routes resolve by `attemptId` alone
-   today. Each of the six `PracticeService` methods and four `CoachService` methods that resolve an
-   attempt takes a `learnerId` and asserts it against the row, returning a not-found rather than a
-   forbidden so ids cannot be probed. **This closes the IDOR as a side effect of work you need
-   anyway**, which is why it happens now rather than in Phase 3.
-3. **Study export.** A script that emits one CSV row per criterion per stage per attempt: learner,
-   problem, attempt number, stage, criterion, score, evaluator, rubric and prompt version, tokens,
-   and the timings. No schema change needed. Attempt `createdAt`, Submission `submittedAt` and
-   Evaluation `completedAt` already derive time-per-stage, and an attempt with no submission is an
-   abandon.
-4. **Clean-run tooling.** A reset script so each study session starts from a known state, and a
-   seed that does not create the demo learner when a real one exists.
-5. **Facilitator protocol.** A short `STUDY_PROTOCOL.md`: what you say, what you do not say, the
-   45-minute session shape, consent wording, and the analysis to run on the CSV. Without this the
-   six sessions produce impressions rather than data.
+1. **Adversarial corpus** in `tests/evaluation/Adversarial.test.ts`, roughly twenty hostile
+   submissions built on the existing fixtures, each asserting what the engine should do:
+   - responsibilities stuffed with the requirement vocabulary
+   - classes named exactly after requirement keywords, doing nothing
+   - a gold design pasted in from a *different* problem
+   - an empty design carrying a rich, plausible rationale
+   - a walkthrough that resolves against real methods but describes nonsense
+   - a change-stage revision that renames classes and absorbs nothing
+   - a defend answer that name-drops the right classes while saying nothing
+   - **a design produced by asking a model to fill the form**, which is the case with a real policy
+     decision attached
+2. **Cost per attempt, measured.** Run two full attempts against the live Groq configuration and
+   read `Evaluation.inputTokens` / `outputTokens`, split by stage and by evaluator versus mentor.
+   The columns already exist. No more estimating from memory.
+3. **Calibration as a merge gate.** Coverage is already complete, every playable problem has
+   entries matching its gold designs. What is missing is that nothing *enforces* it. Wire the suite
+   so a change that moves a gold design out of its band fails the build.
 
-**Tests:** an ownership matrix asserting every attempt-addressed route returns not-found for a
-non-owner; export shape and timing derivation; the existing suite stays green.
+**Deliverable:** `FINDINGS-01.md` — what can be gamed, what cannot, what an attempt costs, and the
+policy question the model-filled form raises. This is the first page of Phase 0 evidence, and it
+costs nothing but my time.
 
-**Done when:** two learners on one instance cannot see each other's attempts, and a CSV of every
-score lands from one command.
-
-**Not in this phase:** real auth, deployment, Postgres, analytics.
+**Done when:** the corpus runs in CI, and you can read what the engine is and is not resistant to.
 
 ---
 
-## Phase 2 — Reachable
+## Phase 2 — Make the study runnable ⬜
 
-**Unblocks:** sessions you do not have to sit through, and raters in other cities. **Conditional:**
-if the first six sessions are supervised over a screenshare, localhost is enough and this phase
-waits. Do it when you want the seventh person to use it without you.
+**Why second.** The six-person senior-versus-junior study is the cheapest falsification of the core
+claim, and today it is impossible: six people on one instance share the identity `learner-demo` and
+read each other's attempts, and there is no way to get scores out as data.
 
-**Work:** Postgres with a real migration history and a restore that has actually been performed once,
-not documented; API and web deployed with secrets held properly; a health check and error tracking;
-a synthetic run of one full attempt on a schedule so you learn it is down before a learner tells you.
+**Tasks**
 
-**Done when:** you can send someone a link, and you find out within minutes when it breaks.
+1. **Learner identity, no auth.** First visit asks a name, creates or finds a `Learner`, stores the
+   id client-side, sends it on every request. No passwords, no sessions table. Deliberately
+   disposable: Phase 4 replaces it and this code gets deleted.
+   Lands in `routes.ts`, one header in `apps/web/lib/api.ts`, a first-run prompt in the web shell.
+2. **Thread and assert `learnerId`.** The ten attempt-addressed routes resolve by `attemptId` alone.
+   Six `PracticeService` methods and four `CoachService` methods take a `learnerId` and assert it,
+   returning not-found rather than forbidden so ids cannot be probed. **This closes the IDOR as a
+   side effect of work the study needs anyway.**
+3. **Study export.** One command emits a CSV: one row per criterion per stage per attempt, with
+   learner, problem, scores, evaluator id, rubric and prompt version, tokens and timings. No schema
+   change needed. Attempt, submission and evaluation timestamps already derive time per stage, and
+   an attempt with no submission is an abandon.
+4. **Clean-run tooling.** A reset script so each session starts known, and a seed that stops
+   creating the demo learner once real ones exist.
+5. **`STUDY_PROTOCOL.md`.** The 45-minute session shape, what you say, what you must not say,
+   consent wording, and the analysis to run on the CSV. Without it, six sessions produce
+   impressions instead of data.
 
-**Not in this phase:** scaling. One small instance is correct for this stage.
+**Tests:** an ownership matrix proving every attempt-addressed route returns not-found for a
+non-owner; export shape and timing derivation; existing suite green.
+
+**Done when:** two learners on one instance cannot see each other's work, and one command produces
+the study CSV.
+
+**Not in this phase:** real auth, deployment, Postgres.
 
 ---
 
-## Phase 3 — Safe for strangers
+## Phase 3 — Reachable ⬜
 
-**Unblocks:** closed beta. These are the things that are fine with people you know and not fine with
-people you do not.
+**Gate: the study came back positive.** If senior and junior designs do not separate, this phase is
+wasted and the rubric work in PRODUCT_PLAN §3 happens instead.
 
-**Work:** real accounts replacing the Phase 1 stand-in; prompt-injection defence, since learner
-strings reach the mentor prompt unlabelled today and the grounding filter cannot catch an injected
-claim that names only real classes; a per-learner token budget and rate limits, because one scripted
-user can burn the whole LLM budget in an hour; privacy work, meaning export, delete, a retention
-policy and a plain page saying what gets sent to which model.
+**Tasks:** Postgres with real migration history, and a restore actually performed once rather than
+documented; API and web deployed with secrets held properly; health check and error tracking; a
+synthetic full attempt on a schedule so you learn it is broken before a learner tells you.
+
+**Done when:** you can send a link, and you find out within minutes when it breaks.
+
+**Not in this phase:** scaling. One small instance is right for this stage.
+
+---
+
+## Phase 4 — Safe for strangers ⬜
+
+**Gate: you have decided to open a closed beta.** These are the things that are fine with people you
+know and not fine with people you do not. Invited friendlies still count as strangers here.
+
+**Tasks:** real accounts replacing the Phase 2 stand-in; prompt-injection defence, since learner
+strings reach the mentor prompt unlabelled and the grounding filter cannot catch an injected claim
+that names only real classes; per-learner token budget and rate limits, because one scripted user
+can burn the LLM budget in an hour; privacy work, meaning export, delete, retention, and a plain
+page saying what is sent to which model.
 
 **Done when:** a hostile user costs you a rate-limit error rather than a bill or a breach.
 
 ---
 
-## Phase 4 — Change without fear
+## Phase 5 — Confidence and content ⬜
 
-**Unblocks:** touching a prompt or the rubric without silently invalidating every score already in
-the database. This is insurance, and it becomes urgent the moment real learner data exists.
+Runs continuously alongside 3 and 4 rather than after them.
 
-**Work:** the adversarial corpus from study V4 turned into a permanent suite, covering keyword
-stuffing, a gold design pasted from a different problem, and a form filled in by a frontier model;
-calibration extended so every playable problem has entries and the suite blocks merges; one
-end-to-end browser test covering a full attempt including refresh mid-stage; a cost-regression test
-asserting tokens per attempt stays under a ceiling; an accessibility pass for keyboard-only
-completion and contrast in both themes.
+**Confidence:** one end-to-end browser test covering a full attempt including a refresh mid-stage;
+a cost-regression test asserting tokens per attempt stays under a ceiling; an accessibility pass for
+keyboard-only completion and contrast in both themes.
 
-**Done when:** a prompt change that breaks scoring or doubles spend fails in CI rather than in
-production.
+**Content:** the two drafts blocked on Groq's daily cap, then the remaining ten; the review lessons
+written down as a checklist covering off-world seams, over-broad change vocabulary, exemplar leakage
+and vague hub classes; a concept coverage map so problems fill holes deliberately rather than in
+catalogue order; problem versioning, the way rubrics and prompts already are.
 
----
-
-## Phase 5 — Content to twenty
-
-**Unblocks:** breadth, and a page per problem that can rank in search. Runs in parallel with anything
-once the calibration expansion in Phase 4 is in.
-
-**Work:** finish the two drafts currently blocked on Groq's daily cap, then the remaining ten; turn
-the review lessons into a written checklist covering off-world seams, over-broad change vocabulary,
-exemplar leakage and vague hub classes; publish a concept coverage map so problems fill holes
-deliberately rather than in catalogue order; version problems the way rubrics and prompts already are.
-
-**Note:** authoring is the one place a paid model pays for itself immediately. The free tier produced
-four problems and then stopped for the day.
-
-**Done when:** twenty problems are playable and each one's gold designs sit inside their bands.
+**Needs from you:** a small paid-inference budget. The free tier authored four problems and stopped
+for the day. Authoring is the one place paid inference pays for itself immediately.
 
 ---
 
-## Phase 6 — Beta mechanics
+## The honest summary
 
-**Unblocks:** running a cohort and learning from it rather than guessing.
+Phases 1 and 2 are roughly two sessions and need nothing from you but a go-ahead. They produce the
+first real evidence this product has ever had and leave the codebase genuinely multi-user. Phase 3
+onward is a bet on the study, and there is no version of this where making that bet before reading
+the study is the right call.
 
-**Work:** invites and a waitlist; an onboarding path that gets a first-time learner to a completed
-attempt, since activation is the metric that decides whether the loop is too long; in-product
-feedback capture at the moment of confusion rather than a survey afterwards; an analytics view of
-the funnel from signup to first full attempt to second attempt.
-
-**Done when:** you can see activation and repeat rate without running a query by hand.
-
----
-
-## If you are in a hurry
-
-Phase 1, then run the study. Everything after Phase 1 is a bet on the answer being yes. There is no
-version of this where building Phases 2 through 6 first is the right call, because the only outcome
-that would make them worth having is the one you have not checked yet.
+**Say "start phase 1" and I begin.**
