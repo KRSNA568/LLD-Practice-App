@@ -3,6 +3,8 @@
 **Status:** working document. Written 13 Sept 2026, when the codebase stopped being a take-home
 and became a product.
 **Owner:** Krishna Mahajan.
+**Companion:** [BUILD_PLAN.md](BUILD_PLAN.md) is the engineering queue — what gets written, in what
+order. This document is why.
 **Rule for this document:** every claim here is either measured, or marked as a hypothesis with the
 study that would settle it. No number in this plan is decorative.
 
