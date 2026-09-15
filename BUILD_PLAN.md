@@ -16,7 +16,7 @@ start now. Phases 3 onward are bets on the answer being yes, so they wait for it
 | # | Phase | Ends with | Needs from you | Size | Status |
 |---|---|---|---|---|---|
 | 1 | Evidence without asking anyone | [FINDINGS-01.md](FINDINGS-01.md) | Nothing | 1 session | ✅ |
-| 2 | Make the study runnable | Six sessions you can run | Nothing | 1 session | ⬜ |
+| 2 | Make the study runnable | [STUDY_PROTOCOL.md](STUDY_PROTOCOL.md) | Nothing | 1 session | ✅ |
 | 3 | Reachable | A link you can send | Go-ahead after the study | 1 session | ⬜ |
 | 4 | Safe for strangers | Closed beta can open | Go-ahead | 2 sessions | ⬜ |
 | 5 | Confidence and content | Changes stop being scary | Paid inference budget | continuous | ⬜ |
@@ -63,7 +63,7 @@ persistence) is recommended for Phase 2.
 
 ---
 
-## Phase 2 — Make the study runnable ⬜
+## Phase 2 — Make the study runnable ✅
 
 **Why second.** The six-person senior-versus-junior study is the cheapest falsification of the core
 claim, and today it is impossible: six people on one instance share the identity `learner-demo` and
@@ -94,6 +94,12 @@ non-owner; export shape and timing derivation; existing suite green.
 
 **Done when:** two learners on one instance cannot see each other's work, and one command produces
 the study CSV.
+
+**Done, 16 Sept 2026.** Identity by name, ownership through one scoped loader with a 16-test HTTP
+matrix, two-file export with a pure derivation module, dry-run-first reset, and the protocol. Two
+things found on the way: the lesson and explain routes answered 204 to a non-owner (fixed), and
+the evaluator's token columns had never been written by anything (fixed; FINDINGS-01 §6 corrected).
+Mentor token persistence, recommended in FINDINGS-01, is in.
 
 **Not in this phase:** real auth, deployment, Postgres.
 

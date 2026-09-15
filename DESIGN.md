@@ -359,7 +359,10 @@ world at all — is the reviewer's job, and `content/PROVENANCE.md` records what
   say something wrong about them. Evidence grounding is exact; prose grounding is a filter.
 - **Walkthrough checks trust the walkthrough.** A learner can write steps that resolve and still be
   wrong about the order. Order is not judged; existence and distribution are.
-- **Four problems, one learner.** Sixteen more are catalogued but not instrumented to v2 depth; there
-  is no auth, so everyone is `learner-demo`.
+- **Eight problems; a name is not an account.** Twelve more are catalogued but not yet drafted.
+  Identity is a name entered once and an id sent on every request — enough to keep study
+  participants apart, and every attempt-addressed operation is scoped to the learner asking
+  (a row that is not yours is not found). But there is no secret behind the id, so it is not
+  protection against anyone who wants in; real sessions are Phase 4 of `BUILD_PLAN.md`.
 - **Recurring weakness needs three attempts**, so the next-problem recommendation falls back to the
   authored path until then.

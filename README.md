@@ -27,7 +27,10 @@ npm run seed     # creates the SQLite database, validates every content file, se
 npm run dev      # API on :4000, web on :3000
 ```
 
-Open **http://localhost:3000**. Four places: **Dashboard** (where you are), **Learn** (the
+Open **http://localhost:3000**. It asks for a name first — that is the whole sign-in: attempts are
+kept under the name, there is no password, and **Switch** in the top bar hands the keyboard to the
+next person. It exists so several people can share one instance (the validity study needs that);
+real accounts come later. Four places: **Dashboard** (where you are), **Learn** (the
 problems, by level), **Concepts** (the curriculum map with your standing on each idea),
 **Progress** (every attempt, every criterion, the habit worth breaking).
 
@@ -57,10 +60,16 @@ so a new one is a row in a table.
 
 ```bash
 npx tsx apps/api/scripts/live-llm.ts god-class defend   # exercise the live provider end to end
+npx tsx apps/api/scripts/export-study.ts                 # scores.csv + attempts.csv — every score, timing and token
+npx tsx apps/api/scripts/reset-study.ts                  # dry run; --learner <name> --yes or --all --yes to clear
 ```
 
+Scripts and `curl` without an `x-learner-id` header act as the demo learner; the export excludes
+that learner unless asked. [STUDY_PROTOCOL.md](STUDY_PROTOCOL.md) is the six-person study these
+two scripts exist for.
+
 ```bash
-npm test         # 235 tests, including a calibration suite over 26 gold designs across 8 problems
+npm test         # 260 tests, including a calibration suite over 26 gold designs across 8 problems
 npm run typecheck
 ```
 
