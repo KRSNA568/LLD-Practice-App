@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet"><style>body{margin:0;background:#EAE4DD;font-family:Sora,Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}a{color:#111111}a:hover{color:#6E6E6E}*{text-wrap:pretty}</style></helmet>
+<div style="padding:56px 56px 96px;display:flex;flex-direction:column;gap:72px">
+
+  <div style="max-width:900px;display:flex;flex-direction:column;gap:14px">
+    <div style="font:500 13px/1 ui-monospace,Menlo,monospace;letter-spacing:.08em;color:#6E6E6E">LLD PRACTICE PLATFORM · UI MOCKUPS</div>
+    <h1 style="margin:0;font:500 44px/1.05 Sora,Inter,sans-serif;letter-spacing:-0.03em;color:#111111">Warm candy shell, band-only scoring.</h1>
+    <p style="margin:0;font:400 15px/1.55 Sora,Inter,sans-serif;color:#6E6E6E">Eleven artboards at 1440×1024 (plus 390px mobile) on the reference tokens: ground #FBF8F5, beige panels #F3ECE6, four rotating pastels, black as the only accent. Two deliberate deviations, since the right panel stays 480px on every route as specified: <strong style="color:#222222;font-weight:500">/concepts</strong> uses a 3-column concept grid rather than 4, and <strong style="color:#222222;font-weight:500">/learn</strong> cards drop to a 24px title — 4-up in a 736px column would put type under the legibility floor. Say the word and I'll collapse the right panel on catalogue routes instead.</p>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:12px" id="dash">
+    <div style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">/ &nbsp;·&nbsp; Dashboard — returning learner</div>
+    <div data-screen-label="Dashboard" style="width:1440px;height:1024px;box-sizing:border-box;overflow:hidden;background:#FBF8F5;border-radius:16px;border:1px solid #E8E1DA;display:flex;gap:24px;padding:24px;font-family:Sora,Inter,sans-serif;color:#222222">
+      <dc-import name="Rail" active="home" hint-size="128px,100%" style="width:128px;flex:none;align-self:stretch"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:32px;overflow:hidden;padding:20px 0 0 16px">
+        <h2 style="margin:0;font:500 72px/1.05 Sora,Inter,sans-serif;letter-spacing:-0.03em;color:#111111">Design under<br>pressure.</h2>
+        <div style="display:flex;gap:12px;overflow:hidden;flex:none">
+          <sc-for list="{{ chips }}" as="c" hint-placeholder-count="5">
+            <div style="height:64px;flex:none;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:0 26px 0 10px;border-radius:999px;background:{{ c.bg }};border:1px solid {{ c.bd }}">
+              <div style="width:44px;height:44px;flex:none;border-radius:999px;background:#FFFFFF;border:1px solid #E8E1DA;display:flex;align-items:center;justify-content:center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{ c.tint }}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ c.d }}"></path></svg>
+              </div>
+              <span style="font:500 14px/1 Sora,Inter,sans-serif;color:{{ c.fg }};white-space:nowrap">{{ c.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between">
+            <h3 style="margin:0;font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Recommended for you</h3>
+            <span style="font:400 14px/1 Sora,Inter,sans-serif;color:#6E6E6E">8 problems</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
+            <sc-for list="{{ dashProblems }}" as="p" hint-placeholder-count="4">
+              <div style="box-sizing:border-box;border-radius:24px;padding:28px;height:212px;display:flex;flex-direction:column;justify-content:space-between;background:{{ p.fill }};box-shadow:0 1px 2px rgba(0,0,0,.04)">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+                  <div style="flex:1;min-width:0;display:flex;align-items:center;gap:10px">
+                    <div style="width:44px;height:44px;flex:none;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ p.d }}"></path></svg>
+                    </div>
+                    <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;font:400 14px/1 Sora,Inter,sans-serif;color:#222222;white-space:nowrap">{{ p.cat }}</span>
+                  </div>
+                  <div style="display:flex;gap:8px;flex:none">
+                    <sc-if value="{{ p.tag }}" hint-placeholder-val="{{ true }}">
+                      <div style="height:32px;display:flex;align-items:center;gap:6px;padding:0 12px;border-radius:999px;background:#FFFFFF;font:500 13px/1 Sora,Inter,sans-serif;color:#111111">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.8" stroke-linecap="round"><path d="M12 4a5 5 0 100 10 5 5 0 000-10 M9.5 13.5 8 20l4-2.4 4 2.4-1.5-6.5"></path></svg>{{ p.tag }}
+                      </div>
+                    </sc-if>
+                    <div style="height:32px;display:flex;align-items:center;gap:6px;padding:0 12px;border-radius:999px;background:#FFFFFF;font:500 13px/1 Sora,Inter,sans-serif;color:#111111">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="{{ p.starFill }}"><path d="M12 4l2.4 5 5.6.6-4.2 3.8 1.2 5.6L12 16.2 7 19l1.2-5.6L4 9.6l5.6-.6z"></path></svg>{{ p.band }}
+                    </div>
+                  </div>
+                </div>
+                <h4 style="margin:0;font:500 28px/1.2 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">{{ p.title }}</h4>
+                <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
+                  <span style="font:400 14px/1.3 Sora,Inter,sans-serif;color:#5C5C5C">{{ p.meta }}</span>
+                  <div style="display:flex">
+                    <sc-for list="{{ p.concepts }}" as="k" hint-placeholder-count="3">
+                      <div style="width:36px;height:36px;margin-left:-10px;border-radius:999px;border:2px solid #FFFFFF;background:#FBF8F5;display:flex;align-items:center;justify-content:center;font:500 12px/1 Sora,Inter,sans-serif;color:#222222">{{ k }}</div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <h3 style="margin:0;font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Continue where you left off</h3>
+          <div style="box-sizing:border-box;border-radius:24px;padding:28px;height:120px;background:#D8D3F6;display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font:400 14px/1 Sora,Inter,sans-serif;color:#222222">Change stage · 2 of 3</span>
+              <span style="font:500 28px/1.2 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">Elevator bank scheduler</span>
+            </div>
+            <div style="height:48px;display:flex;align-items:center;padding:0 24px;border-radius:999px;background:#111111;font:500 14px/1 Sora,Inter,sans-serif;color:#FFFFFF">Resume attempt</div>
+          </div>
+        </div>
+      </div>
+      <div style="width:480px;flex:none;box-sizing:border-box;background:#F3ECE6;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:20px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 6px">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round"><path d="M6 17h12l-1.5-3v-3a4.5 4.5 0 10-9 0v3z M10 20h4"></path></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round"><path d="M12 9a3 3 0 100 6 3 3 0 000-6 M12 3v3 M12 18v3 M3 12h3 M18 12h3 M6.2 6.2l2.1 2.1 M15.7 15.7l2.1 2.1 M17.8 6.2l-2.1 2.1 M8.3 15.7l-2.1 2.1"></path></svg>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+          <div style="width:80px;height:80px;border-radius:999px;background:#D8D3F6;border:4px solid #EDEAFB;display:flex;align-items:center;justify-content:center;font:500 24px/1 Sora,Inter,sans-serif;color:#111111">AK</div>
+          <span style="font:500 24px/1 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">Anika Kapoor</span>
+        </div>
+        <div style="height:64px;box-sizing:border-box;display:flex;align-items:center;gap:14px;padding:0 20px 0 10px;border-radius:999px;background:#FFFFFF">
+          <div style="width:44px;height:44px;flex:none;border-radius:999px;background:#D8D3F6;display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.7" stroke-linecap="round"><path d="M12 3c4 5 3 6 3 8a3 3 0 11-6 0c0-3 3-3 3-8z"></path></svg>
+          </div>
+          <span style="font:500 15px/1 Sora,Inter,sans-serif;color:#111111">12-day streak</span>
+          <div style="flex:1"></div>
+          <div style="display:flex">
+            <div style="width:24px;height:24px;margin-left:-6px;border-radius:999px;border:2px solid #FFFFFF;background:#F5C6C8"></div>
+            <div style="width:24px;height:24px;margin-left:-6px;border-radius:999px;border:2px solid #FFFFFF;background:#F8D9B7"></div>
+            <div style="width:24px;height:24px;margin-left:-6px;border-radius:999px;border:2px solid #FFFFFF;background:#BCEAD4"></div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.8" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+        </div>
+        <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font:500 16px/1 Sora,Inter,sans-serif;color:#111111">Activity</span>
+            <div style="height:36px;display:flex;align-items:center;gap:8px;padding:0 14px;border-radius:999px;border:1px solid #E8E1DA;font:500 14px/1 Sora,Inter,sans-serif;color:#222222">Year
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font:500 32px/1 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">3.5h</span>
+            <div style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:999px;background:#F1EEEA;font:400 13px/1 Sora,Inter,sans-serif;color:#6E6E6E">Above par</div>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:10px;height:180px">
+            <sc-for list="{{ bars }}" as="b" hint-placeholder-count="7">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:10px">
+                <div style="width:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;padding:{{ b.pad }};border:{{ b.ring }};border-radius:16px">
+                  <sc-for list="{{ b.segs }}" as="s" hint-placeholder-count="3">
+                    <div style="height:{{ s.h }};border-radius:12px 12px 4px 4px;background:{{ s.c }}"></div>
+                  </sc-for>
+                </div>
+                <span style="box-sizing:border-box;padding:{{ b.labPad }};border-radius:999px;background:{{ b.labBg }};font:400 12px/1 Sora,Inter,sans-serif;color:{{ b.labFg }}">{{ b.m }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap">
+            <sc-for list="{{ legend }}" as="l" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:7px"><div style="width:10px;height:10px;border-radius:999px;background:{{ l.c }}"></div><span style="font:400 12px/1 Sora,Inter,sans-serif;color:#6E6E6E">{{ l.t }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+        <h3 style="margin:0;font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Open attempt</h3>
+        <div style="position:relative;overflow:hidden;box-sizing:border-box;border-radius:24px;padding:28px;height:212px;background:#F5C6C8;display:flex;flex-direction:column;justify-content:space-between;flex:none">
+          <div style="position:absolute;inset:0;background:#EFA8AD;clip-path:ellipse(78% 120% at 112% 108%)"></div>
+          <div style="position:relative;display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:44px;height:44px;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h6v5H4z M14 13h6v5h-6z M10 8.5h4v7"></path></svg>
+              </div>
+              <span style="font:400 14px/1 Sora,Inter,sans-serif;color:#222222">Behaviour</span>
+            </div>
+            <div style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:#FFFFFF;font:500 13px/1 Sora,Inter,sans-serif;color:#111111">In progress</div>
+          </div>
+          <h4 style="position:relative;margin:0;font:500 28px/1.2 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">Elevator bank<br>scheduler</h4>
+          <div style="position:relative;display:flex;align-items:flex-end;justify-content:space-between">
+            <span style="font:400 14px/1 Sora,Inter,sans-serif;color:#3D3D3D">Change stage · 18 min in</span>
+            <div style="display:flex">
+              <div style="width:36px;height:36px;margin-left:-10px;border-radius:999px;border:2px solid #FFFFFF;background:#FBF8F5;display:flex;align-items:center;justify-content:center;font:500 12px/1 Sora,Inter,sans-serif">Co</div>
+              <div style="width:36px;height:36px;margin-left:-10px;border-radius:999px;border:2px solid #FFFFFF;background:#FBF8F5;display:flex;align-items:center;justify-content:center;font:500 12px/1 Sora,Inter,sans-serif">St</div>
+            </div>
+          </div>
+        </div>
+        <h3 style="margin:0;font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Recent</h3>
+        <div style="box-sizing:border-box;border-radius:24px;padding:28px;height:212px;background:#F8D9B7;flex:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:12px" id="first">
+    <div style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">/ &nbsp;·&nbsp; Dashboard — first visit</div>
+    <div data-screen-label="Dashboard first visit" style="width:1440px;height:1024px;box-sizing:border-box;overflow:hidden;background:#FBF8F5;border-radius:16px;border:1px solid #E8E1DA;display:flex;gap:24px;padding:24px;font-family:Sora,Inter,sans-serif;color:#222222">
+      <dc-import name="Rail" active="home" dot="{{ false }}" hint-size="128px,100%" style="width:128px;flex:none;align-self:stretch"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:36px;overflow:hidden;padding:20px 0 0 16px">
+        <h2 style="margin:0;font:500 72px/1.05 Sora,Inter,sans-serif;letter-spacing:-0.03em;color:#111111">Practise real<br>system design.</h2>
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="height:64px;display:flex;align-items:center;padding:0 32px;border-radius:999px;background:#111111;font:500 16px/1 Sora,Inter,sans-serif;color:#FFFFFF">Start your first problem</div>
+          <span style="font:400 14px/1.5 Sora,Inter,sans-serif;color:#6E6E6E">8 problems · one attempt takes about 40 minutes</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <h3 style="margin:0;font:500 18px/1 Sora,Inter,sans-serif;color:#111111">How one attempt runs</h3>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+            <sc-for list="{{ loop }}" as="s" hint-placeholder-count="3">
+              <div style="box-sizing:border-box;border-radius:24px;padding:28px;height:300px;background:{{ s.fill }};display:flex;flex-direction:column;justify-content:space-between">
+                <div style="width:44px;height:44px;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center;font:500 14px/1 Sora,Inter,sans-serif;color:#111111">{{ s.n }}</div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                  <h4 style="margin:0;font:500 28px/1.2 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">{{ s.t }}</h4>
+                  <p style="margin:0;font:400 14px/1.55 Sora,Inter,sans-serif;color:#3D3D3D">{{ s.b }}</p>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <h3 style="margin:0;font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Start here</h3>
+          <div style="box-sizing:border-box;border-radius:24px;padding:28px;height:212px;background:#F5C6C8;display:flex;flex-direction:column;justify-content:space-between">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:44px;height:44px;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z"></path></svg>
+                </div>
+                <span style="font:400 14px/1 Sora,Inter,sans-serif;color:#222222">Structure</span>
+              </div>
+              <div style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:#FFFFFF;font:500 13px/1 Sora,Inter,sans-serif;color:#111111">★ Gentle</div>
+            </div>
+            <h4 style="margin:0;font:500 28px/1.2 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">Parking lot with dynamic pricing</h4>
+            <span style="font:400 14px/1 Sora,Inter,sans-serif;color:#5C5C5C">No attempts yet · 6 classes suggested</span>
+          </div>
+        </div>
+      </div>
+      <div style="width:480px;flex:none;box-sizing:border-box;background:#F3ECE6;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:20px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 6px">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round"><path d="M6 17h12l-1.5-3v-3a4.5 4.5 0 10-9 0v3z M10 20h4"></path></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round"><path d="M12 9a3 3 0 100 6 3 3 0 000-6 M12 3v3 M12 18v3 M3 12h3 M18 12h3 M6.2 6.2l2.1 2.1 M15.7 15.7l2.1 2.1 M17.8 6.2l-2.1 2.1 M8.3 15.7l-2.1 2.1"></path></svg>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+          <div style="width:80px;height:80px;border-radius:999px;background:#D8D3F6;border:4px solid #EDEAFB;display:flex;align-items:center;justify-content:center;font:500 24px/1 Sora,Inter,sans-serif;color:#111111">AK</div>
+          <span style="font:500 24px/1 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">Anika Kapoor</span>
+          <span style="font:400 14px/1 Sora,Inter,sans-serif;color:#6E6E6E">Joined today</span>
+        </div>
+        <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:16px">
+          <span style="font:500 16px/1 Sora,Inter,sans-serif;color:#111111">Activity</span>
+          <div style="display:flex;align-items:flex-end;gap:10px;height:180px">
+            <sc-for list="{{ emptyBars }}" as="b" hint-placeholder-count="7">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:10px">
+                <div style="width:100%;height:{{ b.h }};border-radius:12px;background:#F1EEEA"></div>
+                <span style="font:400 12px/1 Sora,Inter,sans-serif;color:#6E6E6E">{{ b.m }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <p style="margin:0;font:400 14px/1.5 Sora,Inter,sans-serif;color:#6E6E6E">Your first attempt fills this in. Bars stack by stage — Design, Change, Defend, Critique.</p>
+        </div>
+        <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:10px">
+          <span style="font:500 16px/1 Sora,Inter,sans-serif;color:#111111">Warm up first?</span>
+          <p style="margin:0;font:400 14px/1.55 Sora,Inter,sans-serif;color:#6E6E6E">Critique compares two authored designs and asks you to click the deciding class. Three minutes, no score.</p>
+          <div style="align-self:flex-start;height:44px;display:flex;align-items:center;padding:0 22px;border-radius:999px;border:1px solid #111111;font:500 14px/1 Sora,Inter,sans-serif;color:#111111;margin-top:6px">Try a critique</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:12px" id="learn">
+    <div style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">/learn &nbsp;·&nbsp; Problem catalogue</div>
+    <div data-screen-label="Learn" style="width:1440px;height:1024px;box-sizing:border-box;overflow:hidden;background:#FBF8F5;border-radius:16px;border:1px solid #E8E1DA;display:flex;gap:24px;padding:24px;font-family:Sora,Inter,sans-serif;color:#222222">
+      <dc-import name="Rail" active="learn" hint-size="128px,100%" style="width:128px;flex:none;align-self:stretch"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:28px;overflow:hidden;padding:20px 0 0 16px">
+        <h2 style="margin:0;font:500 72px/1.05 Sora,Inter,sans-serif;letter-spacing:-0.03em;color:#111111">Pick a<br>problem.</h2>
+        <div style="display:flex;gap:12px;overflow:hidden;flex:none">
+          <sc-for list="{{ chips }}" as="c" hint-placeholder-count="5">
+            <div style="height:64px;flex:none;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:0 26px 0 10px;border-radius:999px;background:{{ c.bg }};border:1px solid {{ c.bd }}">
+              <div style="width:44px;height:44px;flex:none;border-radius:999px;background:#FFFFFF;border:1px solid #E8E1DA;display:flex;align-items:center;justify-content:center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{ c.tint }}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ c.d }}"></path></svg>
+              </div>
+              <span style="font:500 14px/1 Sora,Inter,sans-serif;color:{{ c.fg }};white-space:nowrap">{{ c.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <h3 style="margin:0;font:500 18px/1 Sora,Inter,sans-serif;color:#111111">All problems</h3>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font:400 14px/1 Sora,Inter,sans-serif;color:#6E6E6E">Played only</span>
+            <div style="width:52px;height:30px;border-radius:999px;background:#111111;padding:3px;box-sizing:border-box;display:flex;justify-content:flex-end"><div style="width:24px;height:24px;border-radius:999px;background:#FFFFFF"></div></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+          <sc-for list="{{ learnProblems }}" as="p" hint-placeholder-count="9">
+            <div style="box-sizing:border-box;border-radius:24px;padding:22px;height:196px;display:flex;flex-direction:column;justify-content:space-between;background:{{ p.fill }};border:1px solid {{ p.bd }}">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                <div style="width:40px;height:40px;flex:none;border-radius:999px;background:#FFFFFF;border:1px solid #F1EEEA;display:flex;align-items:center;justify-content:center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ p.d }}"></path></svg>
+                </div>
+                <div style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:{{ p.pillBg }};font:500 12px/1 Sora,Inter,sans-serif;color:{{ p.pillFg }}">{{ p.band }}</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font:400 13px/1 Sora,Inter,sans-serif;color:#5C5C5C">{{ p.cat }}</span>
+                <h4 style="margin:0;font:500 24px/1.18 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">{{ p.title }}</h4>
+              </div>
+              <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px">
+                <span style="font:400 13px/1.3 Sora,Inter,sans-serif;color:#5C5C5C">{{ p.meta }}</span>
+                <div style="display:flex">
+                  <sc-for list="{{ p.concepts }}" as="k" hint-placeholder-count="2">
+                    <div style="width:32px;height:32px;margin-left:-9px;border-radius:999px;border:2px solid #FFFFFF;background:#FBF8F5;display:flex;align-items:center;justify-content:center;font:500 11px/1 Sora,Inter,sans-serif;color:#222222">{{ k }}</div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="width:480px;flex:none;box-sizing:border-box;background:#F3ECE6;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:20px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 6px">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round"><path d="M6 17h12l-1.5-3v-3a4.5 4.5 0 10-9 0v3z M10 20h4"></path></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round"><path d="M12 9a3 3 0 100 6 3 3 0 000-6 M12 3v3 M12 18v3 M3 12h3 M18 12h3 M6.2 6.2l2.1 2.1 M15.7 15.7l2.1 2.1 M17.8 6.2l-2.1 2.1 M8.3 15.7l-2.1 2.1"></path></svg>
+        </div>
+        <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:14px">
+          <span style="font:500 16px/1 Sora,Inter,sans-serif;color:#111111">Coach note</span>
+          <p style="margin:0;font:400 15px/1.55 Sora,Inter,sans-serif;color:#222222">Your last two attempts lost points on extension points. Rate limiter forces you to name the strategy seam before the change lands.</p>
+          <div style="align-self:flex-start;height:44px;display:flex;align-items:center;padding:0 22px;border-radius:999px;background:#111111;font:500 14px/1 Sora,Inter,sans-serif;color:#FFFFFF">Open rate limiter</div>
+        </div>
+        <h3 style="margin:0;font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Progress</h3>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ learnStats }}" as="s" hint-placeholder-count="3">
+            <div style="height:64px;box-sizing:border-box;display:flex;align-items:center;gap:14px;padding:0 20px 0 10px;border-radius:999px;background:#FFFFFF">
+              <div style="width:44px;height:44px;flex:none;border-radius:999px;background:{{ s.c }};display:flex;align-items:center;justify-content:center;font:500 14px/1 Sora,Inter,sans-serif;color:#111111">{{ s.v }}</div>
+              <span style="font:500 15px/1 Sora,Inter,sans-serif;color:#111111">{{ s.t }}</span>
+              <div style="flex:1"></div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.8" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+            </div>
+          </sc-for>
+        </div>
+        <h3 style="margin:0;font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Concept groups</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+            <div style="height:40px;display:flex;align-items:center;gap:8px;padding:0 16px;border-radius:999px;background:#FFFFFF;font:500 13px/1 Sora,Inter,sans-serif;color:#222222"><div style="width:10px;height:10px;border-radius:999px;background:{{ g.c }}"></div>{{ g.t }}</div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:12px" id="concepts">
+    <div style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">/concepts</div>
+    <div data-screen-label="Concepts" style="width:1440px;height:1024px;box-sizing:border-box;overflow:hidden;background:#FBF8F5;border-radius:16px;border:1px solid #E8E1DA;display:flex;gap:24px;padding:24px;font-family:Sora,Inter,sans-serif;color:#222222">
+      <dc-import name="Rail" active="concepts" hint-size="128px,100%" style="width:128px;flex:none;align-self:stretch"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:28px;overflow:hidden;padding:20px 0 0 16px">
+        <h2 style="margin:0;font:500 72px/1.05 Sora,Inter,sans-serif;letter-spacing:-0.03em;color:#111111">Twelve ideas<br>that matter.</h2>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <h3 style="margin:0;font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Mastery by concept</h3>
+          <span style="font:400 14px/1 Sora,Inter,sans-serif;color:#6E6E6E">Banded 1–4 from your last 14 attempts</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+          <sc-for list="{{ concepts }}" as="c" hint-placeholder-count="12">
+            <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:20px;height:152px;display:flex;flex-direction:column;justify-content:space-between;border:1px solid #F1EEEA">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between">
+                <div style="width:40px;height:40px;border-radius:999px;background:{{ c.fill }};display:flex;align-items:center;justify-content:center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ c.d }}"></path></svg>
+                </div>
+                <div style="position:relative;width:44px;height:44px">
+                  <svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="19" fill="none" stroke="{{ c.fill }}" stroke-width="4"></circle><circle cx="22" cy="22" r="19" fill="none" stroke="#111111" stroke-width="4" stroke-linecap="round" stroke-dasharray="{{ c.dash }}" transform="rotate(-90 22 22)"></circle></svg>
+                  <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:500 13px/1 Sora,Inter,sans-serif;color:#111111">{{ c.m }}</span>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font:500 18px/1.2 Sora,Inter,sans-serif;letter-spacing:-0.01em;color:#111111">{{ c.n }}</span>
+                <span style="font:400 13px/1.45 Sora,Inter,sans-serif;color:#6E6E6E">{{ c.b }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="width:480px;flex:none;box-sizing:border-box;background:#F3ECE6;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:20px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 6px">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round"><path d="M6 17h12l-1.5-3v-3a4.5 4.5 0 10-9 0v3z M10 20h4"></path></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round"><path d="M12 9a3 3 0 100 6 3 3 0 000-6 M12 3v3 M12 18v3 M3 12h3 M18 12h3 M6.2 6.2l2.1 2.1 M15.7 15.7l2.1 2.1 M17.8 6.2l-2.1 2.1 M8.3 15.7l-2.1 2.1"></path></svg>
+        </div>
+        <h3 style="margin:0;font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Weakest</h3>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ weakest }}" as="w" hint-placeholder-count="3">
+            <div style="height:64px;box-sizing:border-box;display:flex;align-items:center;gap:14px;padding:0 20px 0 10px;border-radius:999px;background:#FFFFFF">
+              <div style="width:44px;height:44px;flex:none;border-radius:999px;background:{{ w.c }};display:flex;align-items:center;justify-content:center;font:500 14px/1 Sora,Inter,sans-serif;color:#111111">{{ w.m }}</div>
+              <span style="font:500 15px/1 Sora,Inter,sans-serif;color:#111111">{{ w.n }}</span>
+              <div style="flex:1"></div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.8" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+            </div>
+          </sc-for>
+        </div>
+        <h3 style="margin:0;font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Strongest</h3>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ strongest }}" as="w" hint-placeholder-count="3">
+            <div style="height:64px;box-sizing:border-box;display:flex;align-items:center;gap:14px;padding:0 20px 0 10px;border-radius:999px;background:#FFFFFF">
+              <div style="width:44px;height:44px;flex:none;border-radius:999px;background:{{ w.c }};display:flex;align-items:center;justify-content:center;font:500 14px/1 Sora,Inter,sans-serif;color:#111111">{{ w.m }}</div>
+              <span style="font:500 15px/1 Sora,Inter,sans-serif;color:#111111">{{ w.n }}</span>
+              <div style="flex:1"></div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.8" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+            </div>
+          </sc-for>
+        </div>
+        <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:12px">
+          <span style="font:500 16px/1 Sora,Inter,sans-serif;color:#111111">Where open / closed hurts</span>
+          <p style="margin:0;font:400 14px/1.55 Sora,Inter,sans-serif;color:#6E6E6E">In three attempts you edited an existing class to absorb the change instead of adding one. Rate limiter is the cleanest place to practise the seam.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:12px" id="progress">
+    <div style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">/progress &nbsp;·&nbsp; full scroll height</div>
+    <div data-screen-label="Progress" style="width:1440px;height:1360px;box-sizing:border-box;overflow:hidden;background:#FBF8F5;border-radius:16px;border:1px solid #E8E1DA;display:flex;gap:24px;padding:24px;font-family:Sora,Inter,sans-serif;color:#222222">
+      <dc-import name="Rail" active="progress" hint-size="128px,100%" style="width:128px;flex:none;align-self:stretch"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:24px;overflow:hidden;padding:20px 0 0 16px">
+        <h2 style="margin:0;font:500 72px/1.05 Sora,Inter,sans-serif;letter-spacing:-0.03em;color:#111111">Your<br>progress.</h2>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px">
+          <sc-for list="{{ pstats }}" as="s" hint-placeholder-count="4">
+            <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:20px;height:132px;display:flex;flex-direction:column;justify-content:space-between;border:1px solid #F1EEEA">
+              <div style="width:44px;height:44px;border-radius:999px;background:{{ s.c }}"></div>
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <span style="font:500 32px/1 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">{{ s.v }}</span>
+                <span style="font:400 14px/1 Sora,Inter,sans-serif;color:#6E6E6E">{{ s.t }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:18px;border:1px solid #F1EEEA">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Time on stages</span>
+              <div style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:999px;background:#F1EEEA;font:400 13px/1 Sora,Inter,sans-serif;color:#6E6E6E">Above par</div>
+            </div>
+            <div style="height:36px;display:flex;align-items:center;gap:8px;padding:0 14px;border-radius:999px;border:1px solid #E8E1DA;font:500 14px/1 Sora,Inter,sans-serif;color:#222222">Year
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:16px;height:280px">
+            <sc-for list="{{ bigBars }}" as="b" hint-placeholder-count="7">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:12px">
+                <div style="width:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;padding:{{ b.pad }};border:{{ b.ring }};border-radius:18px">
+                  <sc-for list="{{ b.segs }}" as="s" hint-placeholder-count="3">
+                    <div style="height:{{ s.h }};border-radius:12px 12px 4px 4px;background:{{ s.c }}"></div>
+                  </sc-for>
+                </div>
+                <span style="box-sizing:border-box;padding:{{ b.labPad }};border-radius:999px;background:{{ b.labBg }};font:400 13px/1 Sora,Inter,sans-serif;color:{{ b.labFg }}">{{ b.m }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:18px">
+            <sc-for list="{{ legend }}" as="l" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:7px"><div style="width:10px;height:10px;border-radius:999px;background:{{ l.c }}"></div><span style="font:400 13px/1 Sora,Inter,sans-serif;color:#6E6E6E">{{ l.t }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:8px 24px 16px;border:1px solid #F1EEEA">
+          <sc-for list="{{ criteria }}" as="c" hint-placeholder-count="8">
+            <div style="display:flex;align-items:center;gap:16px;height:56px;border-bottom:1px solid #F1EEEA">
+              <span style="flex:1;min-width:0;font:400 15px/1 Sora,Inter,sans-serif;color:#222222">{{ c.n }}</span>
+              <sc-if value="{{ c.r }}" hint-placeholder-val="{{ false }}">
+                <div style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:#F5C6C8;font:500 12px/1 Sora,Inter,sans-serif;color:#111111">Recurring weakness</div>
+              </sc-if>
+              <svg width="80" height="22" viewBox="0 0 80 22" fill="none" style="flex:none"><polyline points="{{ c.s }}" stroke="#6E6E6E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></polyline></svg>
+              <div style="width:96px;flex:none;height:32px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;background:{{ c.fill }};font:500 13px/1 Sora,Inter,sans-serif;color:#111111">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="{{ c.star }}"><path d="M12 4l2.4 5 5.6.6-4.2 3.8 1.2 5.6L12 16.2 7 19l1.2-5.6L4 9.6l5.6-.6z"></path></svg>{{ c.band }}
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="width:480px;flex:none;box-sizing:border-box;background:#F3ECE6;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:20px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 6px">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round"><path d="M6 17h12l-1.5-3v-3a4.5 4.5 0 10-9 0v3z M10 20h4"></path></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round"><path d="M12 9a3 3 0 100 6 3 3 0 000-6 M12 3v3 M12 18v3 M3 12h3 M18 12h3 M6.2 6.2l2.1 2.1 M15.7 15.7l2.1 2.1 M17.8 6.2l-2.1 2.1 M8.3 15.7l-2.1 2.1"></path></svg>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+          <div style="width:80px;height:80px;border-radius:999px;background:#D8D3F6;border:4px solid #EDEAFB;display:flex;align-items:center;justify-content:center;font:500 24px/1 Sora,Inter,sans-serif;color:#111111">AK</div>
+          <span style="font:500 24px/1 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">Anika Kapoor</span>
+          <span style="font:400 14px/1 Sora,Inter,sans-serif;color:#6E6E6E">Median band 3.1 · 14 attempts</span>
+        </div>
+        <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:12px">
+          <span style="font:500 16px/1 Sora,Inter,sans-serif;color:#111111">Recurring weakness</span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:999px;background:#F5C6C8;font:500 13px/1 Sora,Inter,sans-serif;color:#111111">Extension points</div>
+            <div style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:999px;background:#F5C6C8;font:500 13px/1 Sora,Inter,sans-serif;color:#111111">Change locality</div>
+          </div>
+          <p style="margin:0;font:400 14px/1.55 Sora,Inter,sans-serif;color:#6E6E6E">Both sat at band 2 in your last three attempts. They move together — a missing seam is what makes the blast radius wide.</p>
+        </div>
+        <div style="position:relative;overflow:hidden;box-sizing:border-box;border-radius:24px;padding:28px;height:212px;background:#F8D9B7;display:flex;flex-direction:column;justify-content:space-between;flex:none">
+          <div style="position:absolute;inset:0;background:#F4C48F;clip-path:ellipse(78% 120% at 112% 108%)"></div>
+          <div style="position:relative;display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:44px;height:44px;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.7" stroke-linecap="round"><path d="M5 6h14 M5 12h14 M5 18h14 M9 3v6 M15 15v6"></path></svg>
+              </div>
+              <span style="font:400 14px/1 Sora,Inter,sans-serif;color:#222222">Concurrency</span>
+            </div>
+            <div style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:#FFFFFF;font:500 13px/1 Sora,Inter,sans-serif;color:#111111">Recommended</div>
+          </div>
+          <h4 style="position:relative;margin:0;font:500 28px/1.2 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">Rate limiter</h4>
+          <span style="position:relative;font:400 14px/1 Sora,Inter,sans-serif;color:#3D3D3D">Targets extension points · 2 attempts</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:12px" id="critique">
+    <div style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">/critique/[problemId]</div>
+    <div data-screen-label="Critique" style="width:1440px;height:1024px;box-sizing:border-box;overflow:hidden;background:#FBF8F5;border-radius:16px;border:1px solid #E8E1DA;display:flex;gap:24px;padding:24px;font-family:Sora,Inter,sans-serif;color:#222222">
+      <dc-import name="Rail" active="critique" hint-size="128px,100%" style="width:128px;flex:none;align-self:stretch"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:24px;overflow:hidden;padding:20px 0 0 16px">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <span style="font:400 14px/1 Sora,Inter,sans-serif;color:#6E6E6E">Critique warm-up · parking lot with dynamic pricing</span>
+          <h2 style="margin:0;font:500 48px/1.1 Sora,Inter,sans-serif;letter-spacing:-0.03em;color:#111111">Which design absorbs a new<br>pricing rule without edits?</h2>
+          <span style="font:400 15px/1.5 Sora,Inter,sans-serif;color:#6E6E6E">Click the class that decides it, then say why in a line or two.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
+          <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:24px;border:1px solid #F1EEEA;display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Design A</span>
+              <div style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:#F1EEEA;font:400 12px/1 Sora,Inter,sans-serif;color:#6E6E6E">5 classes</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+              <div style="width:180px;box-sizing:border-box;padding:12px 16px;border-radius:14px;border:1px solid #E8E1DA;background:#FBF8F5;text-align:center;font:500 14px/1.2 Sora,Inter,sans-serif;color:#111111">ParkingLot</div>
+              <div style="width:1px;height:22px;background:#E8E1DA"></div>
+              <div style="display:flex;gap:12px">
+                <div style="box-sizing:border-box;padding:12px 14px;border-radius:14px;border:1px solid #E8E1DA;background:#FBF8F5;font:500 13px/1.2 Sora,Inter,sans-serif;color:#111111">Spot</div>
+                <div style="box-sizing:border-box;padding:12px 14px;border-radius:14px;border:1px solid #E8E1DA;background:#FBF8F5;font:500 13px/1.2 Sora,Inter,sans-serif;color:#111111">Ticket</div>
+                <div style="box-sizing:border-box;padding:12px 14px;border-radius:14px;border:1px solid #E8E1DA;background:#FBF8F5;font:500 13px/1.2 Sora,Inter,sans-serif;color:#111111">Vehicle</div>
+              </div>
+              <div style="width:1px;height:22px;background:#E8E1DA"></div>
+              <div style="width:200px;box-sizing:border-box;padding:12px 16px;border-radius:14px;border:1px solid #E8E1DA;background:#FBF8F5;text-align:center;font:500 13px/1.2 Sora,Inter,sans-serif;color:#111111">calculateFee() inside ParkingLot</div>
+            </div>
+            <p style="margin:0;font:400 14px/1.55 Sora,Inter,sans-serif;color:#6E6E6E">Fee arithmetic lives on the lot. Weekend surge means editing the method every operator asks for a new rule.</p>
+          </div>
+          <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:24px;border:1px solid #F1EEEA;display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Design B</span>
+              <div style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:#F1EEEA;font:400 12px/1 Sora,Inter,sans-serif;color:#6E6E6E">6 classes</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+              <div style="width:180px;box-sizing:border-box;padding:12px 16px;border-radius:14px;border:1px solid #E8E1DA;background:#FBF8F5;text-align:center;font:500 14px/1.2 Sora,Inter,sans-serif;color:#111111">ParkingLot</div>
+              <div style="width:1px;height:22px;background:#E8E1DA"></div>
+              <div style="display:flex;gap:12px">
+                <div style="box-sizing:border-box;padding:12px 14px;border-radius:14px;border:1px solid #E8E1DA;background:#FBF8F5;font:500 13px/1.2 Sora,Inter,sans-serif;color:#111111">Spot</div>
+                <div style="box-sizing:border-box;padding:12px 14px;border-radius:14px;border:1px solid #E8E1DA;background:#FBF8F5;font:500 13px/1.2 Sora,Inter,sans-serif;color:#111111">Ticket</div>
+                <div style="box-sizing:border-box;padding:12px 14px;border-radius:14px;border:1px solid #E8E1DA;background:#FBF8F5;font:500 13px/1.2 Sora,Inter,sans-serif;color:#111111">Vehicle</div>
+              </div>
+              <div style="width:1px;height:22px;background:#E8E1DA"></div>
+              <div style="box-sizing:border-box;padding:12px 18px;border-radius:14px;border:2px solid #111111;background:#D8D3F6;text-align:center;font:500 14px/1.2 Sora,Inter,sans-serif;color:#111111">PricingStrategy</div>
+            </div>
+            <p style="margin:0;font:400 14px/1.55 Sora,Inter,sans-serif;color:#6E6E6E">Pricing is an interface the lot depends on. A weekend rule arrives as a new implementation, not an edit.</p>
+          </div>
+        </div>
+        <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:20px 24px;border:1px solid #E8E1DA;min-height:104px">
+          <span style="font:400 15px/1.6 Sora,Inter,sans-serif;color:#9A9A9A">Design B keeps the rule behind an interface, so…</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:14px">
+          <span style="font:400 14px/1 Sora,Inter,sans-serif;color:#6E6E6E">PricingStrategy selected</span>
+          <div style="height:56px;display:flex;align-items:center;padding:0 30px;border-radius:999px;background:#111111;font:500 15px/1 Sora,Inter,sans-serif;color:#FFFFFF">Submit</div>
+        </div>
+      </div>
+      <div style="width:480px;flex:none;box-sizing:border-box;background:#F3ECE6;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:20px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 6px">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round"><path d="M6 17h12l-1.5-3v-3a4.5 4.5 0 10-9 0v3z M10 20h4"></path></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round"><path d="M12 9a3 3 0 100 6 3 3 0 000-6 M12 3v3 M12 18v3 M3 12h3 M18 12h3 M6.2 6.2l2.1 2.1 M15.7 15.7l2.1 2.1 M17.8 6.2l-2.1 2.1 M8.3 15.7l-2.1 2.1"></path></svg>
+        </div>
+        <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:12px">
+          <span style="font:500 16px/1 Sora,Inter,sans-serif;color:#111111">The brief both designs answer</span>
+          <p style="margin:0;font:400 14px/1.6 Sora,Inter,sans-serif;color:#222222">A multi-level lot issues tickets, assigns spots by vehicle size, and charges by duration. Operators set their own pricing.</p>
+        </div>
+        <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:14px">
+          <span style="font:500 16px/1 Sora,Inter,sans-serif;color:#111111">Concepts in play</span>
+          <div style="display:flex;flex-wrap:wrap;gap:10px">
+            <div style="height:40px;display:flex;align-items:center;gap:8px;padding:0 16px;border-radius:999px;background:#F3ECE6;font:500 13px/1 Sora,Inter,sans-serif;color:#222222"><div style="width:10px;height:10px;border-radius:999px;background:#BCEAD4"></div>Open / closed</div>
+            <div style="height:40px;display:flex;align-items:center;gap:8px;padding:0 16px;border-radius:999px;background:#F3ECE6;font:500 13px/1 Sora,Inter,sans-serif;color:#222222"><div style="width:10px;height:10px;border-radius:999px;background:#D8D3F6"></div>Polymorphism</div>
+            <div style="height:40px;display:flex;align-items:center;gap:8px;padding:0 16px;border-radius:999px;background:#F3ECE6;font:500 13px/1 Sora,Inter,sans-serif;color:#222222"><div style="width:10px;height:10px;border-radius:999px;background:#F8D9B7"></div>Coupling</div>
+          </div>
+        </div>
+        <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:10px">
+          <span style="font:500 16px/1 Sora,Inter,sans-serif;color:#111111">No score here</span>
+          <p style="margin:0;font:400 14px/1.55 Sora,Inter,sans-serif;color:#6E6E6E">Critique is a warm-up. Nothing you do on this screen enters your bands or history.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:12px" id="practice">
+    <div style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">/practice/[attemptId] &nbsp;·&nbsp; Change stage, requirement revealed</div>
+    <div data-screen-label="Practice" style="width:1440px;height:1024px;box-sizing:border-box;overflow:hidden;background:#FBF8F5;border-radius:16px;border:1px solid #E8E1DA;display:flex;gap:24px;padding:24px;font-family:Sora,Inter,sans-serif;color:#222222">
+      <dc-import name="Rail" active="learn" hint-size="128px,100%" style="width:128px;flex:none;align-self:stretch"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:22px;overflow:hidden;padding:16px 0 0 16px;position:relative">
+        <div style="display:flex;align-items:center;gap:0">
+          <sc-for list="{{ stages }}" as="s" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center">
+              <div style="height:48px;display:flex;align-items:center;gap:8px;padding:0 22px;border-radius:999px;background:{{ s.bg }};border:1px solid #E8E1DA;font:500 15px/1 Sora,Inter,sans-serif;color:{{ s.fg }}">
+                <sc-if value="{{ s.done }}" hint-placeholder-val="{{ false }}">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2.4" stroke-linecap="round"><path d="M5 12l4 4 10-10"></path></svg>
+                </sc-if>{{ s.t }}
+              </div>
+              <div style="width:44px;height:1px;background:#E8E1DA"></div>
+            </div>
+          </sc-for>
+          <div style="flex:1"></div>
+          <span style="font:400 14px/1 Sora,Inter,sans-serif;color:#6E6E6E">Parking lot with dynamic pricing · 18 min</span>
+        </div>
+        <h2 style="margin:0;font:500 40px/1.1 Sora,Inter,sans-serif;letter-spacing:-0.03em;color:#111111">Revise for the change.</h2>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <h3 style="margin:0;font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Classes</h3>
+            <div style="height:36px;display:flex;align-items:center;gap:8px;padding:0 16px;border-radius:999px;border:1px solid #111111;font:500 13px/1 Sora,Inter,sans-serif;color:#111111">+ Add class</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ pClasses }}" as="c" hint-placeholder-count="4">
+              <div style="box-sizing:border-box;background:#FFFFFF;border-radius:20px;padding:16px 20px;border:1px solid #F1EEEA;display:flex;align-items:center;gap:16px">
+                <div style="width:12px;height:12px;flex:none;border-radius:999px;background:{{ c.fill }}"></div>
+                <span style="width:150px;flex:none;font:500 16px/1 Sora,Inter,sans-serif;color:#111111">{{ c.n }}</span>
+                <span style="flex:1;min-width:0;font:400 14px/1.4 Sora,Inter,sans-serif;color:#6E6E6E">{{ c.f }}</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.8" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+              </div>
+            </sc-for>
+            <div style="box-sizing:border-box;background:#FFFFFF;border-radius:20px;padding:16px 20px;border:2px dashed #C9C2BA;display:flex;align-items:center;gap:16px">
+              <div style="width:12px;height:12px;flex:none;border-radius:999px;background:#E8E1DA"></div>
+              <span style="font:400 15px/1 Sora,Inter,sans-serif;color:#9A9A9A">Name the class the change should land in…</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <h3 style="margin:0;font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Walkthrough · scenario 2, car arrives on a Saturday</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:10px">
+            <sc-for list="{{ walkthrough }}" as="w" hint-placeholder-count="6">
+              <div style="height:44px;display:flex;align-items:center;gap:10px;padding:0 18px;border-radius:999px;background:#FFFFFF;border:1px solid #E8E1DA;font:500 14px/1 Sora,Inter,sans-serif;color:#222222">
+                <span style="font:400 12px/1 ui-monospace,Menlo,monospace;color:#9A9A9A">{{ w.i }}</span>{{ w.t }}
+              </div>
+            </sc-for>
+            <div style="height:44px;display:flex;align-items:center;padding:0 18px;border-radius:999px;border:1px dashed #C9C2BA;font:400 14px/1 Sora,Inter,sans-serif;color:#9A9A9A">+ step</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:16px;margin-top:auto;padding-bottom:6px">
+          <span style="font:400 14px/1 Sora,Inter,sans-serif;color:#6E6E6E">Autosaved</span>
+          <div style="height:56px;display:flex;align-items:center;padding:0 30px;border-radius:999px;background:#111111;font:500 15px/1 Sora,Inter,sans-serif;color:#FFFFFF">Submit revision</div>
+        </div>
+      </div>
+      <div style="width:480px;flex:none;box-sizing:border-box;background:#F3ECE6;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:18px;overflow:hidden">
+        <div style="box-sizing:border-box;border-radius:24px;padding:24px;background:#F8D9B7;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:36px;height:36px;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h11l-3-3 M20 17H9l3 3"></path></svg>
+            </div>
+            <span style="font:500 15px/1 Sora,Inter,sans-serif;color:#111111">Requirement change</span>
+          </div>
+          <p style="margin:0;font:500 20px/1.35 Sora,Inter,sans-serif;letter-spacing:-0.01em;color:#111111">Operators can now set weekend surge pricing per floor, and it must be changeable without a deploy.</p>
+          <span style="font:400 13px/1 Sora,Inter,sans-serif;color:#3D3D3D">Revealed at 18:04 · blast radius measured on submit</span>
+        </div>
+        <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:12px">
+          <span style="font:500 16px/1 Sora,Inter,sans-serif;color:#111111">Problem brief</span>
+          <p style="margin:0;font:400 14px/1.6 Sora,Inter,sans-serif;color:#222222">A multi-level lot issues tickets, assigns spots by vehicle size, and charges by duration. Operators set their own pricing.</p>
+        </div>
+        <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:12px">
+          <span style="font:500 16px/1 Sora,Inter,sans-serif;color:#111111">Requirements</span>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;gap:10px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4E9E77" stroke-width="2.4" stroke-linecap="round" style="flex:none;margin-top:2px"><path d="M5 12l4 4 10-10"></path></svg><span style="font:400 14px/1.5 Sora,Inter,sans-serif;color:#222222">Spots differ by vehicle size</span></div>
+            <div style="display:flex;gap:10px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4E9E77" stroke-width="2.4" stroke-linecap="round" style="flex:none;margin-top:2px"><path d="M5 12l4 4 10-10"></path></svg><span style="font:400 14px/1.5 Sora,Inter,sans-serif;color:#222222">A ticket records entry and exit</span></div>
+            <div style="display:flex;gap:10px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4E9E77" stroke-width="2.4" stroke-linecap="round" style="flex:none;margin-top:2px"><path d="M5 12l4 4 10-10"></path></svg><span style="font:400 14px/1.5 Sora,Inter,sans-serif;color:#222222">Fee depends on duration</span></div>
+            <div style="display:flex;gap:10px"><div style="width:16px;height:16px;flex:none;margin-top:2px;border-radius:999px;border:1.5px solid #C9C2BA"></div><span style="font:400 14px/1.5 Sora,Inter,sans-serif;color:#6E6E6E">Pricing is operator-configurable</span></div>
+          </div>
+        </div>
+        <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:10px">
+          <span style="font:500 16px/1 Sora,Inter,sans-serif;color:#111111">Decisions logged</span>
+          <p style="margin:0;font:400 14px/1.55 Sora,Inter,sans-serif;color:#6E6E6E">1 · Floor owns its spots — lookup stays local, lot gets one more hop.<br>2 · Ticket is a record, not a calculator.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:12px" id="report">
+    <div style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">/report/[attemptId] &nbsp;·&nbsp; full scroll height</div>
+    <div data-screen-label="Report" style="width:1440px;height:1960px;box-sizing:border-box;overflow:hidden;background:#FBF8F5;border-radius:16px;border:1px solid #E8E1DA;display:flex;gap:24px;padding:24px;font-family:Sora,Inter,sans-serif;color:#222222">
+      <dc-import name="Rail" active="history" hint-size="128px,100%" style="width:128px;flex:none;align-self:stretch"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:24px;overflow:hidden;padding:20px 0 0 16px">
+        <div style="display:flex;align-items:flex-end;gap:16px">
+          <h2 style="margin:0;font:500 64px/1.05 Sora,Inter,sans-serif;letter-spacing:-0.03em;color:#111111">Band 3.1<br>overall.</h2>
+          <div style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:999px;background:#F1EEEA;font:400 13px/1 Sora,Inter,sans-serif;color:#6E6E6E;margin-bottom:6px">Attempt 3 · 41 min</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
+          <sc-for list="{{ reportCards }}" as="r" hint-placeholder-count="8">
+            <div style="box-sizing:border-box;border-radius:24px;padding:22px;background:{{ r.fill }};display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+                <span style="font:500 18px/1.2 Sora,Inter,sans-serif;letter-spacing:-0.01em;color:#111111">{{ r.n }}</span>
+                <div style="height:30px;flex:none;display:flex;align-items:center;gap:6px;padding:0 12px;border-radius:999px;background:#FFFFFF;font:500 13px/1 Sora,Inter,sans-serif;color:#111111">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="{{ r.star }}"><path d="M12 4l2.4 5 5.6.6-4.2 3.8 1.2 5.6L12 16.2 7 19l1.2-5.6L4 9.6l5.6-.6z"></path></svg>{{ r.band }}
+                </div>
+              </div>
+              <span style="font:400 14px/1.5 Sora,Inter,sans-serif;color:#222222">{{ r.c }}</span>
+              <span style="font:400 14px/1.5 Sora,Inter,sans-serif;color:#5C5C5C">{{ r.s }}</span>
+              <div style="align-self:flex-start;height:32px;display:flex;align-items:center;gap:8px;padding:0 14px;border-radius:999px;background:#FFFFFF;font:500 13px/1 ui-monospace,Menlo,monospace;color:#111111">→ {{ r.e }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <h3 style="margin:0;font:500 18px/1 Sora,Inter,sans-serif;color:#111111">What the change cost you</h3>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
+          <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:22px;border:1px solid #F1EEEA;display:flex;flex-direction:column;gap:12px">
+            <span style="font:500 15px/1 Sora,Inter,sans-serif;color:#6E6E6E">v1 · before</span>
+            <sc-for list="{{ v1 }}" as="x" hint-placeholder-count="6">
+              <div style="height:38px;box-sizing:border-box;display:flex;align-items:center;padding:0 14px;border-radius:12px;background:{{ x.c }};border:1px solid #F1EEEA;font:500 14px/1 ui-monospace,Menlo,monospace;color:#111111">{{ x.t }}</div>
+            </sc-for>
+          </div>
+          <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:22px;border:1px solid #F1EEEA;display:flex;flex-direction:column;gap:12px">
+            <span style="font:500 15px/1 Sora,Inter,sans-serif;color:#111111">v2 · after</span>
+            <sc-for list="{{ v2 }}" as="x" hint-placeholder-count="7">
+              <div style="height:38px;box-sizing:border-box;display:flex;align-items:center;padding:0 14px;border-radius:12px;background:{{ x.c }};border:1px solid #F1EEEA;font:500 14px/1 ui-monospace,Menlo,monospace;color:#111111">{{ x.t }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <sc-for list="{{ diff }}" as="d" hint-placeholder-count="5">
+            <div style="height:38px;display:flex;align-items:center;padding:0 16px;border-radius:999px;background:{{ d.c }};font:500 13px/1 ui-monospace,Menlo,monospace;color:#111111">{{ d.t }}</div>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px">
+          <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:26px;border:1px solid #F1EEEA;display:flex;flex-direction:column;gap:14px">
+            <span style="font:500 16px/1 Sora,Inter,sans-serif;color:#6E6E6E">Mentor note</span>
+            <p style="margin:0;font:400 20px/1.5 Sora,Inter,sans-serif;color:#111111">“You defended Floor well, and the encapsulation on Spot is the best it has been. The gap is always the same: you wait for the change before you name the seam.”</p>
+          </div>
+          <div style="box-sizing:border-box;background:#111111;border-radius:24px;padding:26px;display:flex;flex-direction:column;justify-content:space-between;gap:16px">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font:500 15px/1 Sora,Inter,sans-serif;color:#9A9A9A">Next for you</span>
+              <span style="font:500 26px/1.2 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#FFFFFF">Rate limiter</span>
+              <span style="font:400 14px/1.5 Sora,Inter,sans-serif;color:#C9C2BA">Forces a strategy seam in the design stage, before any change is revealed.</span>
+            </div>
+            <div style="align-self:flex-start;height:48px;display:flex;align-items:center;padding:0 24px;border-radius:999px;background:#FFFFFF;font:500 14px/1 Sora,Inter,sans-serif;color:#111111">Start attempt</div>
+          </div>
+        </div>
+      </div>
+      <div style="width:480px;flex:none;box-sizing:border-box;background:#F3ECE6;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Submitted design</span>
+          <div style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:999px;background:#FFFFFF;font:400 13px/1 Sora,Inter,sans-serif;color:#6E6E6E">v2 · 7 classes</div>
+        </div>
+        <span style="font:400 13px/1.5 Sora,Inter,sans-serif;color:#6E6E6E">Cited by <strong style="font-weight:500;color:#222222">Change locality</strong> — the class is outlined below.</span>
+        <sc-for list="{{ submitted }}" as="s" hint-placeholder-count="6">
+          <div style="box-sizing:border-box;background:{{ s.bg }};border:{{ s.bd }};border-radius:20px;padding:16px 18px;display:flex;flex-direction:column;gap:6px">
+            <span style="font:500 16px/1 ui-monospace,Menlo,monospace;color:#111111">{{ s.n }}</span>
+            <span style="font:400 13px/1.4 Sora,Inter,sans-serif;color:#6E6E6E">{{ s.meta }}</span>
+          </div>
+        </sc-for>
+        <div style="box-sizing:border-box;background:#F5C6C8;border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:6px">
+          <span style="font:500 15px/1 Sora,Inter,sans-serif;color:#111111">Blast radius</span>
+          <span style="font:400 13px/1.5 Sora,Inter,sans-serif;color:#222222">4 of 6 classes touched. Two would have been enough.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:12px" id="history">
+    <div style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">/history</div>
+    <div data-screen-label="History" style="width:1440px;height:1024px;box-sizing:border-box;overflow:hidden;background:#FBF8F5;border-radius:16px;border:1px solid #E8E1DA;display:flex;gap:24px;padding:24px;font-family:Sora,Inter,sans-serif;color:#222222">
+      <dc-import name="Rail" active="history" hint-size="128px,100%" style="width:128px;flex:none;align-self:stretch"></dc-import>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:28px;overflow:hidden;padding:20px 0 0 16px">
+        <h2 style="margin:0;font:500 72px/1.05 Sora,Inter,sans-serif;letter-spacing:-0.03em;color:#111111">Fourteen<br>attempts.</h2>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <h3 style="margin:0;font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Newest first</h3>
+          <div style="height:36px;display:flex;align-items:center;gap:8px;padding:0 14px;border-radius:999px;border:1px solid #E8E1DA;font:500 14px/1 Sora,Inter,sans-serif;color:#222222">All problems
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ history }}" as="h" hint-placeholder-count="7">
+            <div style="box-sizing:border-box;background:#FFFFFF;border-radius:20px;padding:18px 22px;border:1px solid #F1EEEA;display:flex;align-items:center;gap:20px">
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px">
+                <span style="font:500 18px/1.2 Sora,Inter,sans-serif;letter-spacing:-0.01em;color:#111111">{{ h.p }}</span>
+                <span style="font:400 13px/1 Sora,Inter,sans-serif;color:#6E6E6E">{{ h.d }}</span>
+              </div>
+              <div style="display:flex;gap:8px;flex:none">
+                <sc-for list="{{ h.dots }}" as="dt" hint-placeholder-count="3">
+                  <div style="width:12px;height:12px;border-radius:999px;background:{{ dt.c }};border:1.5px solid {{ dt.bd }}"></div>
+                </sc-for>
+              </div>
+              <div style="width:110px;flex:none;height:34px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;background:{{ h.f }};font:500 13px/1 Sora,Inter,sans-serif;color:#111111">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="{{ h.star }}"><path d="M12 4l2.4 5 5.6.6-4.2 3.8 1.2 5.6L12 16.2 7 19l1.2-5.6L4 9.6l5.6-.6z"></path></svg>{{ h.band }}
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.8" stroke-linecap="round" style="flex:none"><path d="M9 6l6 6-6 6"></path></svg>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="width:480px;flex:none;box-sizing:border-box;background:#F3ECE6;border-radius:32px;padding:24px;display:flex;flex-direction:column;gap:20px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 6px">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round"><path d="M6 17h12l-1.5-3v-3a4.5 4.5 0 10-9 0v3z M10 20h4"></path></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round"><path d="M12 9a3 3 0 100 6 3 3 0 000-6 M12 3v3 M12 18v3 M3 12h3 M18 12h3 M6.2 6.2l2.1 2.1 M15.7 15.7l2.1 2.1 M17.8 6.2l-2.1 2.1 M8.3 15.7l-2.1 2.1"></path></svg>
+        </div>
+        <div style="box-sizing:border-box;background:#F5C6C8;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:36px;height:36px;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.8" stroke-linecap="round"><path d="M12 8v5 M12 16.5v.5 M12 4a8 8 0 100 16 8 8 0 000-16"></path></svg>
+            </div>
+            <span style="font:500 15px/1 Sora,Inter,sans-serif;color:#111111">Recurring weakness</span>
+          </div>
+          <p style="margin:0;font:500 20px/1.35 Sora,Inter,sans-serif;letter-spacing:-0.01em;color:#111111">Extension points sat at band 2 in three of your last four attempts.</p>
+          <span style="font:400 13px/1.5 Sora,Inter,sans-serif;color:#3D3D3D">Detected across parking lot, elevator and rate limiter.</span>
+        </div>
+        <div style="position:relative;overflow:hidden;box-sizing:border-box;border-radius:24px;padding:28px;height:212px;background:#F8D9B7;display:flex;flex-direction:column;justify-content:space-between;flex:none">
+          <div style="position:absolute;inset:0;background:#F4C48F;clip-path:ellipse(78% 120% at 112% 108%)"></div>
+          <div style="position:relative;display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:44px;height:44px;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.7" stroke-linecap="round"><path d="M5 6h14 M5 12h14 M5 18h14 M9 3v6 M15 15v6"></path></svg>
+              </div>
+              <span style="font:400 14px/1 Sora,Inter,sans-serif;color:#222222">Concurrency</span>
+            </div>
+            <div style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:#FFFFFF;font:500 13px/1 Sora,Inter,sans-serif;color:#111111">Coach pick</div>
+          </div>
+          <h4 style="position:relative;margin:0;font:500 28px/1.2 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">Rate limiter</h4>
+          <span style="position:relative;font:400 14px/1 Sora,Inter,sans-serif;color:#3D3D3D">Best band 2.6 · try for 3</span>
+        </div>
+        <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:12px">
+          <span style="font:500 16px/1 Sora,Inter,sans-serif;color:#111111">By problem</span>
+          <p style="margin:0;font:400 14px/1.55 Sora,Inter,sans-serif;color:#6E6E6E">Open a problem to see every attempt side by side and how its bands moved.</p>
+          <div style="align-self:flex-start;height:44px;display:flex;align-items:center;padding:0 22px;border-radius:999px;border:1px solid #111111;font:500 14px/1 Sora,Inter,sans-serif;color:#111111">Browse by problem</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:56px;align-items:flex-start;flex-wrap:wrap" id="mobile">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">/ &nbsp;·&nbsp; 390px</div>
+      <div data-screen-label="Mobile dashboard" style="width:390px;height:844px;box-sizing:border-box;overflow:hidden;position:relative;background:#FBF8F5;border-radius:36px;border:1px solid #E8E1DA;font-family:Sora,Inter,sans-serif;color:#222222">
+        <div style="position:absolute;inset:0;overflow:hidden;padding:24px 20px 110px;display:flex;flex-direction:column;gap:22px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <svg width="26" height="26" viewBox="0 0 24 24"><path d="M4 20 12 4l8 16z" fill="#111111"></path><circle cx="12" cy="15" r="2.4" fill="#FBF8F5"></circle></svg>
+            <div style="width:44px;height:44px;border-radius:999px;background:#D8D3F6;border:3px solid #EDEAFB;display:flex;align-items:center;justify-content:center;font:500 14px/1 Sora,Inter,sans-serif;color:#111111">AK</div>
+          </div>
+          <h2 style="margin:0;font:500 40px/1.06 Sora,Inter,sans-serif;letter-spacing:-0.03em;color:#111111">Design under<br>pressure.</h2>
+          <div style="display:flex;gap:10px;overflow:hidden">
+            <div style="height:52px;flex:none;display:flex;align-items:center;gap:10px;padding:0 20px 0 8px;border-radius:999px;background:#111111">
+              <div style="width:36px;height:36px;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round"><path d="M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z"></path></svg>
+              </div>
+              <span style="font:500 14px/1 Sora,Inter,sans-serif;color:#FFFFFF">All</span>
+            </div>
+            <div style="height:52px;flex:none;display:flex;align-items:center;padding:0 20px;border-radius:999px;background:#FFFFFF;border:1px solid #E8E1DA;font:500 14px/1 Sora,Inter,sans-serif;color:#222222">Structure</div>
+            <div style="height:52px;flex:none;display:flex;align-items:center;padding:0 20px;border-radius:999px;background:#FFFFFF;border:1px solid #E8E1DA;font:500 14px/1 Sora,Inter,sans-serif;color:#222222">Behaviour</div>
+          </div>
+          <div style="box-sizing:border-box;border-radius:24px;padding:22px;background:#F5C6C8;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="width:40px;height:40px;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.7" stroke-linecap="round"><path d="M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z"></path></svg>
+              </div>
+              <div style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:#FFFFFF;font:500 12px/1 Sora,Inter,sans-serif;color:#111111">Band 3.2</div>
+            </div>
+            <h4 style="margin:0;font:500 24px/1.2 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">Parking lot with dynamic pricing</h4>
+            <span style="font:400 13px/1 Sora,Inter,sans-serif;color:#5C5C5C">3 attempts · last 2 days ago</span>
+          </div>
+          <div style="box-sizing:border-box;border-radius:24px;padding:22px;background:#D8D3F6;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="width:40px;height:40px;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.7" stroke-linecap="round"><path d="M7 5a4 4 0 100 8h10a4 4 0 110 8H7"></path></svg>
+              </div>
+              <div style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:#FFFFFF;font:500 12px/1 Sora,Inter,sans-serif;color:#111111">In progress</div>
+            </div>
+            <h4 style="margin:0;font:500 24px/1.2 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">Elevator bank scheduler</h4>
+            <span style="font:400 13px/1 Sora,Inter,sans-serif;color:#3D3D3D">Change stage · 18 min in</span>
+          </div>
+          <div style="height:60px;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:0 18px 0 8px;border-radius:999px;background:#FFFFFF;border:1px solid #E8E1DA">
+            <div style="width:44px;height:44px;flex:none;border-radius:999px;background:#D8D3F6;display:flex;align-items:center;justify-content:center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.7" stroke-linecap="round"><path d="M12 3c4 5 3 6 3 8a3 3 0 11-6 0c0-3 3-3 3-8z"></path></svg>
+            </div>
+            <span style="font:500 15px/1 Sora,Inter,sans-serif;color:#111111">12-day streak</span>
+            <div style="flex:1"></div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.8" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+          </div>
+          <div style="box-sizing:border-box;background:#FFFFFF;border-radius:24px;padding:20px;border:1px solid #F1EEEA;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font:500 28px/1 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">3.5h</span>
+              <div style="height:28px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:#F1EEEA;font:400 12px/1 Sora,Inter,sans-serif;color:#6E6E6E">Above par</div>
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:8px;height:120px">
+              <sc-for list="{{ bars }}" as="b" hint-placeholder-count="7">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px">
+                  <div style="width:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;padding:{{ b.pad }};border:{{ b.ring }};border-radius:12px">
+                    <sc-for list="{{ b.segs }}" as="s" hint-placeholder-count="3">
+                      <div style="height:{{ s.h }};border-radius:8px 8px 3px 3px;background:{{ s.c }}"></div>
+                    </sc-for>
+                  </div>
+                  <span style="box-sizing:border-box;padding:{{ b.labPad }};border-radius:999px;background:{{ b.labBg }};font:400 10px/1 Sora,Inter,sans-serif;color:{{ b.labFg }}">{{ b.m }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute;left:16px;right:16px;bottom:16px;height:84px;box-sizing:border-box;background:#F3ECE6;border-radius:28px;display:flex;align-items:center;justify-content:space-around;padding:0 12px">
+          <div style="position:relative"><div style="width:52px;height:52px;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h11v11H4z M9 9h11v11H9z"></path></svg></div><div style="position:absolute;top:0;right:0;width:10px;height:10px;border-radius:999px;background:#F07A8A"></div></div>
+          <div style="width:52px;height:52px;border-radius:999px;background:#111111;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 12 4l8 7v9H4z"></path></svg></div>
+          <div style="width:52px;height:52px;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h9a2 2 0 012 2v14H7a2 2 0 00-2 2z M19 6v14"></path></svg></div>
+          <div style="width:52px;height:52px;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round"><path d="M4 20h16 M7.5 17v-5 M12 17V7 M16.5 17v-8"></path></svg></div>
+          <div style="width:52px;height:52px;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round"><path d="M12 4a8 8 0 100 16 8 8 0 000-16 M12 8v4l3 2"></path></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px" id="library">
+      <div style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">Component library</div>
+      <div data-screen-label="Library" style="width:960px;box-sizing:border-box;background:#FBF8F5;border-radius:16px;border:1px solid #E8E1DA;padding:40px;font-family:Sora,Inter,sans-serif;color:#222222;display:flex;flex-direction:column;gap:34px">
+
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <span style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">BUTTONS · rest / hover / focus</span>
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <div style="height:56px;display:flex;align-items:center;padding:0 30px;border-radius:999px;background:#111111;font:500 15px/1 Sora,Inter,sans-serif;color:#FFFFFF" style-hover="background:#2E2E2E">Submit design</div>
+            <div style="height:56px;display:flex;align-items:center;padding:0 30px;border-radius:999px;background:#2E2E2E;font:500 15px/1 Sora,Inter,sans-serif;color:#FFFFFF">Hover</div>
+            <div style="height:56px;display:flex;align-items:center;padding:0 30px;border-radius:999px;background:#111111;font:500 15px/1 Sora,Inter,sans-serif;color:#FFFFFF;outline:2px solid #111111;outline-offset:2px">Focus</div>
+            <div style="height:56px;display:flex;align-items:center;padding:0 30px;border-radius:999px;background:#FFFFFF;border:1px solid #111111;font:500 15px/1 Sora,Inter,sans-serif;color:#111111">Secondary</div>
+            <div style="height:56px;display:flex;align-items:center;padding:0 22px;border-radius:999px;font:500 15px/1 Sora,Inter,sans-serif;color:#6E6E6E">Ghost</div>
+            <div style="height:56px;display:flex;align-items:center;padding:0 30px;border-radius:999px;background:#E8E1DA;font:500 15px/1 Sora,Inter,sans-serif;color:#9A9A9A">Disabled</div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <span style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">FILTER CHIP · rest / active / focus &nbsp;·&nbsp; ICON BUTTON</span>
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <div style="height:64px;display:flex;align-items:center;gap:12px;padding:0 26px 0 10px;border-radius:999px;background:#FFFFFF;border:1px solid #E8E1DA">
+              <div style="width:44px;height:44px;border-radius:999px;background:#FFFFFF;border:1px solid #E8E1DA;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9767D" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 8v8l8 5 8-5V8z M12 3v18 M4 8l8 5 8-5"></path></svg></div>
+              <span style="font:500 14px/1 Sora,Inter,sans-serif;color:#222222">Structure</span>
+            </div>
+            <div style="height:64px;display:flex;align-items:center;gap:12px;padding:0 26px 0 10px;border-radius:999px;background:#111111">
+              <div style="width:44px;height:44px;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z"></path></svg></div>
+              <span style="font:500 14px/1 Sora,Inter,sans-serif;color:#FFFFFF">All</span>
+            </div>
+            <div style="height:64px;display:flex;align-items:center;gap:12px;padding:0 26px 0 10px;border-radius:999px;background:#FFFFFF;border:1px solid #E8E1DA;outline:2px solid #111111;outline-offset:2px">
+              <div style="width:44px;height:44px;border-radius:999px;background:#FFFFFF;border:1px solid #E8E1DA;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6F68B8" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h11l-3-3 M20 17H9l3 3"></path></svg></div>
+              <span style="font:500 14px/1 Sora,Inter,sans-serif;color:#222222">Change</span>
+            </div>
+            <div style="width:64px;height:64px;border-radius:999px;background:#FFFFFF;border:1px solid #E8E1DA;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round"><path d="M4 11 12 4l8 7v9H4z"></path></svg></div>
+            <div style="width:64px;height:64px;border-radius:999px;background:#111111;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round"><path d="M4 11 12 4l8 7v9H4z"></path></svg></div>
+            <div style="position:relative"><div style="width:64px;height:64px;border-radius:999px;background:#FFFFFF;border:1px solid #E8E1DA;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h11v11H4z M9 9h11v11H9z"></path></svg></div><div style="position:absolute;top:2px;right:2px;width:10px;height:10px;border-radius:999px;background:#F07A8A"></div></div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <span style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">BAND PILL · DROPDOWN · SECTION LABEL · EVIDENCE LINK · CONCEPT STACK</span>
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <div style="height:34px;display:flex;align-items:center;gap:6px;padding:0 14px;border-radius:999px;background:#BCEAD4;font:500 13px/1 Sora,Inter,sans-serif;color:#111111"><svg width="13" height="13" viewBox="0 0 24 24" fill="#F2A93B"><path d="M12 4l2.4 5 5.6.6-4.2 3.8 1.2 5.6L12 16.2 7 19l1.2-5.6L4 9.6l5.6-.6z"></path></svg>Band 4</div>
+            <div style="height:34px;display:flex;align-items:center;gap:6px;padding:0 14px;border-radius:999px;background:#D8D3F6;font:500 13px/1 Sora,Inter,sans-serif;color:#111111"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 4l2.4 5 5.6.6-4.2 3.8 1.2 5.6L12 16.2 7 19l1.2-5.6L4 9.6l5.6-.6z"></path></svg>Band 3</div>
+            <div style="height:34px;display:flex;align-items:center;padding:0 14px;border-radius:999px;background:#F8D9B7;font:500 13px/1 Sora,Inter,sans-serif;color:#111111">Band 2</div>
+            <div style="height:34px;display:flex;align-items:center;padding:0 14px;border-radius:999px;background:#F5C6C8;font:500 13px/1 Sora,Inter,sans-serif;color:#111111">Band 1</div>
+            <div style="height:36px;display:flex;align-items:center;gap:8px;padding:0 14px;border-radius:999px;border:1px solid #E8E1DA;font:500 14px/1 Sora,Inter,sans-serif;color:#222222">Year<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg></div>
+            <span style="font:500 18px/1 Sora,Inter,sans-serif;color:#111111">Recommended for you</span>
+            <div style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:999px;background:#FFFFFF;border:1px solid #E8E1DA;font:500 13px/1 ui-monospace,Menlo,monospace;color:#111111">→ ParkingLot.assignSpot</div>
+            <div style="display:flex">
+              <div style="width:36px;height:36px;border-radius:999px;border:2px solid #FFFFFF;background:#FBF8F5;display:flex;align-items:center;justify-content:center;font:500 12px/1 Sora,Inter,sans-serif">Co</div>
+              <div style="width:36px;height:36px;margin-left:-10px;border-radius:999px;border:2px solid #FFFFFF;background:#FBF8F5;display:flex;align-items:center;justify-content:center;font:500 12px/1 Sora,Inter,sans-serif">En</div>
+              <div style="width:36px;height:36px;margin-left:-10px;border-radius:999px;border:2px solid #FFFFFF;background:#FBF8F5;display:flex;align-items:center;justify-content:center;font:500 12px/1 Sora,Inter,sans-serif">Po</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <span style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">PROBLEM CARD · four pastel variants + two-tone</span>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+            <sc-for list="{{ dashProblems }}" as="p" hint-placeholder-count="4">
+              <div style="box-sizing:border-box;border-radius:24px;padding:22px;height:180px;background:{{ p.fill }};display:flex;flex-direction:column;justify-content:space-between">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <div style="width:40px;height:40px;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ p.d }}"></path></svg></div>
+                  <div style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:#FFFFFF;font:500 12px/1 Sora,Inter,sans-serif;color:#111111">{{ p.band }}</div>
+                </div>
+                <h4 style="margin:0;font:500 22px/1.2 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">{{ p.title }}</h4>
+                <span style="font:400 13px/1 Sora,Inter,sans-serif;color:#5C5C5C">{{ p.meta }}</span>
+              </div>
+            </sc-for>
+            <div style="position:relative;overflow:hidden;box-sizing:border-box;border-radius:24px;padding:22px;height:180px;background:#F5C6C8;display:flex;flex-direction:column;justify-content:space-between">
+              <div style="position:absolute;inset:0;background:#EFA8AD;clip-path:ellipse(78% 120% at 112% 108%)"></div>
+              <div style="position:relative;display:flex;align-items:center;justify-content:space-between">
+                <div style="width:40px;height:40px;border-radius:999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.7" stroke-linecap="round"><path d="M7 5a4 4 0 100 8h10a4 4 0 110 8H7"></path></svg></div>
+                <div style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:#FFFFFF;font:500 12px/1 Sora,Inter,sans-serif;color:#111111">In progress</div>
+              </div>
+              <h4 style="position:relative;margin:0;font:500 22px/1.2 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#111111">Two-tone variant</h4>
+              <span style="position:relative;font:400 13px/1 Sora,Inter,sans-serif;color:#3D3D3D">Right-panel card</span>
+            </div>
+            <div style="box-sizing:border-box;border-radius:24px;padding:22px;height:180px;background:#FFFFFF;border:1px solid #E8E1DA;display:flex;flex-direction:column;justify-content:space-between">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div style="width:40px;height:40px;border-radius:999px;background:#F1EEEA"></div>
+                <div style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:999px;background:#F1EEEA;font:500 12px/1 Sora,Inter,sans-serif;color:#6E6E6E">Coming soon</div>
+              </div>
+              <h4 style="margin:0;font:500 22px/1.2 Sora,Inter,sans-serif;letter-spacing:-0.02em;color:#9A9A9A">Not yet playable</h4>
+              <span style="font:400 13px/1 Sora,Inter,sans-serif;color:#9A9A9A">Catalogue state</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <span style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">STAT PILL · MASTERY RING · ACTIVITY BAR · STAGE RAIL</span>
+          <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+            <div style="height:64px;display:flex;align-items:center;gap:14px;padding:0 20px 0 10px;border-radius:999px;background:#FFFFFF;border:1px solid #F1EEEA">
+              <div style="width:44px;height:44px;border-radius:999px;background:#D8D3F6;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.7" stroke-linecap="round"><path d="M12 3c4 5 3 6 3 8a3 3 0 11-6 0c0-3 3-3 3-8z"></path></svg></div>
+              <span style="font:500 15px/1 Sora,Inter,sans-serif;color:#111111">12-day streak</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.8" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+            </div>
+            <div style="position:relative;width:44px;height:44px">
+              <svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="19" fill="none" stroke="#D8D3F6" stroke-width="4"></circle><circle cx="22" cy="22" r="19" fill="none" stroke="#111111" stroke-width="4" stroke-linecap="round" stroke-dasharray="101.4 119.4" transform="rotate(-90 22 22)"></circle></svg>
+              <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:500 13px/1 Sora,Inter,sans-serif;color:#111111">3.4</span>
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:14px;height:150px">
+              <div style="width:44px;display:flex;flex-direction:column;justify-content:flex-end;gap:4px"><div style="height:34px;border-radius:12px 12px 4px 4px;background:#F5C6C8"></div><div style="height:22px;border-radius:12px 12px 4px 4px;background:#F8D9B7"></div><div style="height:16px;border-radius:12px 12px 4px 4px;background:#D8D3F6"></div></div>
+              <div style="width:54px;box-sizing:border-box;padding:5px;border:2px solid #111111;border-radius:16px;display:flex;flex-direction:column;justify-content:flex-end;gap:4px"><div style="height:42px;border-radius:12px 12px 4px 4px;background:#F5C6C8"></div><div style="height:26px;border-radius:12px 12px 4px 4px;background:#F8D9B7"></div><div style="height:20px;border-radius:12px 12px 4px 4px;background:#D8D3F6"></div><div style="height:12px;border-radius:12px 12px 4px 4px;background:#BCEAD4"></div></div>
+            </div>
+            <div style="display:flex;align-items:center">
+              <div style="height:48px;display:flex;align-items:center;gap:8px;padding:0 22px;border-radius:999px;background:#BCEAD4;font:500 15px/1 Sora,Inter,sans-serif;color:#111111"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2.4" stroke-linecap="round"><path d="M5 12l4 4 10-10"></path></svg>Design</div>
+              <div style="width:44px;height:1px;background:#E8E1DA"></div>
+              <div style="height:48px;display:flex;align-items:center;padding:0 22px;border-radius:999px;background:#111111;font:500 15px/1 Sora,Inter,sans-serif;color:#FFFFFF">Change</div>
+              <div style="width:44px;height:1px;background:#E8E1DA"></div>
+              <div style="height:48px;display:flex;align-items:center;padding:0 22px;border-radius:999px;background:#FFFFFF;border:1px solid #E8E1DA;font:500 15px/1 Sora,Inter,sans-serif;color:#6E6E6E">Defend</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <span style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">CRITERION CARD · four band tints</span>
+          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px">
+            <div style="box-sizing:border-box;border-radius:24px;padding:20px;background:#BCEAD4;display:flex;flex-direction:column;gap:10px"><span style="font:500 16px/1.2 Sora,Inter,sans-serif;color:#111111">Encapsulation</span><div style="align-self:flex-start;height:28px;display:flex;align-items:center;gap:5px;padding:0 11px;border-radius:999px;background:#FFFFFF;font:500 12px/1 Sora,Inter,sans-serif;color:#111111"><svg width="12" height="12" viewBox="0 0 24 24" fill="#F2A93B"><path d="M12 4l2.4 5 5.6.6-4.2 3.8 1.2 5.6L12 16.2 7 19l1.2-5.6L4 9.6l5.6-.6z"></path></svg>Band 4</div><span style="font:400 13px/1.45 Sora,Inter,sans-serif;color:#222222">Spot state is only reachable through behaviour.</span></div>
+            <div style="box-sizing:border-box;border-radius:24px;padding:20px;background:#D8D3F6;display:flex;flex-direction:column;gap:10px"><span style="font:500 16px/1.2 Sora,Inter,sans-serif;color:#111111">Class decomposition</span><div style="align-self:flex-start;height:28px;display:flex;align-items:center;padding:0 11px;border-radius:999px;background:#FFFFFF;font:500 12px/1 Sora,Inter,sans-serif;color:#111111">Band 3</div><span style="font:400 13px/1.45 Sora,Inter,sans-serif;color:#222222">Floor and lot both track availability.</span></div>
+            <div style="box-sizing:border-box;border-radius:24px;padding:20px;background:#F8D9B7;display:flex;flex-direction:column;gap:10px"><span style="font:500 16px/1.2 Sora,Inter,sans-serif;color:#111111">Extension points</span><div style="align-self:flex-start;height:28px;display:flex;align-items:center;padding:0 11px;border-radius:999px;background:#FFFFFF;font:500 12px/1 Sora,Inter,sans-serif;color:#111111">Band 2</div><span style="font:400 13px/1.45 Sora,Inter,sans-serif;color:#222222">The change needed an edit, not an addition.</span></div>
+            <div style="box-sizing:border-box;border-radius:24px;padding:20px;background:#F5C6C8;display:flex;flex-direction:column;gap:10px"><span style="font:500 16px/1.2 Sora,Inter,sans-serif;color:#111111">Change locality</span><div style="align-self:flex-start;height:28px;display:flex;align-items:center;padding:0 11px;border-radius:999px;background:#FFFFFF;font:500 12px/1 Sora,Inter,sans-serif;color:#111111">Band 1</div><span style="font:400 13px/1.45 Sora,Inter,sans-serif;color:#222222">Every class was touched by the revision.</span></div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <span style="font:500 14px/1 ui-monospace,Menlo,monospace;color:#6E6E6E">EMPTY STATE · TOAST · SKELETON</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div style="box-sizing:border-box;background:#FFFFFF;border:1px dashed #C9C2BA;border-radius:24px;padding:28px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center">
+              <div style="width:56px;height:56px;border-radius:999px;background:#F3ECE6;display:flex;align-items:center;justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9A9A9A" stroke-width="1.6" stroke-linecap="round"><path d="M12 4a8 8 0 100 16 8 8 0 000-16 M12 8v4l3 2"></path></svg></div>
+              <span style="font:500 18px/1.2 Sora,Inter,sans-serif;color:#111111">No attempts yet</span>
+              <span style="font:400 14px/1.5 Sora,Inter,sans-serif;color:#6E6E6E">Finish one attempt and your bands show up here.</span>
+              <div style="height:48px;display:flex;align-items:center;padding:0 24px;border-radius:999px;background:#111111;font:500 14px/1 Sora,Inter,sans-serif;color:#FFFFFF">Start a problem</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div style="height:60px;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:0 20px;border-radius:999px;background:#111111">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BCEAD4" stroke-width="2.4" stroke-linecap="round"><path d="M5 12l4 4 10-10"></path></svg>
+                <span style="font:500 14px/1 Sora,Inter,sans-serif;color:#FFFFFF">Design submitted · evaluating</span>
+                <div style="flex:1"></div>
+                <span style="font:400 13px/1 Sora,Inter,sans-serif;color:#9A9A9A">Undo</span>
+              </div>
+              <div style="box-sizing:border-box;border-radius:24px;padding:22px;height:180px;background:#F3ECE6;display:flex;flex-direction:column;justify-content:space-between">
+                <div style="display:flex;align-items:center;justify-content:space-between"><div style="width:40px;height:40px;border-radius:999px;background:#EAE2DA"></div><div style="width:84px;height:30px;border-radius:999px;background:#EAE2DA"></div></div>
+                <div style="display:flex;flex-direction:column;gap:8px"><div style="height:18px;width:80%;border-radius:999px;background:#EAE2DA"></div><div style="height:18px;width:55%;border-radius:999px;background:#EAE2DA"></div></div>
+                <div style="height:14px;width:40%;border-radius:999px;background:#EAE2DA"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  renderVals() {
+    const PK = '#F5C6C8', PC = '#F8D9B7', LV = '#D8D3F6', MT = '#BCEAD4';
+    const D = {
+      all: 'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z',
+      structure: 'M12 3 4 8v8l8 5 8-5V8z M12 3v18 M4 8l8 5 8-5',
+      behaviour: 'M4 6h6v5H4z M14 13h6v5h-6z M10 8.5h4v7',
+      change: 'M4 7h11l-3-3 M20 17H9l3 3',
+      rationale: 'M12 4v16 M6 8h12 M6 8 3 14h6z M18 8l-3 6h6z',
+      concurrency: 'M5 6h14 M5 12h14 M5 18h14 M9 3v6 M15 15v6',
+      state: 'M7 5a4 4 0 100 8h10a4 4 0 110 8H7',
+      lock: 'M6 11h12v9H6z M9 11V8a3 3 0 016 0v3',
+      layers: 'M12 4 3 9l9 5 9-5z M3 15l9 5 9-5',
+      clock: 'M12 4a8 8 0 100 16 8 8 0 000-16 M12 8v4l3 2'
+    };
+    const chips = [
+      { label: 'All', d: D.all, active: true },
+      { label: 'Structure', d: D.structure, tint: '#C9767D' },
+      { label: 'Behaviour', d: D.behaviour, tint: '#C98F4E' },
+      { label: 'Change', d: D.change, tint: '#6F68B8' },
+      { label: 'Rationale', d: D.rationale, tint: '#4E9E77' },
+      { label: 'Concurrency', d: D.concurrency, tint: '#C9767D' },
+      { label: 'State machines', d: D.state, tint: '#C98F4E' }
+    ].map(c => ({
+      label: c.label, d: c.d,
+      bg: c.active ? '#111111' : '#FFFFFF',
+      bd: c.active ? '#111111' : '#E8E1DA',
+      fg: c.active ? '#FFFFFF' : '#222222',
+      tint: c.active ? '#111111' : c.tint
+    }));
+
+    const dashProblems = [
+      { cat: 'Structure', d: D.all, fill: PK, title: 'Parking lot with dynamic pricing', meta: '3 attempts · last 2 days ago', band: 'Band 3.2', tag: 'Recommended', concepts: ['Co', 'En', 'Po'] },
+      { cat: 'Concurrency', d: D.concurrency, fill: PC, title: 'Rate limiter', meta: '2 attempts · last 6 days ago', band: 'Band 2.6', concepts: ['Cp', 'In'] },
+      { cat: 'State machines', d: D.state, fill: LV, title: 'Elevator bank scheduler', meta: '1 attempt · in progress', band: 'Band 2.9', concepts: ['St', 'Ab', 'Co'] },
+      { cat: 'Behaviour', d: D.behaviour, fill: MT, title: 'Cache with eviction policy', meta: '2 attempts · last 9 days ago', band: 'Band 3.6', concepts: ['Po', 'Cp'] }
+    ].map(p => ({ ...p, starFill: parseFloat(p.band.replace('Band ', '')) >= 3.5 ? '#F2A93B' : '#D8D3CC' }));
+
+    const bars = [
+      { m: 'Jun', segs: [[26, PK], [18, PC]] },
+      { m: 'Jul', segs: [[34, PK], [20, PC], [14, LV]] },
+      { m: 'Aug', segs: [[22, PK], [16, PC], [12, MT]] },
+      { m: 'Sep', segs: [[44, PK], [26, PC], [18, LV]] },
+      { m: 'Oct', segs: [[30, PK], [22, PC], [16, LV], [12, MT]] },
+      { m: 'Nov', segs: [[38, PK], [18, PC], [22, LV]] },
+      { m: 'Dec', segs: [[48, PK], [30, PC], [24, LV], [14, MT]], cur: true }
+    ].map(b => ({
+      m: b.m,
+      segs: b.segs.map(s => ({ h: s[0] + 'px', c: s[1] })),
+      ring: b.cur ? '2px solid #111111' : '2px solid transparent',
+      pad: b.cur ? '5px' : '0px',
+      labBg: b.cur ? '#111111' : 'transparent',
+      labFg: b.cur ? '#FFFFFF' : '#6E6E6E',
+      labPad: b.cur ? '5px 12px' : '5px 4px'
+    }));
+
+    const legend = [{ c: PK, t: 'Design' }, { c: PC, t: 'Change' }, { c: LV, t: 'Defend' }, { c: MT, t: 'Critique' }];
+    const emptyBars = ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => ({ m, h: (18 + (i % 3) * 8) + 'px' }));
+
+    const loop = [
+      { n: '1', t: 'Design', fill: PK, b: 'Declare your classes, relationships and decisions — then walk three scenarios through the design you just built.' },
+      { n: '2', t: 'Change', fill: PC, b: 'A hidden requirement change is revealed. Revise, and we measure the blast radius across your classes.' },
+      { n: '3', t: 'Defend', fill: LV, b: 'Answer up to three probes in prose. Every finding cites a class or step from your own design.' }
+    ];
+
+    const P4 = [PK, PC, LV, MT];
+    const learnProblems = [
+      { cat: 'Structure', d: D.all, title: 'Parking lot with dynamic pricing', meta: '3 attempts · best 3.2', band: 'Band 3.2' },
+      { cat: 'Concurrency', d: D.concurrency, title: 'Rate limiter', meta: '2 attempts · best 2.6', band: 'Band 2.6' },
+      { cat: 'State machines', d: D.state, title: 'Elevator bank scheduler', meta: 'In progress', band: 'Band 2.9' },
+      { cat: 'Behaviour', d: D.behaviour, title: 'Cache with eviction policy', meta: '2 attempts · best 3.6', band: 'Band 3.6' },
+      { cat: 'Structure', d: D.layers, title: 'Library lending system', meta: '1 attempt · best 3.0', band: 'Band 3.0' },
+      { cat: 'State machines', d: D.state, title: 'Vending machine', meta: '3 attempts · best 3.4', band: 'Band 3.4' },
+      { cat: 'Rationale', d: D.rationale, title: 'Food delivery dispatch', meta: 'Not attempted', band: 'Coming soon', soon: true },
+      { cat: 'Behaviour', d: D.behaviour, title: 'Chess move validator', meta: 'Not attempted', band: 'Coming soon', soon: true },
+      { cat: 'Change', d: D.change, title: 'Feature flag service', meta: 'Not attempted', band: 'Coming soon', soon: true }
+    ].map((p, i) => ({
+      ...p,
+      fill: p.soon ? '#FFFFFF' : P4[i % 4],
+      bd: p.soon ? '#E8E1DA' : 'transparent',
+      pillBg: p.soon ? '#F1EEEA' : '#FFFFFF',
+      pillFg: p.soon ? '#6E6E6E' : '#111111',
+      concepts: p.soon ? [] : [['Co', 'En'], ['Cp', 'In'], ['St', 'Ab'], ['Po', 'Cp'], ['En', 'Co'], ['St', 'Po']][i % 6]
+    }));
+
+    const learnStats = [
+      { v: '5/8', t: 'Problems played', c: LV },
+      { v: '14', t: 'Attempts logged', c: PK },
+      { v: '3.1', t: 'Median band', c: MT }
+    ];
+    const groups = [{ c: PK, t: 'Structure' }, { c: PC, t: 'Behaviour' }, { c: LV, t: 'Change' }, { c: MT, t: 'Rationale' }];
+
+    const bigBars = bars.map(b => ({ ...b, segs: b.segs.map(s => ({ c: s.c, h: Math.round(parseFloat(s.h) * 2.1) + 'px' })) }));
+
+    const C = 2 * Math.PI * 19;
+    const concepts = [
+      { n: 'Cohesion', b: 'One class, one reason to exist.', m: 3.4, fill: PK, d: D.all },
+      { n: 'Coupling', b: 'How much a change here forces a change there.', m: 2.4, fill: PC, d: D.change },
+      { n: 'Encapsulation', b: 'State is reachable only through behaviour.', m: 3.6, fill: LV, d: D.lock },
+      { n: 'Polymorphism', b: 'Same call, different implementations.', m: 3.1, fill: MT, d: D.behaviour },
+      { n: 'Abstraction', b: 'Name the idea, hide the mechanism.', m: 2.9, fill: PK, d: D.layers },
+      { n: 'Composition', b: 'Assemble behaviour instead of inheriting it.', m: 3.2, fill: PC, d: D.structure },
+      { n: 'Single responsibility', b: 'One axis of change per class.', m: 2.8, fill: LV, d: D.all },
+      { n: 'Open / closed', b: 'Extend by adding, not by editing.', m: 2.2, fill: MT, d: D.change },
+      { n: 'Interface segregation', b: 'Callers depend only on what they use.', m: 3.0, fill: PK, d: D.layers },
+      { n: 'Dependency inversion', b: 'Point both sides at the abstraction.', m: 2.6, fill: PC, d: D.structure },
+      { n: 'Invariants', b: 'Truths the object refuses to break.', m: 3.3, fill: LV, d: D.lock },
+      { n: 'State modelling', b: 'Legal states and legal transitions.', m: 3.5, fill: MT, d: D.state }
+    ].map(c => ({ ...c, m: c.m.toFixed(1), dash: (C * (c.m / 4)).toFixed(1) + ' ' + C.toFixed(1) }));
+
+    const weakest = [{ n: 'Open / closed', m: '2.2', c: PK }, { n: 'Coupling', m: '2.4', c: PK }, { n: 'Dependency inversion', m: '2.6', c: PC }];
+    const strongest = [{ n: 'Encapsulation', m: '3.6', c: MT }, { n: 'State modelling', m: '3.5', c: MT }, { n: 'Cohesion', m: '3.4', c: LV }];
+
+    const bandFill = { 4: MT, 3: LV, 2: PC, 1: PK };
+    const criteria = [
+      { n: 'Class decomposition', b: 3, s: '0,18 20,14 40,10 60,9 80,6', r: false },
+      { n: 'Responsibility fit', b: 3, s: '0,16 20,15 40,11 60,12 80,8', r: false },
+      { n: 'Encapsulation', b: 4, s: '0,14 20,10 40,8 60,5 80,3', r: false },
+      { n: 'Extension points', b: 2, s: '0,10 20,13 40,12 60,16 80,15', r: true },
+      { n: 'Scenario walkthrough', b: 3, s: '0,17 20,12 40,13 60,8 80,7', r: false },
+      { n: 'Change locality', b: 2, s: '0,12 20,14 40,15 60,13 80,16', r: true },
+      { n: 'Trade-off rationale', b: 3, s: '0,19 20,16 40,12 60,10 80,9', r: false },
+      { n: 'Defence under probing', b: 4, s: '0,15 20,11 40,9 60,6 80,4', r: false }
+    ].map(c => ({ ...c, fill: bandFill[c.b], band: 'Band ' + c.b, star: c.b >= 3.5 ? '#F2A93B' : 'none' }));
+
+    const pstats = [
+      { v: '5/8', t: 'Problems played', c: PK },
+      { v: '14', t: 'Attempts', c: PC },
+      { v: '6/8', t: 'Criteria at par', c: LV },
+      { v: '12', t: 'Day streak', c: MT }
+    ];
+
+    const reportCards = [
+      { n: 'Class decomposition', b: 3, c: 'Floor and lot both track spot availability.', s: 'Let Floor own its spots and have ParkingLot ask.', e: 'ParkingLot.findSpot' },
+      { n: 'Responsibility fit', b: 3, c: 'Ticket writes its own fee total.', s: 'Move the total onto the pricing call and keep Ticket a record.', e: 'Ticket.closeOut' },
+      { n: 'Encapsulation', b: 4, c: 'Spot state is only reachable through occupy and release.', s: 'Hold this pattern when you add reservations.', e: 'Spot.occupy' },
+      { n: 'Extension points', b: 2, c: 'Weekend surge needed an edit to an existing method.', s: 'Name a PricingStrategy seam before the change stage.', e: 'ParkingLot.calculateFee' },
+      { n: 'Scenario walkthrough', b: 3, c: 'Scenario 3 skipped the full-lot branch.', s: 'Walk the rejection path, not just the happy path.', e: 'Step 6 · assignSpot' },
+      { n: 'Change locality', b: 2, c: 'The change touched 4 of 6 classes.', s: 'Aim for one new class and one edited call site.', e: 'ParkingLot.assignSpot' },
+      { n: 'Trade-off rationale', b: 3, c: 'Decision log named the choice but not the cost.', s: 'Say what you gave up, in one line, per decision.', e: 'Decision 2' },
+      { n: 'Defence under probing', b: 4, c: 'Held the line on why Floor exists at all.', s: 'Reuse that framing on the elevator problem.', e: 'Probe 1' }
+    ].map(x => ({ ...x, fill: bandFill[x.b], band: 'Band ' + x.b, star: x.b >= 3.5 ? '#F2A93B' : 'none' }));
+
+    const diff = [
+      { t: '+ PricingStrategy (interface)', c: MT },
+      { t: '+ WeekendSurgePricing', c: MT },
+      { t: '~ ParkingLot.calculateFee → delegates', c: PC },
+      { t: '~ Ticket.closeOut → reads total', c: PC },
+      { t: '− FeeTable constant block', c: PK }
+    ];
+    const v1 = [
+      { t: 'ParkingLot', c: '#FBF8F5' },
+      { t: 'Floor', c: '#FBF8F5' },
+      { t: 'Spot', c: '#FBF8F5' },
+      { t: 'Ticket', c: '#FBF8F5' },
+      { t: 'FeeTable', c: PK },
+      { t: 'Vehicle', c: '#FBF8F5' }
+    ];
+    const v2 = [
+      { t: 'ParkingLot', c: PC },
+      { t: 'Floor', c: '#FBF8F5' },
+      { t: 'Spot', c: '#FBF8F5' },
+      { t: 'Ticket', c: PC },
+      { t: 'PricingStrategy', c: MT },
+      { t: 'WeekendSurgePricing', c: MT },
+      { t: 'Vehicle', c: '#FBF8F5' }
+    ];
+    const submitted = ['ParkingLot', 'Floor', 'Spot', 'Ticket', 'PricingStrategy', 'Vehicle'].map(n => ({
+      n, bg: n === 'ParkingLot' ? '#FFFFFF' : '#FFFFFF', bd: n === 'ParkingLot' ? '2px solid #111111' : '1px solid #F1EEEA',
+      meta: { ParkingLot: 'assignSpot · releaseSpot · calculateFee', Floor: 'spotsFor · hasFree', Spot: 'occupy · release', Ticket: 'issue · closeOut', PricingStrategy: 'priceFor', Vehicle: 'size' }[n]
+    }));
+
+    const history = [
+      { p: 'Cache with eviction policy', d: '2 days ago', b: 3.6, st: [1, 1, 1], f: MT },
+      { p: 'Parking lot with dynamic pricing', d: '4 days ago', b: 3.1, st: [1, 1, 1], f: LV },
+      { p: 'Elevator bank scheduler', d: '5 days ago', b: null, st: [1, 1, 0], f: '#F1EEEA' },
+      { p: 'Vending machine', d: '1 week ago', b: 3.4, st: [1, 1, 1], f: LV },
+      { p: 'Rate limiter', d: '2 weeks ago', b: 2.6, st: [1, 1, 1], f: PC },
+      { p: 'Library lending system', d: '3 weeks ago', b: 3.0, st: [1, 1, 1], f: LV },
+      { p: 'Rate limiter', d: '3 weeks ago', b: 2.2, st: [1, 1, 1], f: PK }
+    ].map(h => ({ ...h, band: h.b ? 'Band ' + h.b.toFixed(1) : 'Incomplete', star: h.b && h.b >= 3.5 ? '#F2A93B' : 'none', dots: h.st.map(v => ({ c: v ? '#111111' : 'transparent', bd: v ? '#111111' : '#C9C2BA' })) }));
+
+    const pClasses = [
+      { n: 'ParkingLot', f: 'assignSpot(vehicle) · releaseSpot(ticket) · calculateFee(ticket)', fill: PK },
+      { n: 'Floor', f: 'spotsFor(size) · hasFree()', fill: PC },
+      { n: 'Spot', f: 'occupy(vehicle) · release()', fill: LV },
+      { n: 'Ticket', f: 'issue(spot) · closeOut(now)', fill: MT }
+    ];
+    const walkthrough = ['ParkingLot ▸ assignSpot', 'Floor ▸ spotsFor', 'Spot ▸ occupy', 'Ticket ▸ issue', 'ParkingLot ▸ calculateFee', 'Ticket ▸ closeOut'].map((t, i) => ({ t, i: i + 1 }));
+    const stages = [
+      { t: 'Design', bg: MT, fg: '#111111', done: true },
+      { t: 'Change', bg: '#111111', fg: '#FFFFFF', done: false },
+      { t: 'Defend', bg: '#FFFFFF', fg: '#6E6E6E', done: false }
+    ];
+
+    return { reportCards, diff, v1, v2, submitted, history, pClasses, walkthrough, stages, chips, dashProblems, bars, bigBars, legend, emptyBars, loop, learnProblems, learnStats, groups, concepts, weakest, strongest, criteria, pstats };
+  }
+}
+</script>
+</body>
+</html>

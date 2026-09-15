@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { applyTheme, readThemeChoice, type ThemeChoice } from '@/lib/theme'
+import { useIdentity } from '@/components/IdentityGate'
 
 const CHOICES: Array<{ value: ThemeChoice; label: string; glyph: string }> = [
   { value: 'light', label: 'Light', glyph: '☀' },
@@ -26,6 +27,7 @@ const NAV: Array<{ href: string; label: string; match: (p: string) => boolean }>
 
 export function TopBar() {
   const pathname = usePathname()
+  const { learner, switchLearner } = useIdentity()
   const [choice, setChoice] = useState<ThemeChoice>('system')
   const [mounted, setMounted] = useState(false)
 
@@ -83,7 +85,15 @@ export function TopBar() {
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1 rounded-xl border border-line bg-surface p-1">
+        {/* Who this is, and the way a facilitator hands the keyboard to the next person. */}
+        <div className="ml-auto hidden items-center gap-2 text-xs text-ink-muted sm:flex">
+          <span className="max-w-[140px] truncate" title={learner.name}>{learner.name}</span>
+          <button onClick={switchLearner} className="btn-quiet !px-2 !py-1 !text-xs" title="Switch to a different learner on this device">
+            Switch
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1 rounded-xl border border-line bg-surface p-1 sm:ml-0 ml-auto">
           {CHOICES.map((option) => {
             const active = mounted && choice === option.value
             return (

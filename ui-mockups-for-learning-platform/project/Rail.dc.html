@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="width:128px;height:100%;box-sizing:border-box;background:#F3ECE6;border-radius:32px;padding:26px 0 24px;display:flex;flex-direction:column;align-items:center;gap:16px;font-family:Sora,Inter,sans-serif">
+  <svg width="28" height="28" viewBox="0 0 24 24" style="margin-bottom:10px"><path d="M4 20 12 4l8 16z" fill="#111111"></path><circle cx="12" cy="15" r="2.4" fill="#FBF8F5"></circle></svg>
+  <sc-for list="{{ items }}" as="it" hint-placeholder-count="6">
+    <div style="position:relative">
+      <div style="width:64px;height:64px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:{{ it.bg }};border:1px solid #E8E1DA">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{ it.fg }}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="{{ it.d }}"></path></svg>
+      </div>
+      <sc-if value="{{ it.dot }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;top:2px;right:2px;width:10px;height:10px;border-radius:999px;background:#F07A8A"></div>
+      </sc-if>
+    </div>
+  </sc-for>
+  <div style="flex:1;min-height:24px"></div>
+  <div style="width:64px;height:64px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:#FFFFFF;border:1px solid #E8E1DA">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" stroke-width="1.6" stroke-linecap="round"><path d="M12 9a3 3 0 100 6 3 3 0 000-6 M12 3v3 M12 18v3 M3 12h3 M18 12h3 M6.2 6.2l2.1 2.1 M15.7 15.7l2.1 2.1 M17.8 6.2l-2.1 2.1 M8.3 15.7l-2.1 2.1"></path></svg>
+  </div>
+  <div style="width:64px;height:64px;border-radius:999px;background:#D8D3F6;border:3px solid #EDEAFB;display:flex;align-items:center;justify-content:center;font:500 18px Sora,Inter,sans-serif;color:#111111">AK</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:176,&quot;height&quot;:900},&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;critique&quot;,&quot;home&quot;,&quot;learn&quot;,&quot;concepts&quot;,&quot;progress&quot;,&quot;history&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;dot&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const D = {
+      critique: 'M4 4h11v11H4z M9 9h11v11H9z',
+      home: 'M4 11 12 4l8 7v9H4z',
+      learn: 'M5 4h9a2 2 0 012 2v14H7a2 2 0 00-2 2z M19 6v14',
+      concepts: 'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z',
+      progress: 'M4 20h16 M7.5 17v-5 M12 17V7 M16.5 17v-8',
+      history: 'M12 4a8 8 0 100 16 8 8 0 000-16 M12 8v4l3 2'
+    };
+    const active = this.props.active || 'home';
+    const keys = ['critique', 'home', 'learn', 'concepts', 'progress', 'history'];
+    return {
+      items: keys.map(k => ({
+        d: D[k],
+        bg: k === active ? '#111111' : '#FFFFFF',
+        fg: k === active ? '#FFFFFF' : '#222222',
+        dot: k === 'critique' && this.props.dot !== false
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

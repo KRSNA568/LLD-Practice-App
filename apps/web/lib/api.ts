@@ -1,3 +1,5 @@
+import { LEARNER_HEADER } from '@lld/contracts'
+import { clearLearner, readLearner } from './identity'
 import type {
   ApiError,
   Attempt,
@@ -9,6 +11,7 @@ import type {
   CritiqueVerdict,
   DialogueTurn,
   EvaluationReport,
+  LearnerPayload,
   NextProblemSuggestion,
   ProblemSummary,
   PublicCritiquePair,
@@ -30,9 +33,14 @@ export class ApiRequestError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const learner = typeof window === 'undefined' ? null : readLearner()
   const response = await fetch(`/api${path}`, {
     ...init,
-    headers: { 'content-type': 'application/json', ...init?.headers },
+    headers: {
+      'content-type': 'application/json',
+      ...(learner ? { [LEARNER_HEADER]: learner.id } : {}),
+      ...init?.headers,
+    },
     cache: 'no-store',
   })
 
@@ -40,6 +48,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   const payload = await response.json().catch(() => null)
   if (!response.ok) {
+    // The stored id names nobody on this API (a reset, or a different instance):
+    // forget it and let the identity gate ask again, rather than every page failing.
+    if (response.status === 401 && (payload as ApiError | null)?.error.code === 'UNKNOWN_LEARNER') {
+      clearLearner()
+      window.location.reload()
+    }
     throw new ApiRequestError(
       response.status,
       (payload as ApiError | null)?.error ?? { code: 'INTERNAL', message: 'Request failed' },
@@ -57,6 +71,9 @@ export type HistoryPayload = {
 }
 
 export const api = {
+  createLearner: (name: string) =>
+    request<LearnerPayload>('/learners', { method: 'POST', body: JSON.stringify({ name }) }),
+
   getProgress: () => request<ProgressPayload>('/learners/me/progress'),
 
   getConcepts: () => request<ConceptsPayload>('/concepts'),

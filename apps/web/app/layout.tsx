@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { THEME_BOOTSTRAP } from '@/lib/theme'
 import { TopBar } from '@/components/TopBar'
+import { IdentityGate } from '@/components/IdentityGate'
 
 export const metadata: Metadata = {
   title: 'Deliberate — LLD practice',
@@ -18,8 +19,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
       </head>
       <body className="min-h-screen">
-        <TopBar />
-        <main className="mx-auto w-full max-w-6xl px-5 pb-24 pt-6">{children}</main>
+        <IdentityGate>
+          <TopBar />
+          <main className="mx-auto w-full max-w-6xl px-5 pb-24 pt-6">{children}</main>
+        </IdentityGate>
       </body>
     </html>
   )
