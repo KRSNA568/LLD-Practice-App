@@ -44,10 +44,11 @@ API loads it at startup):
 | Ollama (local) | unlimited | `LLD_LLM_PROVIDER=ollama` | `llama3.1` |
 | Anthropic | paid | `ANTHROPIC_API_KEY=sk-ant-…` | `claude-opus-5` |
 
-Groq's free tier is also capped at 200k tokens/day per model (1,000 requests/day on the 120b
-scorer) on top of the 8k tokens/minute limit above — a full attempt (design + change + defend,
-plus mentor notes and follow-ups) runs 15k–20k tokens across both models, so plan on roughly
-10 full attempts per model per day before it waits out the reset.
+Groq's free tier is also capped at 200k tokens/day per model on top of the 8k tokens/minute
+limit above. A full attempt (design + change + defend, mentor notes, follow-ups, one lesson) was
+measured at 15–18k tokens: about 40% on the scorer, 60% on the mentor. That makes the mentor model
+the binding constraint at roughly 19 full attempts a day, and the per-minute limit means one
+learner at a time. The measurement is in [FINDINGS-01.md](FINDINGS-01.md) §5.
 
 `LLD_LLM_PROVIDER` picks explicitly when more than one key is present; `LLD_LLM_MODEL` overrides
 the model; `LLD_FORCE_STUB=1` keeps the heuristic regardless. The startup log and `/api/health`
@@ -59,7 +60,7 @@ npx tsx apps/api/scripts/live-llm.ts god-class defend   # exercise the live prov
 ```
 
 ```bash
-npm test         # 220 tests, including a calibration suite over 26 gold designs across 8 problems
+npm test         # 235 tests, including a calibration suite over 26 gold designs across 8 problems
 npm run typecheck
 ```
 

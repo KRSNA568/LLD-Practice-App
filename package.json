@@ -18,7 +18,10 @@
     "seed": "npm run seed --workspace @lld/api",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc -b apps/api packages/contracts --pretty"
+    "typecheck": "tsc -b apps/api packages/contracts --pretty",
+    "gate": "vitest run tests/evaluation/Calibration.test.ts tests/evaluation/Adversarial.test.ts && npm run typecheck",
+    "check": "npm run typecheck && vitest run",
+    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
@@ -28,4 +31,3 @@
     "vitest": "^2.1.5"
   }
 }
-

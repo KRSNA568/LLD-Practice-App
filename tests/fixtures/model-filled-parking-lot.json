@@ -1,0 +1,395 @@
+{
+  "generatedBy": "groq:openai/gpt-oss-120b",
+  "generatedAt": "2026-09-15T19:18:54.113Z",
+  "prompt": "public problem + form shape, \"make it a good design — this is graded\"",
+  "design": {
+    "assumptions": [
+      "Only one entry and one exit gate are modeled",
+      "System clock provides entry/exit timestamps",
+      "All payments are cash and handled instantly",
+      "Vehicle size never changes while parked",
+      "Parking lot operates in a single‑threaded environment"
+    ],
+    "classes": [
+      {
+        "name": "ParkingLot",
+        "stereotype": "class",
+        "responsibility": "Manages floors and overall parking operations",
+        "attributes": [
+          "floors: List<Floor>",
+          "entryGate: EntryGate",
+          "exitGate: ExitGate",
+          "ratePolicy: RatePolicy"
+        ],
+        "methods": [
+          "parkVehicle(Vehicle): Ticket",
+          "unparkVehicle(Ticket): double",
+          "findSpot(Vehicle): ParkingSpot"
+        ]
+      },
+      {
+        "name": "Floor",
+        "stereotype": "class",
+        "responsibility": "Represents a single level in the parking lot",
+        "attributes": [
+          "level: int",
+          "spots: List<ParkingSpot>"
+        ],
+        "methods": [
+          "findAvailableSpot(Vehicle): ParkingSpot"
+        ]
+      },
+      {
+        "name": "ParkingSpot",
+        "stereotype": "class",
+        "responsibility": "Holds a vehicle of appropriate size",
+        "attributes": [
+          "id: String",
+          "size: SpotSize",
+          "occupied: boolean",
+          "vehicle: Vehicle"
+        ],
+        "methods": [
+          "canFit(Vehicle): boolean",
+          "park(Vehicle): void",
+          "unpark(): void"
+        ]
+      },
+      {
+        "name": "Vehicle",
+        "stereotype": "abstract",
+        "responsibility": "Base class for all vehicle types",
+        "attributes": [
+          "licensePlate: String",
+          "type: VehicleType",
+          "entryTime: LocalDateTime"
+        ],
+        "methods": [
+          "getSize(): SpotSize",
+          "calculateFee(Duration): double"
+        ]
+      },
+      {
+        "name": "Motorcycle",
+        "stereotype": "class",
+        "responsibility": "Concrete vehicle for motorcycles",
+        "attributes": [],
+        "methods": []
+      },
+      {
+        "name": "Car",
+        "stereotype": "class",
+        "responsibility": "Concrete vehicle for cars",
+        "attributes": [],
+        "methods": []
+      },
+      {
+        "name": "Truck",
+        "stereotype": "class",
+        "responsibility": "Concrete vehicle for trucks",
+        "attributes": [],
+        "methods": []
+      },
+      {
+        "name": "Ticket",
+        "stereotype": "class",
+        "responsibility": "Tracks parking session and payment",
+        "attributes": [
+          "ticketId: String",
+          "vehicle: Vehicle",
+          "spot: ParkingSpot",
+          "entryTime: LocalDateTime",
+          "exitTime: LocalDateTime"
+        ],
+        "methods": [
+          "close(exitTime: LocalDateTime): void",
+          "getDuration(): Duration"
+        ]
+      },
+      {
+        "name": "EntryGate",
+        "stereotype": "class",
+        "responsibility": "Handles vehicle entry and spot allocation",
+        "attributes": [
+          "parkingLot: ParkingLot"
+        ],
+        "methods": [
+          "processEntry(Vehicle): Ticket"
+        ]
+      },
+      {
+        "name": "ExitGate",
+        "stereotype": "class",
+        "responsibility": "Handles vehicle exit and payment",
+        "attributes": [
+          "parkingLot: ParkingLot",
+          "paymentProcessor: PaymentProcessor"
+        ],
+        "methods": [
+          "processExit(Ticket): double"
+        ]
+      },
+      {
+        "name": "PaymentProcessor",
+        "stereotype": "interface",
+        "responsibility": "Defines payment handling",
+        "attributes": [],
+        "methods": [
+          "pay(amount: double): void"
+        ]
+      },
+      {
+        "name": "CashPaymentProcessor",
+        "stereotype": "class",
+        "responsibility": "Implements cash payment",
+        "attributes": [],
+        "methods": [
+          "pay(amount: double): void"
+        ]
+      },
+      {
+        "name": "SpotSize",
+        "stereotype": "enum",
+        "responsibility": "Enumerates spot dimensions",
+        "attributes": [
+          "SMALL",
+          "MEDIUM",
+          "LARGE"
+        ],
+        "methods": []
+      },
+      {
+        "name": "VehicleType",
+        "stereotype": "enum",
+        "responsibility": "Enumerates supported vehicle categories",
+        "attributes": [
+          "MOTORCYCLE",
+          "CAR",
+          "TRUCK"
+        ],
+        "methods": []
+      },
+      {
+        "name": "RatePolicy",
+        "stereotype": "class",
+        "responsibility": "Provides hourly rates per vehicle type",
+        "attributes": [
+          "rates: Map<VehicleType, double>"
+        ],
+        "methods": [
+          "getRate(VehicleType): double"
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "from": "ParkingLot",
+        "to": "Floor",
+        "kind": "has-a"
+      },
+      {
+        "from": "ParkingLot",
+        "to": "EntryGate",
+        "kind": "has-a"
+      },
+      {
+        "from": "ParkingLot",
+        "to": "ExitGate",
+        "kind": "has-a"
+      },
+      {
+        "from": "Floor",
+        "to": "ParkingSpot",
+        "kind": "has-a"
+      },
+      {
+        "from": "ParkingSpot",
+        "to": "Vehicle",
+        "kind": "has-a"
+      },
+      {
+        "from": "Vehicle",
+        "to": "Ticket",
+        "kind": "uses"
+      },
+      {
+        "from": "EntryGate",
+        "to": "ParkingLot",
+        "kind": "uses"
+      },
+      {
+        "from": "ExitGate",
+        "to": "ParkingLot",
+        "kind": "uses"
+      },
+      {
+        "from": "ExitGate",
+        "to": "PaymentProcessor",
+        "kind": "uses"
+      },
+      {
+        "from": "CashPaymentProcessor",
+        "to": "PaymentProcessor",
+        "kind": "implements"
+      },
+      {
+        "from": "Motorcycle",
+        "to": "Vehicle",
+        "kind": "extends"
+      },
+      {
+        "from": "Car",
+        "to": "Vehicle",
+        "kind": "extends"
+      },
+      {
+        "from": "Truck",
+        "to": "Vehicle",
+        "kind": "extends"
+      },
+      {
+        "from": "Vehicle",
+        "to": "RatePolicy",
+        "kind": "uses"
+      },
+      {
+        "from": "ParkingLot",
+        "to": "RatePolicy",
+        "kind": "uses"
+      }
+    ],
+    "tradeoffs": "The design favors simplicity and clarity over concurrency support and advanced pricing schemes; cash‑only payment eliminates card handling but makes future extension to multiple payment methods require additional refactoring, and the first‑fit spot allocation is fast but may lead to sub‑optimal space utilization.",
+    "decisions": [
+      {
+        "what": "Spot allocation algorithm",
+        "alternative": "Best‑fit across all floors",
+        "why": "First‑fit per floor is O(n) and easy to implement for a single‑threaded prototype"
+      },
+      {
+        "what": "Payment method",
+        "alternative": "Support credit‑card and mobile payments",
+        "why": "Cash only matches the given constraint and keeps the payment processor simple"
+      },
+      {
+        "what": "Vehicle‑to‑spot size mapping",
+        "alternative": "Allow trucks to occupy multiple car spots",
+        "why": "One‑to‑one mapping simplifies the ParkingSpot model for this exercise"
+      },
+      {
+        "what": "Identifier generation for Ticket",
+        "alternative": "Sequential numeric IDs with database persistence",
+        "why": "UUIDs are stateless and avoid collision in a single‑node, in‑memory context"
+      },
+      {
+        "what": "Concurrency handling",
+        "alternative": "Locking or atomic operations on spot state",
+        "why": "The problem explicitly states a single‑threaded environment, so we omit synchronization"
+      }
+    ],
+    "walkthroughs": [
+      {
+        "scenarioId": "sc-enter",
+        "steps": [
+          {
+            "className": "EntryGate",
+            "method": "processEntry",
+            "note": "Vehicle arrives at gate"
+          },
+          {
+            "className": "ParkingLot",
+            "method": "findSpot",
+            "note": "Searches floors for first suitable spot"
+          },
+          {
+            "className": "Floor",
+            "method": "findAvailableSpot",
+            "note": "Iterates over spots on that floor"
+          },
+          {
+            "className": "ParkingSpot",
+            "method": "canFit",
+            "note": "Checks size compatibility"
+          },
+          {
+            "className": "ParkingSpot",
+            "method": "park",
+            "note": "Marks spot occupied and stores vehicle reference"
+          },
+          {
+            "className": "Ticket",
+            "method": "<init>",
+            "note": "Creates ticket with entry timestamp"
+          },
+          {
+            "className": "EntryGate",
+            "method": "processEntry",
+            "note": "Returns ticket to driver"
+          }
+        ],
+        "outcome": "ok"
+      },
+      {
+        "scenarioId": "sc-exit-pay",
+        "steps": [
+          {
+            "className": "ExitGate",
+            "method": "processExit",
+            "note": "Driver presents ticket"
+          },
+          {
+            "className": "Ticket",
+            "method": "getDuration",
+            "note": "Computes parked duration"
+          },
+          {
+            "className": "Vehicle",
+            "method": "calculateFee",
+            "note": "Uses RatePolicy to compute fee based on vehicle type"
+          },
+          {
+            "className": "PaymentProcessor",
+            "method": "pay",
+            "note": "Cash payment collected"
+          },
+          {
+            "className": "ParkingSpot",
+            "method": "unpark",
+            "note": "Frees the spot for future use"
+          },
+          {
+            "className": "Ticket",
+            "method": "close",
+            "note": "Records exit time and finalizes ticket"
+          }
+        ],
+        "outcome": "ok"
+      },
+      {
+        "scenarioId": "sc-full",
+        "steps": [
+          {
+            "className": "EntryGate",
+            "method": "processEntry",
+            "note": "Motorcycle arrives"
+          },
+          {
+            "className": "ParkingLot",
+            "method": "findSpot",
+            "note": "Attempts to locate a free motorcycle spot"
+          },
+          {
+            "className": "Floor",
+            "method": "findAvailableSpot",
+            "note": "No suitable spot found on any floor"
+          },
+          {
+            "className": "EntryGate",
+            "method": "processEntry",
+            "note": "Returns null/throws RefusedEntryException indicating entry denied"
+          }
+        ],
+        "outcome": "refused"
+      }
+    ]
+  }
+}

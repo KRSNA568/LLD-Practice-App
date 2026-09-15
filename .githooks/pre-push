@@ -1,0 +1,14 @@
+#!/bin/sh
+# The merge gate, run before anything leaves this machine.
+#
+# Calibration is the crown jewel: it is the only thing standing between a prompt or
+# rule tweak and silently invalidating every score in the database. The adversarial
+# corpus pins the known holes so they cannot widen. Both run in about a second.
+# Skip deliberately with `git push --no-verify`, and say why in the commit.
+echo "gate: calibration + adversarial + typecheck"
+npm run --silent gate || {
+  echo
+  echo "gate failed — a gold design left its band, an adversarial pin moved, or types broke."
+  echo "Fix it, or push with --no-verify and explain in the commit message."
+  exit 1
+}

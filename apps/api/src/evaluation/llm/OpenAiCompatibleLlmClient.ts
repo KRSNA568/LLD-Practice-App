@@ -142,6 +142,22 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
       throw new LlmUnavailableError(`${this.id} returned no text content`)
     }
 
+    // One structured line per call, opt-in. The evaluator persists its tokens on
+    // the Evaluation row; the mentor paths do not persist theirs anywhere yet, so
+    // this is currently the only way to see what an attempt costs end to end.
+    if (process.env.LLD_LLM_LOG_USAGE === '1' && payload.usage) {
+      const task = request.user.split('\n', 1)[0]?.slice(0, 40) ?? ''
+      console.log(
+        JSON.stringify({
+          llmUsage: true,
+          model: this.id,
+          task,
+          inputTokens: payload.usage.prompt_tokens ?? 0,
+          outputTokens: payload.usage.completion_tokens ?? 0,
+        }),
+      )
+    }
+
     return {
       text,
       usage: payload.usage

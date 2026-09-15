@@ -1,0 +1,39 @@
+name: ci
+
+# Two jobs on purpose. `gate` is the merge blocker and finishes in seconds;
+# `check` is the whole suite. A red gate means scores moved; a red check means
+# something else broke. Keeping them apart makes the failure legible.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  gate:
+    name: calibration + adversarial + typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate --schema apps/api/prisma/schema.prisma
+      - run: npm run gate
+
+  check:
+    name: full suite
+    runs-on: ubuntu-latest
+    needs: gate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate --schema apps/api/prisma/schema.prisma
+      - run: npm run check
+        env:
+          LLD_FORCE_STUB: '1'

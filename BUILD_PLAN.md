@@ -15,7 +15,7 @@ start now. Phases 3 onward are bets on the answer being yes, so they wait for it
 
 | # | Phase | Ends with | Needs from you | Size | Status |
 |---|---|---|---|---|---|
-| 1 | Evidence without asking anyone | A findings document | Nothing | 1 session | ⬜ |
+| 1 | Evidence without asking anyone | [FINDINGS-01.md](FINDINGS-01.md) | Nothing | 1 session | ✅ |
 | 2 | Make the study runnable | Six sessions you can run | Nothing | 1 session | ⬜ |
 | 3 | Reachable | A link you can send | Go-ahead after the study | 1 session | ⬜ |
 | 4 | Safe for strangers | Closed beta can open | Go-ahead | 2 sessions | ⬜ |
@@ -23,7 +23,7 @@ start now. Phases 3 onward are bets on the answer being yes, so they wait for it
 
 ---
 
-## Phase 1 — Evidence without asking anyone ⬜
+## Phase 1 — Evidence without asking anyone ✅
 
 **Why this is first.** PRODUCT_PLAN puts validity ahead of everything, and every validity study
 looked like it needed recruiting. One does not. **V4, adversarial resistance, is pure engineering**
@@ -56,6 +56,10 @@ policy question the model-filled form raises. This is the first page of Phase 0 
 costs nothing but my time.
 
 **Done when:** the corpus runs in CI, and you can read what the engine is and is not resistant to.
+
+**Done, 16 Sept 2026.** Fifteen adversarial tests, two attempts costed, an empty-design scoring
+defect fixed, and the gate wired. Three decisions raised in FINDINGS-01 §8; one of them (mentor token
+persistence) is recommended for Phase 2.
 
 ---
 

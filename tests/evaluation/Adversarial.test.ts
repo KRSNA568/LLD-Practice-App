@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import type { DesignModel } from '@lld/contracts'
 import { RuleEvaluator } from '../../apps/api/src/evaluation/rules/RuleEvaluator.js'
@@ -139,11 +140,7 @@ describe('A. vocabulary attacks on requirement coverage', () => {
 
 describe('B. a strong design pasted in from another problem', () => {
   it('DEFENCE: vending-machine work scores near zero against the parking-lot brief', async () => {
-    const vending = JSON.parse(
-      JSON.stringify(
-        (await import('node:fs')).readFileSync(new URL('../../content/problems/vending-machine.json', import.meta.url), 'utf8'),
-      ),
-    ) as string
+    const vending = readFileSync(new URL('../../content/problems/vending-machine.json', import.meta.url), 'utf8')
     const foreign = (JSON.parse(vending) as { goldDesigns: Record<string, DesignModel> }).goldDesigns['strong']!
     const scores = await measure(foreign)
     // Authored per-requirement keywords are what make this fail properly: the design
@@ -309,6 +306,40 @@ describe('F. a change-stage revision that only renames', () => {
     const blast = results.find((r) => r.criterionId === 'change-resilience')
     expect(blast).toBeDefined()
     expect(blast!.score).toBeLessThanOrEqual(1)
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* H. The form filled in by a model                                    */
+/* ------------------------------------------------------------------ */
+
+describe('H. a design a model wrote from the public problem', () => {
+  // Generated once by `apps/api/scripts/model-fill-form.ts`: the strongest model on
+  // the free tier, given exactly what a learner sees and told "make it a good
+  // design — this is graded". Saved as a fixture so this pins without a network.
+  const fixture = JSON.parse(
+    readFileSync(new URL('../fixtures/model-filled-parking-lot.json', import.meta.url), 'utf8'),
+  ) as { generatedBy: string; design: DesignModel }
+
+  it('DEFENCE: scores well below the gold design, for specific structural reasons', async () => {
+    const results = await evaluator.evaluate(designCtx(fixture.design))
+    const scores = Object.fromEntries(results.map((r) => [r.criterionId, r.score]))
+    // n=1, one model, one prompt, one problem. What it shows is not "AI is detected"
+    // but that a plausible-looking design written from a brief makes exactly the
+    // mistakes the engine measures. The concerns below are real faults in the
+    // fixture, not artefacts.
+    expect(composite(scores)).toBeLessThan(2.5)
+    const coupling = results.find((r) => r.criterionId === 'coupling-cohesion')!
+    expect(coupling.concern).toMatch(/cycle/i)
+    const abstraction = results.find((r) => r.criterionId === 'abstraction-use')!
+    expect(abstraction.score).toBeLessThanOrEqual(2)
+  })
+
+  it('and the gold design it is measured against still scores 4 everywhere', async () => {
+    // Guards the comparison: if the strong design ever slipped, the test above
+    // would be asserting against a moving target.
+    const scores = await measure(strongDesign)
+    for (const c of MEASURED) expect(scores[c]).toBe(4)
   })
 })
 
