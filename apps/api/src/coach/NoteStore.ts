@@ -58,7 +58,7 @@ export class NoteStore {
   }
 
   /** Everything written about one attempt, for the report. */
-  async forAttempt(attemptId: string) {
-    return this.prisma.aiNote.findMany({ where: { attemptId }, orderBy: { createdAt: 'asc' } })
+  async forAttempt(learnerId: string, attemptId: string) {
+    return this.prisma.aiNote.findMany({ where: { attemptId, learnerId }, orderBy: { createdAt: 'asc' } })
   }
 }

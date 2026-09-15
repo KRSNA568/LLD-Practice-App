@@ -61,6 +61,18 @@ export const dialogueTurnRequestSchema = z.object({
 })
 export type DialogueTurnRequest = z.infer<typeof dialogueTurnRequestSchema>
 
+/**
+ * Who is asking. A stand-in for accounts: a name creates a learner, the client
+ * keeps the id and sends it as `x-learner-id`. No secret, no password — enough to
+ * keep six study participants apart on one instance, and nothing more.
+ */
+export const createLearnerRequestSchema = z.object({
+  name: z.string().trim().min(1, 'A name is needed').max(60),
+})
+export type CreateLearnerRequest = z.infer<typeof createLearnerRequestSchema>
+export type LearnerPayload = { learner: { id: string; name: string } }
+export const LEARNER_HEADER = 'x-learner-id'
+
 export { stageSchema }
 
 export type ProblemListResponse = {
@@ -87,6 +99,7 @@ export type HistoryResponse = {
  */
 export type ApiErrorCode =
   | 'NOT_FOUND'
+  | 'UNKNOWN_LEARNER'
   | 'INVALID_SUBMISSION'
   | 'INVALID_TRANSITION'
   | 'WRONG_STAGE'

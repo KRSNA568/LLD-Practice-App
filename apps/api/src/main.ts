@@ -11,6 +11,7 @@ import { CoachService } from './app/CoachService.js'
 import { ContentStore } from './infra/content/ContentStore.js'
 import { InProcessQueue } from './infra/queue/InProcessQueue.js'
 import { createRouter, DEMO_LEARNER_ID, errorHandler } from './http/routes.js'
+import { identity } from './http/identity.js'
 import { resolveLlmClient, resolveLlmProvider } from './evaluation/llm/index.js'
 
 const PORT = Number(process.env.PORT ?? 4000)
@@ -49,15 +50,15 @@ async function main(): Promise<void> {
   const coach = new CoachService(
     prisma,
     content,
-    (id, stage) => service.loadContext(id, stage),
+    (learnerId, id, stage) => service.loadContext(learnerId, id, stage),
     mentorLlm,
-    (id) => service.loadDefend(id),
+    (learnerId, id) => service.loadDefend(learnerId, id),
   )
   service.transcriptsOf = (id) => coach.transcripts(id)
-  service.onEvaluated = (attemptId, stage) => {
+  service.onEvaluated = (learnerId, attemptId, stage) => {
     queue.enqueue(
       async () => {
-        await coach.reviewStage(attemptId, stage)
+        await coach.reviewStage(learnerId, attemptId, stage)
       },
       { id: `note:${attemptId}:${stage}` },
     )
@@ -66,6 +67,7 @@ async function main(): Promise<void> {
   const app = express()
   app.use(cors())
   app.use(express.json({ limit: '1mb' }))
+  app.use('/api', identity(prisma))
   app.get('/api/health', (_req, res) => {
     res.json({
       ok: true,
@@ -74,7 +76,7 @@ async function main(): Promise<void> {
       provider: resolveLlmProvider(),
     })
   })
-  app.use('/api', createRouter(service, content, coach))
+  app.use('/api', createRouter(service, content, coach, prisma))
   app.use(errorHandler)
 
   app.listen(PORT, () => {

@@ -100,7 +100,7 @@ export class PracticeService {
    * callback rather than a dependency so the practice loop knows nothing about
    * mentoring and a coach failure can never touch an attempt's state.
    */
-  onEvaluated: ((attemptId: string, stage: Stage) => void) | null = null
+  onEvaluated: ((learnerId: string, attemptId: string, stage: Stage) => void) | null = null
 
   constructor(
     private readonly prisma: PrismaClient,
@@ -152,9 +152,20 @@ export class PracticeService {
     return this.toAttempt(row, problem)
   }
 
-  async saveDraft(attemptId: string, input: RawStageInput): Promise<void> {
-    const row = await this.prisma.attempt.findUnique({ where: { id: attemptId } })
+  /**
+   * Every attempt-addressed operation loads its row through here, scoped to the
+   * learner asking. A row that exists but belongs to someone else is not found —
+   * not forbidden — so an attempt id cannot be probed for existence. There is no
+   * other way to load an attempt by id on a learner's behalf, on purpose.
+   */
+  private async owned(learnerId: string, attemptId: string): Promise<AttemptRow> {
+    const row = await this.prisma.attempt.findFirst({ where: { id: attemptId, learnerId }, include: WITH_ALL })
     if (!row) throw new NotFoundError('Attempt')
+    return row
+  }
+
+  async saveDraft(learnerId: string, attemptId: string, input: RawStageInput): Promise<void> {
+    const row = await this.owned(learnerId, attemptId)
     if (row.state !== 'DRAFT') return // Autosave after submit is a no-op, not an error.
     if (row.stage !== input.stage) throw new WrongStageError(row.stage as Stage, input.stage)
 
@@ -167,9 +178,8 @@ export class PracticeService {
   }
 
   /** The raw draft for the current stage, for prefilling the workspace. */
-  async getDraft(attemptId: string): Promise<RawStageInput | null> {
-    const row = await this.prisma.attempt.findUnique({ where: { id: attemptId } })
-    if (!row) return null
+  async getDraft(learnerId: string, attemptId: string): Promise<RawStageInput | null> {
+    const row = await this.owned(learnerId, attemptId)
     return parseDrafts(row.draftsJson)[row.stage as Stage] ?? null
   }
 
@@ -177,9 +187,8 @@ export class PracticeService {
   /* Submitting                                                             */
   /* --------------------------------------------------------------------- */
 
-  async submit(attemptId: string, input: RawStageInput, idempotencyKey: string): Promise<Attempt> {
-    const row = await this.prisma.attempt.findUnique({ where: { id: attemptId }, include: WITH_ALL })
-    if (!row) throw new NotFoundError('Attempt')
+  async submit(learnerId: string, attemptId: string, input: RawStageInput, idempotencyKey: string): Promise<Attempt> {
+    const row = await this.owned(learnerId, attemptId)
     const problem = this.requireProblem(row.problemId)
     const stage = row.stage as Stage
 
@@ -241,9 +250,8 @@ export class PracticeService {
   }
 
   /** Re-queues a failed stage. The submission was persisted, so nothing is re-collected. */
-  async retry(attemptId: string): Promise<Attempt> {
-    const row = await this.prisma.attempt.findUnique({ where: { id: attemptId }, include: WITH_ALL })
-    if (!row) throw new NotFoundError('Attempt')
+  async retry(learnerId: string, attemptId: string): Promise<Attempt> {
+    const row = await this.owned(learnerId, attemptId)
 
     assertTransition(row.state as AttemptState, 'SUBMITTED')
 
@@ -261,9 +269,8 @@ export class PracticeService {
    * Opens the next stage. Only allowed once the current stage has a report — the
    * change must not be revealed before the design is frozen and evaluated.
    */
-  async advance(attemptId: string): Promise<Attempt> {
-    const row = await this.prisma.attempt.findUnique({ where: { id: attemptId }, include: WITH_ALL })
-    if (!row) throw new NotFoundError('Attempt')
+  async advance(learnerId: string, attemptId: string): Promise<Attempt> {
+    const row = await this.owned(learnerId, attemptId)
     const problem = this.requireProblem(row.problemId)
 
     const stage = row.stage as Stage
@@ -407,13 +414,16 @@ export class PracticeService {
       },
     })
 
-    this.onEvaluated?.(attemptId, stage)
+    this.onEvaluated?.(row.learnerId, attemptId, stage)
   }
 
   /** The defend stage while it is open — for the dialogue. Null before or after. */
-  async loadDefend(attemptId: string): Promise<{ ctx: EvaluationContext; probes: Probe[] } | null> {
-    const row = await this.prisma.attempt.findUnique({ where: { id: attemptId }, include: WITH_ALL })
-    if (!row || row.stage !== 'defend' || row.state !== 'DRAFT') return null
+  async loadDefend(learnerId: string, attemptId: string): Promise<{ ctx: EvaluationContext; probes: Probe[] } | null> {
+    // Not-found for someone else's attempt; null only for the owner's attempt
+    // when the defend stage is not open. The two must stay distinguishable, or
+    // a non-owner learns what stage the attempt is at from the status code.
+    const row = await this.owned(learnerId, attemptId)
+    if (row.stage !== 'defend' || row.state !== 'DRAFT') return null
     const problem = this.requireProblem(row.problemId)
     const ctx = { ...this.contextFor('defend', row, problem), rubric: this.content.rubricFor(problem) }
     return { ctx, probes: [...(ctx.probes ?? [])] }
@@ -427,11 +437,11 @@ export class PracticeService {
    * the coach reads. Null until that stage has been evaluated.
    */
   async loadContext(
+    learnerId: string,
     attemptId: string,
     stage: Stage,
   ): Promise<{ ctx: EvaluationContext; results: CriterionResult[]; learnerId: string } | null> {
-    const row = await this.prisma.attempt.findUnique({ where: { id: attemptId }, include: WITH_ALL })
-    if (!row) return null
+    const row = await this.owned(learnerId, attemptId)
     const evaluation = row.evaluations.find((e) => e.stage === stage)
     if (!evaluation) return null
     const problem = this.requireProblem(row.problemId)
@@ -488,9 +498,8 @@ export class PracticeService {
   /* Reading                                                                */
   /* --------------------------------------------------------------------- */
 
-  async getAttempt(attemptId: string): Promise<Attempt> {
-    const row = await this.prisma.attempt.findUnique({ where: { id: attemptId }, include: WITH_ALL })
-    if (!row) throw new NotFoundError('Attempt')
+  async getAttempt(learnerId: string, attemptId: string): Promise<Attempt> {
+    const row = await this.owned(learnerId, attemptId)
     return this.toAttempt(row, this.requireProblem(row.problemId))
   }
 

@@ -22,12 +22,13 @@ import type { ContentStore } from '../infra/content/ContentStore.js'
 
 /** What the coach needs from an attempt: the same context the evaluators saw, plus their results. */
 export type ContextLoader = (
+  learnerId: string,
   attemptId: string,
   stage: Stage,
 ) => Promise<{ ctx: EvaluationContext; results: CriterionResult[]; learnerId: string } | null>
 
 /** The defend stage while it is open: which probes were asked, on what design. */
-export type DefendLoader = (attemptId: string) => Promise<{ ctx: EvaluationContext; probes: Probe[] } | null>
+export type DefendLoader = (learnerId: string, attemptId: string) => Promise<{ ctx: EvaluationContext; probes: Probe[] } | null>
 
 export class DialogueClosedError extends Error {
   readonly code = 'DIALOGUE_CLOSED' as const
@@ -72,10 +73,10 @@ export class CoachService {
   /* Explain a finding                                                      */
   /* --------------------------------------------------------------------- */
 
-  async explain(attemptId: string, criterionId: string): Promise<{ text: string; modelId: string } | null> {
-    const stage = await this.stageOf(attemptId, criterionId)
+  async explain(learnerId: string, attemptId: string, criterionId: string): Promise<{ text: string; modelId: string } | null> {
+    const stage = await this.stageOf(learnerId, attemptId, criterionId)
     if (!stage) return null
-    const loaded = await this.loadContext(attemptId, stage)
+    const loaded = await this.loadContext(learnerId, attemptId, stage)
     if (!loaded) return null
     const result = loaded.results.find((r) => r.criterionId === criterionId)
     if (!result) return null
@@ -126,8 +127,8 @@ export class CoachService {
    * enforced here, not in the client: after the second learner turn the probe is
    * closed and a third is refused.
    */
-  async turn(attemptId: string, probeId: string, text: string): Promise<{ transcript: DialogueTurn[]; closed: boolean }> {
-    const loaded = await this.loadDefend(attemptId)
+  async turn(learnerId: string, attemptId: string, probeId: string, text: string): Promise<{ transcript: DialogueTurn[]; closed: boolean }> {
+    const loaded = await this.loadDefend(learnerId, attemptId)
     if (!loaded) throw new DialogueClosedError('The defend stage is not open on this attempt')
     const probe = loaded.probes.find((p) => p.id === probeId)
     if (!probe) throw new DialogueClosedError(`Probe "${probeId}" was not asked on this attempt`)
@@ -173,10 +174,10 @@ export class CoachService {
   }
 
   /** Called once a stage's evaluation has landed. Idempotent by content. */
-  async reviewStage(attemptId: string, stage: Stage): Promise<{ text: string; modelId: string } | null> {
-    const loaded = await this.loadContext(attemptId, stage)
+  async reviewStage(learnerId: string, attemptId: string, stage: Stage): Promise<{ text: string; modelId: string } | null> {
+    const loaded = await this.loadContext(learnerId, attemptId, stage)
     if (!loaded) return null
-    const { ctx, results, learnerId } = loaded
+    const { ctx, results } = loaded
     const key = NoteStore.key('review', COACH_PROMPT_VERSION, {
       stage,
       design: ctx.design,
@@ -188,12 +189,12 @@ export class CoachService {
   }
 
   /** A lesson on the concept behind one low-scoring criterion. */
-  async lessonFor(attemptId: string, criterionId: string): Promise<(MicroLesson & { conceptId: string; modelId: string }) | null> {
-    const stage = await this.stageOf(attemptId, criterionId)
+  async lessonFor(learnerId: string, attemptId: string, criterionId: string): Promise<(MicroLesson & { conceptId: string; modelId: string }) | null> {
+    const stage = await this.stageOf(learnerId, attemptId, criterionId)
     if (!stage) return null
-    const loaded = await this.loadContext(attemptId, stage)
+    const loaded = await this.loadContext(learnerId, attemptId, stage)
     if (!loaded) return null
-    const { ctx, results, learnerId } = loaded
+    const { ctx, results } = loaded
 
     const result = results.find((r) => r.criterionId === criterionId)
     if (!result || result.score > LESSON_THRESHOLD) return null
@@ -218,8 +219,8 @@ export class CoachService {
   }
 
   /** Everything the report can show, from the cache only — never triggers a call. */
-  async notesFor(attemptId: string, results: CriterionResult[]): Promise<AttemptNotes> {
-    const rows = await this.notes.forAttempt(attemptId)
+  async notesFor(learnerId: string, attemptId: string, results: CriterionResult[]): Promise<AttemptNotes> {
+    const rows = await this.notes.forAttempt(learnerId, attemptId)
     const review: AttemptNotes['review'] = {}
     const lessons: AttemptNotes['lessons'] = {}
     const explanations: AttemptNotes['explanations'] = {}
@@ -242,12 +243,12 @@ export class CoachService {
     }
   }
 
-  private async stageOf(attemptId: string, criterionId: string): Promise<Stage | null> {
+  private async stageOf(learnerId: string, attemptId: string, criterionId: string): Promise<Stage | null> {
     // The criterion's stage is fixed by the rubric; the attempt only needs to have reached it.
     const problemRubric = this.content.rubricFor(this.content.listProblems()[0]!)
     const criterion = problemRubric.criteria.find((c) => c.id === criterionId)
     if (!criterion) return null
-    const loaded = await this.loadContext(attemptId, criterion.stage)
+    const loaded = await this.loadContext(learnerId, attemptId, criterion.stage)
     return loaded ? criterion.stage : null
   }
 }

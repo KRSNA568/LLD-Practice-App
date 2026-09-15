@@ -1,6 +1,9 @@
 import { Router, type Request, type Response, type NextFunction } from 'express'
 import { ZodError } from 'zod'
+import { randomUUID } from 'node:crypto'
+import type { PrismaClient } from '@prisma/client'
 import {
+  createLearnerRequestSchema,
   critiqueAnswerRequestSchema,
   dialogueTurnRequestSchema,
   saveDraftRequestSchema,
@@ -17,6 +20,7 @@ import {
 import { InvalidTransitionError } from '../domain/attempt/AttemptStateMachine.js'
 import { DialogueClosedError, type CoachService } from '../app/CoachService.js'
 import type { ContentStore } from '../infra/content/ContentStore.js'
+import { DEMO_LEARNER_ID } from './identity.js'
 
 /**
  * The HTTP layer is deliberately thin: parse, delegate, serialise. No rules live
@@ -24,8 +28,7 @@ import type { ContentStore } from '../infra/content/ContentStore.js'
  * the domain where it can be tested without a server.
  */
 
-/** Single-tenant for now, but threaded everywhere so accounts are a value, not a migration. */
-export const DEMO_LEARNER_ID = 'learner-demo'
+export { DEMO_LEARNER_ID }
 
 const wrap =
   (handler: (req: Request, res: Response) => Promise<void>) =>
@@ -33,13 +36,37 @@ const wrap =
     handler(req, res).catch(next)
   }
 
-export function createRouter(service: PracticeService, content: ContentStore, coach?: CoachService): Router {
+export function createRouter(service: PracticeService, content: ContentStore, coach?: CoachService, prisma?: PrismaClient): Router {
   const router = Router()
+
+  /* ----------------------------------------------------------------------- */
+  /* Who is asking. See identity.ts for why this is deliberately thin.        */
+  /* ----------------------------------------------------------------------- */
+
+  router.post(
+    '/learners',
+    wrap(async (req, res) => {
+      if (!prisma) throw new NotFoundError('Learner sign-in')
+      const { name } = createLearnerRequestSchema.parse(req.body)
+      const learner = await prisma.learner.create({ data: { id: randomUUID(), name } })
+      res.status(201).json({ learner: { id: learner.id, name: learner.name } })
+    }),
+  )
+
+  router.get(
+    '/learners/me',
+    wrap(async (req, res) => {
+      if (!prisma) throw new NotFoundError('Learner sign-in')
+      const learner = await prisma.learner.findUnique({ where: { id: req.learnerId } })
+      if (!learner) throw new NotFoundError('Learner')
+      res.json({ learner: { id: learner.id, name: learner.name } })
+    }),
+  )
 
   router.get(
     '/problems',
-    wrap(async (_req, res) => {
-      res.json(await service.listProblems(DEMO_LEARNER_ID))
+    wrap(async (req, res) => {
+      res.json(await service.listProblems(req.learnerId))
     }),
   )
 
@@ -48,18 +75,18 @@ export function createRouter(service: PracticeService, content: ContentStore, co
     wrap(async (req, res) => {
       if (!coach) throw new NotFoundError('The mentor')
       const { text } = dialogueTurnRequestSchema.parse(req.body)
-      res.json(await coach.turn(req.params.id!, req.params.probeId!, text))
+      res.json(await coach.turn(req.learnerId, req.params.id!, req.params.probeId!, text))
     }),
   )
 
   router.get(
     '/attempts/:id/notes',
     wrap(async (req, res) => {
-      const attempt = await service.getAttempt(req.params.id!)
+      const attempt = await service.getAttempt(req.learnerId, req.params.id!)
       const results = attempt.report?.results ?? []
       res.json(
         coach
-          ? await coach.notesFor(attempt.id, results)
+          ? await coach.notesFor(req.learnerId, attempt.id, results)
           : { review: {}, lessons: {}, explanations: {}, lessonable: [], live: false },
       )
     }),
@@ -69,7 +96,7 @@ export function createRouter(service: PracticeService, content: ContentStore, co
     '/attempts/:id/lessons/:criterionId',
     wrap(async (req, res) => {
       if (!coach) throw new NotFoundError('The mentor')
-      const lesson = await coach.lessonFor(req.params.id!, req.params.criterionId!)
+      const lesson = await coach.lessonFor(req.learnerId, req.params.id!, req.params.criterionId!)
       if (!lesson) {
         res.status(204).end()
         return
@@ -82,7 +109,7 @@ export function createRouter(service: PracticeService, content: ContentStore, co
     '/attempts/:id/explain/:criterionId',
     wrap(async (req, res) => {
       if (!coach) throw new NotFoundError('The mentor')
-      const explanation = await coach.explain(req.params.id!, req.params.criterionId!)
+      const explanation = await coach.explain(req.learnerId, req.params.id!, req.params.criterionId!)
       if (!explanation) {
         res.status(204).end()
         return
@@ -93,14 +120,14 @@ export function createRouter(service: PracticeService, content: ContentStore, co
 
   router.get(
     '/learners/me/progress',
-    wrap(async (_req, res) => {
-      const progress = await service.getProgress(DEMO_LEARNER_ID)
+    wrap(async (req, res) => {
+      const progress = await service.getProgress(req.learnerId)
       // The coach's note is generated on read and cached by the numbers it is
       // about, so the dashboard costs one call per new evaluation, not per visit.
       const rubric = content.rubricFor(content.listProblems()[0]!)
       const coachNote = coach
         ? await coach
-            .coachNote(DEMO_LEARNER_ID, {
+            .coachNote(req.learnerId, {
               rubric,
               attempts: progress.attempts,
               problemsTried: progress.problemsTried,
@@ -121,8 +148,8 @@ export function createRouter(service: PracticeService, content: ContentStore, co
 
   router.get(
     '/concepts',
-    wrap(async (_req, res) => {
-      res.json(await service.getConcepts(DEMO_LEARNER_ID))
+    wrap(async (req, res) => {
+      res.json(await service.getConcepts(req.learnerId))
     }),
   )
 
@@ -139,7 +166,7 @@ export function createRouter(service: PracticeService, content: ContentStore, co
   router.get(
     '/problems/:id/history',
     wrap(async (req, res) => {
-      const history = await service.getHistory(DEMO_LEARNER_ID, req.params.id!)
+      const history = await service.getHistory(req.learnerId, req.params.id!)
       res.json({ problemId: req.params.id, ...history })
     }),
   )
@@ -147,7 +174,7 @@ export function createRouter(service: PracticeService, content: ContentStore, co
   router.get(
     '/problems/:id/critique',
     wrap(async (req, res) => {
-      const pairs = await service.getCritique(DEMO_LEARNER_ID, req.params.id!)
+      const pairs = await service.getCritique(req.learnerId, req.params.id!)
       res.json({ problemId: req.params.id, pairs })
     }),
   )
@@ -156,7 +183,7 @@ export function createRouter(service: PracticeService, content: ContentStore, co
     '/problems/:id/critique/:pairId',
     wrap(async (req, res) => {
       const body = critiqueAnswerRequestSchema.parse(req.body)
-      const verdict = await service.answerCritique(DEMO_LEARNER_ID, req.params.id!, req.params.pairId!, body)
+      const verdict = await service.answerCritique(req.learnerId, req.params.id!, req.params.pairId!, body)
       res.json(verdict)
     }),
   )
@@ -165,8 +192,8 @@ export function createRouter(service: PracticeService, content: ContentStore, co
     '/attempts',
     wrap(async (req, res) => {
       const body = startAttemptRequestSchema.parse(req.body)
-      const attempt = await service.startAttempt(DEMO_LEARNER_ID, body.problemId)
-      const draft = await service.getDraft(attempt.id)
+      const attempt = await service.startAttempt(req.learnerId, body.problemId)
+      const draft = await service.getDraft(req.learnerId, attempt.id)
       res.status(201).json({ attempt, draft })
     }),
   )
@@ -174,8 +201,8 @@ export function createRouter(service: PracticeService, content: ContentStore, co
   router.get(
     '/attempts/:id',
     wrap(async (req, res) => {
-      const attempt = await service.getAttempt(req.params.id!)
-      const draft = attempt.state === 'DRAFT' ? await service.getDraft(attempt.id) : null
+      const attempt = await service.getAttempt(req.learnerId, req.params.id!)
+      const draft = attempt.state === 'DRAFT' ? await service.getDraft(req.learnerId, attempt.id) : null
       res.json({ attempt, draft, report: attempt.report })
     }),
   )
@@ -184,7 +211,7 @@ export function createRouter(service: PracticeService, content: ContentStore, co
     '/attempts/:id/draft',
     wrap(async (req, res) => {
       const body = saveDraftRequestSchema.parse(req.body)
-      await service.saveDraft(req.params.id!, body.input)
+      await service.saveDraft(req.learnerId, req.params.id!, body.input)
       res.status(204).end()
     }),
   )
@@ -193,7 +220,7 @@ export function createRouter(service: PracticeService, content: ContentStore, co
     '/attempts/:id/submit',
     wrap(async (req, res) => {
       const body = submitAttemptRequestSchema.parse(req.body)
-      const attempt = await service.submit(req.params.id!, body.input, body.idempotencyKey)
+      const attempt = await service.submit(req.learnerId, req.params.id!, body.input, body.idempotencyKey)
       res.status(202).json({ attempt })
     }),
   )
@@ -201,14 +228,14 @@ export function createRouter(service: PracticeService, content: ContentStore, co
   router.post(
     '/attempts/:id/retry',
     wrap(async (req, res) => {
-      res.status(202).json({ attempt: await service.retry(req.params.id!) })
+      res.status(202).json({ attempt: await service.retry(req.learnerId, req.params.id!) })
     }),
   )
 
   router.post(
     '/attempts/:id/advance',
     wrap(async (req, res) => {
-      res.json({ attempt: await service.advance(req.params.id!) })
+      res.json({ attempt: await service.advance(req.learnerId, req.params.id!) })
     }),
   )
 

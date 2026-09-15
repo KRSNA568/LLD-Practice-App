@@ -100,24 +100,24 @@ beforeEach(async () => {
   queue = new InProcessQueue({ maxRetries: 2, baseDelayMs: 1 })
   const content = ContentStore.load()
   service = new PracticeService(prisma, content, queue)
-  coach = new CoachService(prisma, content, (id, stage) => service.loadContext(id, stage), new StubLlmClient(), (id) => service.loadDefend(id))
+  coach = new CoachService(prisma, content, (l, id, stage) => service.loadContext(l, id, stage), new StubLlmClient(), (l, id) => service.loadDefend(l, id))
   service.transcriptsOf = (id) => coach.transcripts(id)
-  service.onEvaluated = (id, stage) => queue.enqueue(() => coach.reviewStage(id, stage).then(() => undefined))
+  service.onEvaluated = (l, id, stage) => queue.enqueue(() => coach.reviewStage(l, id, stage).then(() => undefined))
 })
 
 async function designAndSettle(design: DesignModel, key = crypto.randomUUID(), problemId = 'parking-lot') {
   const attempt = await service.startAttempt(LEARNER, problemId)
-  await service.submit(attempt.id, designInput(design), key)
+  await service.submit(LEARNER, attempt.id, designInput(design), key)
   await queue.drain()
-  return service.getAttempt(attempt.id)
+  return service.getAttempt(LEARNER, attempt.id)
 }
 
 async function throughChange(design: DesignModel, revision: DesignModel, rationale = '') {
   const settled = await designAndSettle(design)
-  await service.advance(settled.id)
-  await service.submit(settled.id, changeInput(revision, rationale), crypto.randomUUID())
+  await service.advance(LEARNER, settled.id)
+  await service.submit(LEARNER, settled.id, changeInput(revision, rationale), crypto.randomUUID())
   await queue.drain()
-  return service.getAttempt(settled.id)
+  return service.getAttempt(LEARNER, settled.id)
 }
 
 describe('the design stage', () => {
@@ -141,12 +141,12 @@ describe('the design stage', () => {
     const attempt = await service.startAttempt(LEARNER, 'parking-lot')
     expect(attempt.revealedChange).toBeNull()
 
-    await service.submit(attempt.id, designInput(strongDesign), 'k')
+    await service.submit(LEARNER, attempt.id, designInput(strongDesign), 'k')
     // Queued but not yet evaluated: still hidden.
-    expect((await service.getAttempt(attempt.id)).revealedChange).toBeNull()
+    expect((await service.getAttempt(LEARNER, attempt.id)).revealedChange).toBeNull()
 
     await queue.drain()
-    const settled = await service.getAttempt(attempt.id)
+    const settled = await service.getAttempt(LEARNER, attempt.id)
     expect(settled.revealedChange).not.toBeNull()
     expect(settled.revealedChange!.id).toBe('hc-ev')
   })
@@ -161,7 +161,7 @@ describe('the design stage', () => {
 
   it('persists the submission before evaluation begins', async () => {
     const attempt = await service.startAttempt(LEARNER, 'parking-lot')
-    await service.submit(attempt.id, designInput(strongDesign), 'key-1')
+    await service.submit(LEARNER, attempt.id, designInput(strongDesign), 'key-1')
 
     const row = await prisma.submission.findUnique({
       where: { attemptId_stage: { attemptId: attempt.id, stage: 'design' } },
@@ -173,10 +173,10 @@ describe('the design stage', () => {
 
   it('charges one evaluation for a replayed idempotency key', async () => {
     const attempt = await service.startAttempt(LEARNER, 'parking-lot')
-    await service.submit(attempt.id, designInput(strongDesign), 'same-key')
+    await service.submit(LEARNER, attempt.id, designInput(strongDesign), 'same-key')
     await queue.drain()
 
-    const replay = await service.submit(attempt.id, designInput(strongDesign), 'same-key')
+    const replay = await service.submit(LEARNER, attempt.id, designInput(strongDesign), 'same-key')
     await queue.drain()
 
     expect(replay.id).toBe(attempt.id)
@@ -185,7 +185,7 @@ describe('the design stage', () => {
 
   it('refuses input for a stage the attempt has not reached', async () => {
     const attempt = await service.startAttempt(LEARNER, 'parking-lot')
-    await expect(service.submit(attempt.id, changeInput(strongDesign), 'k')).rejects.toMatchObject({ code: 'WRONG_STAGE' })
+    await expect(service.submit(LEARNER, attempt.id, changeInput(strongDesign), 'k')).rejects.toMatchObject({ code: 'WRONG_STAGE' })
   })
 
   it('tells the learner when they resubmitted an unchanged design', async () => {
@@ -201,7 +201,7 @@ describe('the design stage', () => {
       ...strongDesign,
       classes: [{ name: 'Spot', stereotype: 'class', responsibility: '', attributes: [], methods: [] }],
     })
-    await expect(service.submit(attempt.id, broken, 'bad')).rejects.toMatchObject({
+    await expect(service.submit(LEARNER, attempt.id, broken, 'bad')).rejects.toMatchObject({
       code: 'INVALID_SUBMISSION',
       fields: [{ path: 'classes.0.responsibility' }],
     })
@@ -228,18 +228,18 @@ describe('the design stage', () => {
 describe('the change stage', () => {
   it('cannot be opened before the design stage has a report', async () => {
     const attempt = await service.startAttempt(LEARNER, 'parking-lot')
-    await expect(service.advance(attempt.id)).rejects.toMatchObject({ name: 'InvalidTransitionError' })
+    await expect(service.advance(LEARNER, attempt.id)).rejects.toMatchObject({ name: 'InvalidTransitionError' })
   })
 
   it('opens with the frozen design prefilled and the change revealed', async () => {
     const settled = await designAndSettle(strongDesign)
-    const opened = await service.advance(settled.id)
+    const opened = await service.advance(LEARNER, settled.id)
 
     expect(opened.stage).toBe('change')
     expect(opened.state).toBe('DRAFT')
     expect(opened.revealedChange!.id).toBe('hc-ev')
 
-    const draft = await service.getDraft(opened.id)
+    const draft = await service.getDraft(LEARNER, opened.id)
     expect(draft!.stage).toBe('change')
     if (draft!.stage === 'change') {
       expect(draft!.submission.classes.map((c) => c.name)).toContain('PricingStrategy')
@@ -280,7 +280,7 @@ describe('the change stage', () => {
 describe('the defend stage', () => {
   it('selects probes from the learner\'s own findings and judges the answers', async () => {
     const changed = await throughChange(godClassDesign, flagRevision)
-    const opened = await service.advance(changed.id)
+    const opened = await service.advance(LEARNER, changed.id)
 
     expect(opened.stage).toBe('defend')
     expect(opened.probes).not.toBeNull()
@@ -295,10 +295,10 @@ describe('the defend stage', () => {
       probeId: p.id,
       response: `I would add a WeekendPricing class rather than editing ParkingLotManager, because rates change more often than the lot; nothing else needs to know.`,
     }))
-    await service.submit(opened.id, { stage: 'defend', answers }, crypto.randomUUID())
+    await service.submit(LEARNER, opened.id, { stage: 'defend', answers }, crypto.randomUUID())
     await queue.drain()
 
-    const done = await service.getAttempt(opened.id)
+    const done = await service.getAttempt(LEARNER, opened.id)
     expect(done.state).toBe('COMPLETED')
     expect(done.report!.stagesCompleted).toEqual(['design', 'change', 'defend'])
     expect(done.report!.results).toHaveLength(8)
@@ -313,28 +313,28 @@ describe('the defend stage', () => {
 
   it('drops answers to probes the learner was never asked', async () => {
     const changed = await throughChange(strongDesign, energyRevision)
-    const opened = await service.advance(changed.id)
-    await service.submit(
+    const opened = await service.advance(LEARNER, changed.id)
+    await service.submit(LEARNER, 
       opened.id,
       { stage: 'defend', answers: [{ probeId: 'p-does-not-exist', response: 'x' }] },
       crypto.randomUUID(),
     )
     await queue.drain()
-    const done = await service.getAttempt(opened.id)
+    const done = await service.getAttempt(LEARNER, opened.id)
     expect(done.answers).toEqual([])
   })
 
   it('keeps the six measured criteria when the AI fails at the last step', async () => {
     const changed = await throughChange(strongDesign, energyRevision)
-    const opened = await service.advance(changed.id)
+    const opened = await service.advance(LEARNER, changed.id)
     process.env.LLD_STUB_FAIL = '1'
     try {
-      await service.submit(opened.id, { stage: 'defend', answers: [] }, crypto.randomUUID())
+      await service.submit(LEARNER, opened.id, { stage: 'defend', answers: [] }, crypto.randomUUID())
       await queue.drain()
     } finally {
       delete process.env.LLD_STUB_FAIL
     }
-    const done = await service.getAttempt(opened.id)
+    const done = await service.getAttempt(LEARNER, opened.id)
     // Nothing at all scored at defend → the stage failed, but every earlier result survives.
     expect(done.state).toBe('FAILED')
     expect(done.report!.results.filter((r) => r.evaluatorKind === 'deterministic')).toHaveLength(6)
@@ -384,7 +384,7 @@ describe('history and next problem', () => {
   it('prefills the next attempt from where the last one ended — the revision, not the original', async () => {
     await throughChange(strongDesign, energyRevision)
     const next = await service.startAttempt(LEARNER, 'parking-lot')
-    const draft = await service.getDraft(next.id)
+    const draft = await service.getDraft(LEARNER, next.id)
     expect(draft!.stage).toBe('design')
     if (draft!.stage === 'design') {
       expect(draft!.submission.classes.map((c) => c.name)).toContain('EnergyPricing')
@@ -425,7 +425,7 @@ describe('critique', () => {
 describe('the mentor', () => {
   it('writes a grounded note after each stage lands, cached by content', async () => {
     const settled = await designAndSettle(godClassDesign)
-    const notes = await coach.notesFor(settled.id, settled.report!.results)
+    const notes = await coach.notesFor(LEARNER, settled.id, settled.report!.results)
 
     expect(notes.review.design?.text).toBeTruthy()
     expect(notes.review.design?.modelId).toMatch(/^stub/)
@@ -435,58 +435,58 @@ describe('the mentor', () => {
     expect(notes.lessonable).not.toContain('requirement-coverage')
 
     const before = await prisma.aiNote.count()
-    await coach.reviewStage(settled.id, 'design')
+    await coach.reviewStage(LEARNER, settled.id, 'design')
     expect(await prisma.aiNote.count()).toBe(before)
   })
 
   it('writes a lesson on request for a low criterion only, using the learner\'s classes', async () => {
     const settled = await designAndSettle(godClassDesign)
-    const lesson = await coach.lessonFor(settled.id, 'abstraction-use')
+    const lesson = await coach.lessonFor(LEARNER, settled.id, 'abstraction-use')
     expect(lesson?.conceptId).toBe('open-closed')
     expect(lesson?.example.before).toContain('ParkingLotManager')
 
     // At par → no lesson, and nothing stored.
-    expect(await coach.lessonFor(settled.id, 'requirement-coverage')).toBeNull()
-    expect((await coach.notesFor(settled.id, settled.report!.results)).lessons['abstraction-use']?.title).toBe(lesson?.title)
+    expect(await coach.lessonFor(LEARNER, settled.id, 'requirement-coverage')).toBeNull()
+    expect((await coach.notesFor(LEARNER, settled.id, settled.report!.results)).lessons['abstraction-use']?.title).toBe(lesson?.title)
   })
 
   it('leaves the attempt untouched when the mentor fails', async () => {
-    const broken = new CoachService(prisma, ContentStore.load(), (id, stage) => service.loadContext(id, stage), {
+    const broken = new CoachService(prisma, ContentStore.load(), (l, id, stage) => service.loadContext(l, id, stage), {
       id: 'broken',
       complete: async () => {
         throw new Error('down')
       },
     })
-    service.onEvaluated = (id, stage) => queue.enqueue(() => broken.reviewStage(id, stage).then(() => undefined))
+    service.onEvaluated = (l, id, stage) => queue.enqueue(() => broken.reviewStage(l, id, stage).then(() => undefined))
     const settled = await designAndSettle(strongDesign)
     expect(settled.state).toBe('COMPLETED')
-    expect((await broken.notesFor(settled.id, settled.report!.results)).review.design).toBeUndefined()
+    expect((await broken.notesFor(LEARNER, settled.id, settled.report!.results)).review.design).toBeUndefined()
   })
 })
 
 describe('defend as a dialogue', () => {
   it('asks one follow-up, closes after two learner turns, and scores the whole exchange', async () => {
     const settled = await throughChange(godClassDesign, flagRevision, 'Added a flag.')
-    await service.advance(settled.id)
-    const opened = await service.getAttempt(settled.id)
+    await service.advance(LEARNER, settled.id)
+    const opened = await service.getAttempt(LEARNER, settled.id)
     const probe = opened.probes![0]!
 
-    const first = await coach.turn(opened.id, probe.id, 'ParkingLotManager.calculateFee gets a new branch. Nothing else changes.')
+    const first = await coach.turn(LEARNER, opened.id, probe.id, 'ParkingLotManager.calculateFee gets a new branch. Nothing else changes.')
     expect(first.closed).toBe(false)
     expect(first.transcript.map((t) => t.role)).toEqual(['learner', 'mentor'])
     expect(first.transcript[1]!.text).toMatch(/\?$/)
 
-    const second = await coach.turn(opened.id, probe.id, 'Honestly, a PricingStrategy interface would be better than the branch.')
+    const second = await coach.turn(LEARNER, opened.id, probe.id, 'Honestly, a PricingStrategy interface would be better than the branch.')
     expect(second.closed).toBe(true)
-    await expect(coach.turn(opened.id, probe.id, 'one more')).rejects.toThrow(/finished/)
+    await expect(coach.turn(LEARNER, opened.id, probe.id, 'one more')).rejects.toThrow(/finished/)
 
     // The dialogue is on the attempt, server-held.
-    expect((await service.getAttempt(opened.id)).dialogue?.[probe.id]).toHaveLength(3)
+    expect((await service.getAttempt(LEARNER, opened.id)).dialogue?.[probe.id]).toHaveLength(3)
 
     // Submitting folds the dialogue into the answer: learner turns only in `response`.
-    await service.submit(opened.id, { stage: 'defend', answers: [] }, 'k-dialogue')
+    await service.submit(LEARNER, opened.id, { stage: 'defend', answers: [] }, 'k-dialogue')
     await queue.drain()
-    const done = await service.getAttempt(opened.id)
+    const done = await service.getAttempt(LEARNER, opened.id)
     expect(done.state).toBe('COMPLETED')
     const answer = done.answers!.find((a) => a.probeId === probe.id)!
     expect(answer.response).toContain('PricingStrategy interface')
@@ -497,8 +497,8 @@ describe('defend as a dialogue', () => {
 
   it('refuses a turn on a probe that was not asked, or once the stage is closed', async () => {
     const settled = await throughChange(godClassDesign, flagRevision)
-    await expect(coach.turn(settled.id, 'p-pricing', 'x')).rejects.toThrow(/not open/)
-    await service.advance(settled.id)
-    await expect(coach.turn(settled.id, 'p-nope', 'x')).rejects.toThrow(/not asked/)
+    await expect(coach.turn(LEARNER, settled.id, 'p-pricing', 'x')).rejects.toThrow(/not open/)
+    await service.advance(LEARNER, settled.id)
+    await expect(coach.turn(LEARNER, settled.id, 'p-nope', 'x')).rejects.toThrow(/not asked/)
   })
 })
