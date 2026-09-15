@@ -27,8 +27,8 @@ the cost model's first input. A third thing came out of doing it: a scoring defe
 - **A full attempt costs 15–18k tokens.** About 40% on the scoring model, 60% on the mentor model.
   The change stage costs zero LLM tokens. On Groq's free tier the mentor model is the binding
   constraint at roughly 19 full attempts per day, not the 10 the plan assumed.
-- **Mentor tokens are not persisted anywhere.** The plan said the columns already existed; that is
-  true only for the evaluator. Every mentor call gets a usage figure back and drops it.
+- **No tokens were persisted anywhere.** The plan said the evaluator's columns already existed and
+  were filled; they existed and were never filled. Corrected and fixed in Phase 2 — see §6.
 
 Fifteen adversarial tests now run on every push, alongside calibration, as the merge gate.
 
@@ -172,17 +172,23 @@ published rate for whichever provider is on the table at the time of the decisio
 
 ---
 
-## 6. Mentor tokens are not recorded
+## 6. No tokens were recorded anywhere — and this section originally said otherwise
 
-The evaluator writes `inputTokens` and `outputTokens` to the `Evaluation` row. The five mentor
-modules each receive `usage` back from the adapter and discard it; `AiNote` and `DialogueTurn` have
-no token columns. So today the only way to see what an attempt costs end to end is the log line
-added in this phase.
+**Correction, 16 Sept, Phase 2.** The first version of this section said the evaluator writes
+`inputTokens` and `outputTokens` to the `Evaluation` row and only the mentor was unrecorded. That
+was taken from the schema comment ("populated when a real provider ran"), not from the write path.
+The write path did not exist: 45 evaluations in the database, zero with tokens. The columns had
+been promised and never filled. The mentor half was also unrecorded, as stated.
 
-This matters for two later items: the cost-regression test (Phase 5) needs recorded usage to
-assert against, and the product plan's COGS metric needs it queryable. **Recommendation:** two
-nullable integer columns on `AiNote` and two on `DialogueTurn`, threaded from the adapter's response.
-Small, and it belongs in Phase 2 alongside the study export, since that export should carry cost.
+So at the time of §5's measurement, the log line added in this phase was the *only* record of
+cost anywhere, and everything in §5 rests on it.
+
+**Fixed in Phase 2:** the LLM evaluator now reports what its last run cost (retries summed, reset
+before the early return for stages with nothing to judge — the first version leaked the design
+stage's figure into the change row), the pipeline sums across evaluators, the `Evaluation` row is
+written, and `AiNote` and `DialogueTurn` gained columns filled from what the modules already
+received. The study export carries all of it, split evaluator / mentor. Zero means measured free
+(the stub); null means nothing reported, which are different facts and stay different.
 
 ---
 

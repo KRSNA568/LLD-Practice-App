@@ -397,11 +397,15 @@ export class PracticeService {
         resultsJson: JSON.stringify(outcome.results),
         summaryJson: JSON.stringify(summary),
         unchangedFromPrevious: unchanged,
+        inputTokens: outcome.usage?.inputTokens ?? null,
+        outputTokens: outcome.usage?.outputTokens ?? null,
       },
       update: {
         resultsJson: JSON.stringify(outcome.results),
         summaryJson: JSON.stringify(summary),
         unchangedFromPrevious: unchanged,
+        inputTokens: outcome.usage?.inputTokens ?? null,
+        outputTokens: outcome.usage?.outputTokens ?? null,
         completedAt: new Date(),
       },
     })

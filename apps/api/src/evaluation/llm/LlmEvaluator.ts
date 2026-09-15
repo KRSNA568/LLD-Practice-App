@@ -31,6 +31,8 @@ export class LlmEvaluator implements Evaluator {
 
   /** Exposed so the pipeline can report which criteria went unscored on failure. */
   lastGrounding: GroundingReport | null = null
+  /** Summed over retries; null until a call has returned usage. */
+  lastUsage: { inputTokens: number; outputTokens: number } | null = null
 
   constructor(
     private readonly client: LlmClient,
@@ -45,6 +47,9 @@ export class LlmEvaluator implements Evaluator {
   }
 
   async evaluate(ctx: EvaluationContext): Promise<CriterionResult[]> {
+    // Reset before any early return: a stage with no LLM criteria (change) must
+    // not report the previous stage's cost as its own.
+    this.lastUsage = null
     const criteria = ctx.rubric.criteria.filter(
       (c) => c.judgedBy === 'llm' && c.stage === ctx.stage,
     )
@@ -65,6 +70,13 @@ export class LlmEvaluator implements Evaluator {
         effort: 'medium',
         json: true,
       })
+
+      if (response.usage) {
+        this.lastUsage = {
+          inputTokens: (this.lastUsage?.inputTokens ?? 0) + response.usage.inputTokens,
+          outputTokens: (this.lastUsage?.outputTokens ?? 0) + response.usage.outputTokens,
+        }
+      }
 
       const { raw, malformed } = dropMalformedEvidence(readJson(response.text))
       const parsed = llmEvaluationResponseSchema.safeParse(raw)

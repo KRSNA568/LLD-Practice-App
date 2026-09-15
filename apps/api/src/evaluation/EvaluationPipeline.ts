@@ -17,6 +17,8 @@ export type PipelineOutcome = {
   failures: Array<{ evaluatorId: string; reason: string }>
   /** Criteria nobody managed to score, so the report can say so rather than imply a zero. */
   unscored: CriterionId[]
+  /** What this run cost across every evaluator that reported it. Null when none did (the rules, the stub). */
+  usage: { inputTokens: number; outputTokens: number } | null
 }
 
 export class EvaluationPipeline {
@@ -55,6 +57,16 @@ export class EvaluationPipeline {
       (a, b) => (rubricOrder.get(a.criterionId) ?? 0) - (rubricOrder.get(b.criterionId) ?? 0),
     )
 
-    return { results, failures, unscored }
+    // Cost is summed across evaluators; a failed evaluator still spent its tokens.
+    let usage: PipelineOutcome['usage'] = null
+    for (const e of this.evaluators) {
+      if (!e.lastUsage) continue
+      usage = {
+        inputTokens: (usage?.inputTokens ?? 0) + e.lastUsage.inputTokens,
+        outputTokens: (usage?.outputTokens ?? 0) + e.lastUsage.outputTokens,
+      }
+    }
+
+    return { results, failures, unscored, usage }
   }
 }

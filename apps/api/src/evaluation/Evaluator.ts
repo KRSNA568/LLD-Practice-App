@@ -60,6 +60,11 @@ export interface Evaluator {
   readonly kind: EvaluatorKind
   readonly criteria: readonly CriterionId[]
   evaluate(ctx: EvaluationContext): Promise<CriterionResult[]>
+  /**
+   * What the last `evaluate` cost, for evaluators that call a model. Retries
+   * included: a rejected first reply was a real call. Undefined on the rules.
+   */
+  readonly lastUsage?: { inputTokens: number; outputTokens: number } | null
 }
 
 /**

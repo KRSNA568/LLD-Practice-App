@@ -8,7 +8,7 @@ import { LlmEvaluator } from '../../apps/api/src/evaluation/llm/LlmEvaluator.js'
 import { StubLlmClient } from '../../apps/api/src/evaluation/llm/StubLlmClient.js'
 import { LlmUnavailableError } from '../../apps/api/src/evaluation/llm/LlmClient.js'
 import { summarise } from '../../apps/api/src/domain/feedback/ScoreAggregator.js'
-import { designCtx, godClassDesign, rubric, strongDesign } from '../fixtures.js'
+import { changeCtx, designCtx, godClassDesign, rubric, strongDesign } from '../fixtures.js'
 
 const ctx = designCtx
 
@@ -122,5 +122,41 @@ describe('EvaluationPipeline', () => {
         }
       }
     }
+  })
+
+  it('reports what the run cost, summed across evaluators and retries', async () => {
+    // A client that reports usage, and whose first reply is garbage so the
+    // evaluator retries: both calls are what the evaluation cost.
+    let n = 0
+    const client = {
+      id: 'fake',
+      complete: async () => {
+        n += 1
+        return {
+          text: n === 1 ? 'not json at all' : JSON.stringify({ results: [] }),
+          usage: { inputTokens: 1000, outputTokens: 50 },
+        }
+      },
+    }
+    const llm = new LlmEvaluator(client)
+    const pipeline = new EvaluationPipeline([new RuleEvaluator(), llm])
+    const outcome = await pipeline.run(ctx())
+    expect(llm.lastUsage).toEqual({ inputTokens: 2000, outputTokens: 100 })
+    expect(outcome.usage).toEqual({ inputTokens: 2000, outputTokens: 100 })
+
+    // A stage with nothing for the model to judge costs nothing — and must not
+    // report the previous stage's figure. Caught live: the change row carried
+    // the design stage's tokens.
+    const change = await pipeline.run(changeCtx(strongDesign, strongDesign))
+    expect(llm.lastUsage).toBeNull()
+    expect(change.usage).toBeNull()
+  })
+
+  it('reports zero on the stub and null when nothing reported usage — free and unrecorded stay distinct', async () => {
+    // The stub costs nothing and says so; a provider that omits usage says nothing.
+    const stubbed = await new EvaluationPipeline([new RuleEvaluator(), new LlmEvaluator(new StubLlmClient())]).run(ctx())
+    expect(stubbed.usage).toEqual({ inputTokens: 0, outputTokens: 0 })
+    const rulesOnly = await new EvaluationPipeline([new RuleEvaluator()]).run(ctx())
+    expect(rulesOnly.usage).toBeNull()
   })
 })
