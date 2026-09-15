@@ -49,6 +49,24 @@ export class GodClassCheck implements DesignCheck {
     // rather than letting it quietly pass because no single class looks overloaded.
     const noStructure = graph.classes.length >= 3 && graph.relationships.length === 0
 
+    // A criterion that measures the *absence* of a fault will happily award full
+    // marks to a design with nothing in it to be faulty. An empty submission was
+    // scoring 4 here and being told "every class describes a single job", which is
+    // both wrong and the opposite of useful. Nothing to judge is not a pass.
+    if (graph.classes.length === 0) {
+      return {
+        criterionId: this.criterionId,
+        stage: this.stage,
+        score: 0,
+        evidence: [],
+        concern: 'There are no classes in this design, so there is nothing to judge here yet.',
+        suggestion: 'Name the objects in this problem and give each one a single sentence saying what it is responsible for.',
+        confidence: 'high',
+        evaluatorId: 'rule-evaluator',
+        evaluatorKind: 'deterministic',
+      }
+    }
+
     const score: Score = noStructure
       ? 1
       : offenders.length === 0

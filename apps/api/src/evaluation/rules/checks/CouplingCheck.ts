@@ -72,6 +72,23 @@ export class CouplingCheck implements DesignCheck {
       (orphans.length >= 2 ? 2 : orphans.length === 1 ? 1 : 0) +
       (hubs.length > 0 ? 1 : 0)
 
+    // As in GodClassCheck: an empty graph has no orphans, no cycles and no dangling
+    // edges, and was scoring 4 with "the graph holds together". It does not hold
+    // together; there is no graph.
+    if (graph.classes.length === 0) {
+      return {
+        criterionId: this.criterionId,
+        stage: this.stage,
+        score: 0,
+        evidence: [],
+        concern: 'There are no classes in this design, so there is no structure to assess.',
+        suggestion: 'Start by naming the objects in this problem and how they are connected.',
+        confidence: 'high',
+        evaluatorId: 'rule-evaluator',
+        evaluatorKind: 'deterministic',
+      }
+    }
+
     const score: Score = faults === 0 ? 4 : faults === 1 ? 3 : faults === 2 ? 2 : faults <= 4 ? 1 : 0
 
     const notes: string[] = []
