@@ -148,14 +148,29 @@ describe('Dialogue', () => {
       id: 'fake',
       complete: async () => ({ text: JSON.stringify({ question: n++ === 0 ? 'Use a Strategy.' : 'What breaks in ParkingLotManager first?' }) }),
     }
-    expect(await new Dialogue(client).followUp(ctx, probe, transcript)).toBe('What breaks in ParkingLotManager first?')
+    expect((await new Dialogue(client).followUp(ctx, probe, transcript))?.question).toBe('What breaks in ParkingLotManager first?')
     const bad = { id: 'fake', complete: async () => ({ text: JSON.stringify({ question: 'Use a Strategy.' }) }) }
     expect(await new Dialogue(bad).followUp(ctx, probe, transcript)).toBeNull()
   })
 
+  it('reports what the follow-up cost, retries included', async () => {
+    const { Dialogue } = await import('../../apps/api/src/coach/Dialogue.js')
+    let n = 0
+    const client = {
+      id: 'fake',
+      complete: async () => ({
+        text: JSON.stringify({ question: n++ === 0 ? 'Use a Strategy.' : 'What breaks in ParkingLotManager first?' }),
+        usage: { inputTokens: 100, outputTokens: 10 },
+      }),
+    }
+    const out = await new Dialogue(client).followUp(ctx, probe, transcript)
+    // The rejected first attempt was a real call and is part of the cost.
+    expect(out?.usage).toEqual({ inputTokens: 200, outputTokens: 20 })
+  })
+
   it('the stub asks a grounded question that quotes the learner', async () => {
     const { Dialogue } = await import('../../apps/api/src/coach/Dialogue.js')
-    const q = await new Dialogue(new StubLlmClient()).followUp(ctx, probe, transcript)
+    const q = (await new Dialogue(new StubLlmClient()).followUp(ctx, probe, transcript))?.question
     expect(q).toMatch(/^You said "calculateFee gets a branch/)
     expect(q).toMatch(/\?$/)
     expect(q).toContain('ParkingLotManager')

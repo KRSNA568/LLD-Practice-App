@@ -1,3 +1,4 @@
+import type { Usage } from './Reviewer.js'
 import { z } from 'zod'
 import type { DialogueTurn, Probe } from '@lld/contracts'
 import type { EvaluationContext } from '../evaluation/Evaluator.js'
@@ -25,7 +26,9 @@ export const DIALOGUE_PROMPT_VERSION = COACH_PROMPT_VERSION
 export class Dialogue {
   constructor(private readonly client: LlmClient) {}
 
-  async followUp(ctx: EvaluationContext, probe: Probe, transcript: DialogueTurn[]): Promise<string | null> {
+  async followUp(ctx: EvaluationContext, probe: Probe, transcript: DialogueTurn[]): Promise<{ question: string; usage?: Usage } | null> {
+    // A retry is a second call; both are what the follow-up cost.
+    const usage: Usage = { inputTokens: 0, outputTokens: 0 }
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const response = await this.client.complete({
         system: MENTOR_SYSTEM,
@@ -34,10 +37,12 @@ export class Dialogue {
         effort: 'low',
         json: true,
       })
+      usage.inputTokens += response.usage?.inputTokens ?? 0
+      usage.outputTokens += response.usage?.outputTokens ?? 0
       const parsed = followUpSchema.safeParse(readJson(response.text))
       if (!parsed.success) continue
       const question = acceptable(parsed.data.question.trim(), ctx, probe)
-      if (question) return question
+      if (question) return { question, usage: response.usage ? usage : undefined }
     }
     return null
   }

@@ -5,7 +5,8 @@ import { readJson } from '../evaluation/llm/LlmEvaluator.js'
 import { groundProse } from './ground.js'
 import { MENTOR_SYSTEM, reviewerPrompt } from './prompts.js'
 
-export type MentorText = { text: string; modelId: string }
+export type Usage = { inputTokens: number; outputTokens: number }
+export type MentorText = { text: string; modelId: string; usage?: Usage }
 
 /**
  * The reviewer's note. One call, one paragraph, grounded sentence by sentence.
@@ -30,6 +31,6 @@ export class Reviewer {
 
     const grounded = groundProse(parsed.data.note, ctx.graph, [ctx.problem.title])
     if (grounded.kept < 2) return null
-    return { text: grounded.text, modelId: this.client.id }
+    return { text: grounded.text, modelId: this.client.id, usage: response.usage }
   }
 }

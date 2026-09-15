@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
 import type { AiNoteKind } from '@lld/contracts'
+import type { Usage } from './Reviewer.js'
 
 /**
  * Get-or-generate for anything the mentor writes.
@@ -23,7 +24,7 @@ export class NoteStore {
     return { ...(JSON.parse(row.json) as T), modelId: row.modelId }
   }
 
-  async getOrGenerate<T extends { modelId: string }>(
+  async getOrGenerate<T extends { modelId: string; usage?: Usage }>(
     where: { kind: AiNoteKind; key: string; learnerId: string; attemptId?: string; stage?: string; refId?: string },
     generate: () => Promise<T | null>,
   ): Promise<T | null> {
@@ -33,7 +34,9 @@ export class NoteStore {
     const fresh = await generate()
     if (!fresh) return null
 
-    const { modelId, ...json } = fresh
+    // Usage is a fact about the call, not part of the note: it goes in columns so
+    // cost is queryable, and is not returned on a cache hit because a cache hit cost nothing.
+    const { modelId, usage, ...json } = fresh
     await this.prisma.aiNote.upsert({
       where: { kind_key: { kind: where.kind, key: where.key } },
       create: {
@@ -46,6 +49,8 @@ export class NoteStore {
         refId: where.refId ?? null,
         modelId,
         json: JSON.stringify(json),
+        inputTokens: usage?.inputTokens ?? null,
+        outputTokens: usage?.outputTokens ?? null,
       },
       update: {},
     })

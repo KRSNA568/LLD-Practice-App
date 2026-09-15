@@ -144,15 +144,24 @@ export class CoachService {
     // One follow-up, after the first answer only. A follow-up that fails its own
     // rules is simply not asked; the probe ends at one turn.
     if (learnerTurns === 0) {
-      const question = await this.dialogue.followUp(loaded.ctx, probe, transcript).catch((error: unknown) => {
+      const followUp = await this.dialogue.followUp(loaded.ctx, probe, transcript).catch((error: unknown) => {
         console.warn(`[coach] no follow-up for ${attemptId}/${probeId}:`, error instanceof Error ? error.message : error)
         return null
       })
-      if (question) {
+      if (followUp) {
         await this.prisma.dialogueTurn.create({
-          data: { id: randomUUID(), attemptId, probeId, turn: transcript.length, role: 'mentor', text: question },
+          data: {
+            id: randomUUID(),
+            attemptId,
+            probeId,
+            turn: transcript.length,
+            role: 'mentor',
+            text: followUp.question,
+            inputTokens: followUp.usage?.inputTokens ?? null,
+            outputTokens: followUp.usage?.outputTokens ?? null,
+          },
         })
-        transcript.push({ role: 'mentor', text: question })
+        transcript.push({ role: 'mentor', text: followUp.question })
         return { transcript, closed: false }
       }
     }

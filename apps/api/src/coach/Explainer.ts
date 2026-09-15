@@ -1,3 +1,4 @@
+import type { MentorText } from './Reviewer.js'
 import { z } from 'zod'
 import type { CriterionResult } from '@lld/contracts'
 import type { EvaluationContext } from '../evaluation/Evaluator.js'
@@ -17,7 +18,7 @@ const schema = z.object({ explanation: z.string().min(1) })
 export class Explainer {
   constructor(private readonly client: LlmClient) {}
 
-  async explain(ctx: EvaluationContext, result: CriterionResult): Promise<{ text: string; modelId: string } | null> {
+  async explain(ctx: EvaluationContext, result: CriterionResult): Promise<MentorText | null> {
     const response = await this.client.complete({
       system: MENTOR_SYSTEM,
       user: explainPrompt(ctx, result),
@@ -29,7 +30,7 @@ export class Explainer {
     if (!parsed.success) return null
     const grounded = groundProse(parsed.data.explanation, ctx.graph, [ctx.problem.title])
     if (grounded.kept < 2) return null
-    return { text: grounded.text, modelId: this.client.id }
+    return { text: grounded.text, modelId: this.client.id, usage: response.usage }
   }
 }
 

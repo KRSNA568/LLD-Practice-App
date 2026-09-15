@@ -136,6 +136,9 @@ model AiNote {
   refId     String?
   modelId   String
   json      String
+  /// What the call cost. Null when served from the cache, or on the stub.
+  inputTokens  Int?
+  outputTokens Int?
   createdAt DateTime @default(now())
 
   @@unique([kind, key])
@@ -152,6 +155,9 @@ model DialogueTurn {
   turn      Int
   role      String
   text      String
+  /// Set on mentor turns only: what generating the follow-up cost, retries included.
+  inputTokens  Int?
+  outputTokens Int?
   createdAt DateTime @default(now())
 
   @@unique([attemptId, probeId, turn])

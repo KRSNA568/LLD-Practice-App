@@ -1,3 +1,4 @@
+import type { MentorText } from './Reviewer.js'
 import { z } from 'zod'
 import type { NextProblemSuggestion, RecurringWeakness, Rubric } from '@lld/contracts'
 import type { LlmClient } from '../evaluation/llm/LlmClient.js'
@@ -26,7 +27,7 @@ export type CoachInput = {
 export class Coach {
   constructor(private readonly client: LlmClient) {}
 
-  async note(input: CoachInput): Promise<{ text: string; modelId: string } | null> {
+  async note(input: CoachInput): Promise<MentorText | null> {
     const response = await this.client.complete({
       system: MENTOR_SYSTEM,
       user: coachPrompt(input),
@@ -47,7 +48,7 @@ export class Coach {
     for (const n of named) {
       if (!names.some((a) => n.includes(a) || a.includes(n))) return null
     }
-    return { text, modelId: this.client.id }
+    return { text, modelId: this.client.id, usage: response.usage }
   }
 }
 

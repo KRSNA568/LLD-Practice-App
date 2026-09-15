@@ -1,3 +1,4 @@
+import type { Usage } from './Reviewer.js'
 import { microLessonSchema, type Concept, type CriterionResult, type MicroLesson } from '@lld/contracts'
 import type { EvaluationContext } from '../evaluation/Evaluator.js'
 import type { LlmClient } from '../evaluation/llm/LlmClient.js'
@@ -14,7 +15,7 @@ import { lessonPrompt, MENTOR_SYSTEM } from './prompts.js'
 export class LessonWriter {
   constructor(private readonly client: LlmClient) {}
 
-  async write(ctx: EvaluationContext, concept: Concept, result: CriterionResult): Promise<(MicroLesson & { modelId: string }) | null> {
+  async write(ctx: EvaluationContext, concept: Concept, result: CriterionResult): Promise<(MicroLesson & { modelId: string; usage?: Usage }) | null> {
     const response = await this.client.complete({
       system: MENTOR_SYSTEM,
       user: lessonPrompt(ctx, concept, result),
@@ -36,6 +37,7 @@ export class LessonWriter {
       body: body.text,
       example: { before: before.text, after: after.text },
       modelId: this.client.id,
+      usage: response.usage,
     }
   }
 }
