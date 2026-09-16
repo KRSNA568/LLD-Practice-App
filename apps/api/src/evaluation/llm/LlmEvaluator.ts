@@ -60,6 +60,8 @@ export class LlmEvaluator implements Evaluator {
     const attempts = (this.options.retries ?? 1) + 1
 
     let lastError: unknown
+    let inputTokens = 0
+    let outputTokens = 0
 
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       const response = await this.client.complete({
@@ -72,10 +74,9 @@ export class LlmEvaluator implements Evaluator {
       })
 
       if (response.usage) {
-        this.lastUsage = {
-          inputTokens: (this.lastUsage?.inputTokens ?? 0) + response.usage.inputTokens,
-          outputTokens: (this.lastUsage?.outputTokens ?? 0) + response.usage.outputTokens,
-        }
+        inputTokens += response.usage.inputTokens
+        outputTokens += response.usage.outputTokens
+        this.lastUsage = { inputTokens, outputTokens }
       }
 
       const { raw, malformed } = dropMalformedEvidence(readJson(response.text))

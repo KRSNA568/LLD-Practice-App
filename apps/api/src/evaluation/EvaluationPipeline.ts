@@ -58,15 +58,16 @@ export class EvaluationPipeline {
     )
 
     // Cost is summed across evaluators; a failed evaluator still spent its tokens.
-    let usage: PipelineOutcome['usage'] = null
+    let reported = false
+    let inputTokens = 0
+    let outputTokens = 0
     for (const e of this.evaluators) {
       if (!e.lastUsage) continue
-      usage = {
-        inputTokens: (usage?.inputTokens ?? 0) + e.lastUsage.inputTokens,
-        outputTokens: (usage?.outputTokens ?? 0) + e.lastUsage.outputTokens,
-      }
+      reported = true
+      inputTokens += e.lastUsage.inputTokens
+      outputTokens += e.lastUsage.outputTokens
     }
 
-    return { results, failures, unscored, usage }
+    return { results, failures, unscored, usage: reported ? { inputTokens, outputTokens } : null }
   }
 }
