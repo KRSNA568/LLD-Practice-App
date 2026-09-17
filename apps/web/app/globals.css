@@ -3,126 +3,144 @@
 @tailwind utilities;
 
 /**
- * One palette, two value sets.
- *
- * Colours are named by role, never by hue, so a screen written once works in both
- * themes without a second pass. The ground is deliberately warm rather than pure
- * white or pure black — this is a place people come back to daily, and a clinical
- * grey dashboard is the wrong feeling for practice.
- *
- * `machine` and `judged` are load-bearing, not decorative: the learner must always
- * be able to tell a finding that was *proved* from one that was *judged*.
+ * One look. Colours live in tailwind.config.ts as the design's tokens; this file
+ * holds the base layer and the handful of component classes every screen shares.
  */
-
-:root {
-  --canvas: 253 251 247;
-  --surface: 255 255 255;
-  --raised: 247 243 236;
-  --line: 232 224 212;
-
-  --ink: 42 37 32;
-  --ink-muted: 107 98 89;
-  --ink-faint: 154 144 134;
-
-  --brand: 214 96 38;
-  --brand-soft: 253 240 231;
-
-  --positive: 45 122 89;
-  --caution: 184 120 22;
-  --critical: 187 62 48;
-
-  --machine: 62 106 166;
-  --judged: 122 88 186;
-
-  --shadow: 92 74 54;
-
-  --font-sans: 'Inter var', 'Inter', system-ui, sans-serif;
-}
-
-:root[data-theme='dark'] {
-  --canvas: 24 21 18;
-  --surface: 33 29 25;
-  --raised: 44 39 34;
-  --line: 58 52 45;
-
-  --ink: 243 238 231;
-  --ink-muted: 170 161 150;
-  --ink-faint: 124 116 106;
-
-  --brand: 240 138 75;
-  --brand-soft: 52 36 25;
-
-  --positive: 106 200 150;
-  --caution: 224 169 79;
-  --critical: 226 124 110;
-
-  --machine: 130 168 220;
-  --judged: 176 145 232;
-
-  --shadow: 0 0 0;
-}
 
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    color-scheme: light;
   }
   body {
-    @apply bg-canvas text-ink antialiased;
-    font-feature-settings: 'cv11', 'ss01';
+    @apply bg-ground text-ink antialiased;
+    text-wrap: pretty;
   }
   * {
     @apply border-line;
   }
-  ::selection {
-    background: rgb(var(--brand) / 0.22);
+  a {
+    @apply text-ink-strong;
   }
-  /* Focus is visible and warm, never the default blue ring. */
+  a:hover {
+    @apply text-muted;
+  }
+  ::selection {
+    background: #D8D3F6;
+  }
+  /* Focus is a 2px black outline offset 2px — the design's focus state. */
   :focus-visible {
-    outline: 2px solid rgb(var(--brand));
+    outline: 2px solid #111111;
     outline-offset: 2px;
-    border-radius: 6px;
+    border-radius: 999px;
   }
 }
 
 @layer components {
-  .card {
-    @apply rounded-2xl border border-line bg-surface shadow-soft;
+  /* Headline sizes from the artboards. */
+  .h-hero {
+    @apply text-[40px] font-medium leading-[1.06] tracking-[-0.03em] text-ink-strong lg:text-[72px] lg:leading-[1.05];
   }
-  .chip {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-line
-           bg-raised px-2.5 py-1 text-xs font-medium text-ink-muted;
+  .h-page {
+    @apply text-[32px] font-medium leading-[1.1] tracking-[-0.03em] text-ink-strong lg:text-[48px];
   }
+  .h-stage {
+    @apply text-[40px] font-medium leading-[1.1] tracking-[-0.03em] text-ink-strong;
+  }
+  .h-section {
+    @apply text-[18px] font-medium leading-none text-ink-strong;
+  }
+  .h-card {
+    @apply text-[28px] font-medium leading-[1.2] tracking-[-0.02em] text-ink-strong;
+  }
+  .h-card-sm {
+    @apply text-[24px] font-medium leading-[1.18] tracking-[-0.02em] text-ink-strong;
+  }
+
+  /* Buttons: 56px primary pill, secondary outline, ghost, disabled. */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
-           text-sm font-semibold transition-colors disabled:cursor-not-allowed
-           disabled:opacity-50;
+    @apply inline-flex h-14 items-center justify-center gap-2 rounded-full px-[30px]
+           text-[15px] font-medium leading-none transition-colors
+           disabled:cursor-not-allowed;
   }
   .btn-primary {
-    @apply btn bg-brand text-white hover:brightness-105 active:brightness-95;
+    @apply btn bg-ink-strong text-white hover:bg-black-hover
+           disabled:bg-line disabled:text-faint disabled:hover:bg-line;
   }
+  .btn-secondary {
+    @apply btn border border-ink-strong bg-white text-ink-strong hover:bg-soft;
+  }
+  .btn-ghost {
+    @apply btn px-[22px] text-muted hover:text-ink-strong;
+  }
+  .btn-sm {
+    @apply h-12 px-6 text-[14px];
+  }
+  .btn-xs {
+    @apply h-11 px-[22px] text-[14px];
+  }
+  /* The aliases older components still use. */
   .btn-quiet {
-    @apply btn border border-line bg-surface text-ink hover:bg-raised;
+    @apply btn-secondary btn-xs;
   }
+
+  /* Cards. */
+  .card {
+    @apply rounded-3xl bg-white;
+  }
+  .card-lined {
+    @apply card border border-soft;
+  }
+  .panel {
+    @apply rounded-4xl bg-panel;
+  }
+
+  /* Inputs. */
   .field {
-    @apply w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm
-           text-ink placeholder:text-ink-faint focus:outline-none
-           focus:ring-2 focus:ring-brand/35 focus:border-brand/50 transition;
+    @apply w-full rounded-2xl border border-line bg-white px-4 py-3 text-[15px]
+           text-ink placeholder:text-faint focus:outline-none
+           focus:border-ink-strong transition;
   }
+  .field:focus-visible {
+    outline: none;
+    border-radius: 20px;
+  }
+
+  /* Pills. */
+  .pill {
+    @apply inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium leading-none text-ink-strong;
+  }
+  .pill-white {
+    @apply pill bg-white;
+  }
+  .pill-soft {
+    @apply pill bg-soft font-normal text-muted;
+  }
+  .pill-outline {
+    @apply pill h-9 border border-line bg-transparent px-3.5 text-[14px];
+  }
+  .chip {
+    @apply pill-soft;
+  }
+  .mono {
+    @apply font-mono;
+  }
+
   .skeleton {
-    @apply rounded-lg bg-raised;
-    background-image: linear-gradient(
-      90deg,
-      rgb(var(--raised)) 0px,
-      rgb(var(--line)) 60px,
-      rgb(var(--raised)) 120px
-    );
+    @apply rounded-full bg-skel;
+    background-image: linear-gradient(90deg, #EAE2DA 0px, #F3ECE6 60px, #EAE2DA 120px);
     background-size: 500px 100%;
     @apply animate-shimmer;
   }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
-/* Motion should explain a change, never perform for its own sake — and it must
-   never be the reason someone cannot use the product. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

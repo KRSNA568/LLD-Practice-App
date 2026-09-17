@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { FieldError, RawStructuredSubmission, Scenario } from '@lld/contracts'
 import { EASE } from './motion'
@@ -78,7 +79,7 @@ export function DesignForm({
   }
 
   return (
-    <div className="space-y-7">
+    <div className="flex flex-col gap-8">
       <Section
         title="Assumptions"
         hint="Real briefs are incomplete. Write down what you decided so it is a choice, not a gap."
@@ -120,14 +121,18 @@ export function DesignForm({
         title="Classes"
         hint="One sentence per class. If you need more than one, you have found two classes. Methods matter: the scenarios below are walked against them."
         error={errorFor('classes')}
+        action={
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => patch({ classes: [...value.classes, { name: '', stereotype: 'class', responsibility: '', attributes: [], methods: [] }] })}
+            className="inline-flex h-9 flex-none items-center gap-2 whitespace-nowrap rounded-full border border-ink-strong px-4 text-[13px] font-medium leading-none text-ink-strong transition-colors hover:bg-soft disabled:opacity-50"
+          >
+            + Add class
+          </button>
+        }
       >
         <div className="space-y-2.5">
-          <div className="hidden gap-2 px-1 text-[11px] uppercase tracking-wide text-ink-faint md:grid md:grid-cols-[1.1fr_0.7fr_2fr_auto]">
-            <span>Name</span>
-            <span>Type</span>
-            <span>Responsibility</span>
-            <span />
-          </div>
 
           <AnimatePresence initial={false}>
             {value.classes.map((row, i) => {
@@ -135,18 +140,19 @@ export function DesignForm({
               const respError = errorFor(`classes.${i}.responsibility`)
               const state = touchState(row.name)
               return (
-                <Row key={i}>
-                  <motion.div
-                    animate={
-                      state === 'added'
-                        ? { boxShadow: '0 0 0 2px rgb(var(--positive) / 0.45)' }
-                        : state === 'modified'
-                          ? { boxShadow: '0 0 0 2px rgb(var(--caution) / 0.45)' }
-                          : { boxShadow: '0 0 0 0px rgb(var(--caution) / 0)' }
-                    }
-                    transition={{ duration: 0.25 }}
-                    className="flex-1 rounded-xl"
-                  >
+                <ClassRow
+                  key={i}
+                  index={i}
+                  name={row.name}
+                  stereotype={row.stereotype}
+                  methods={row.methods}
+                  state={state}
+                  defaultOpen={!row.name.trim()}
+                  disabled={disabled}
+                  canRemove={value.classes.length > 1}
+                  onRemove={() => patch({ classes: value.classes.filter((_, j) => j !== i) })}
+                >
+                  <div>
                     <div className="grid gap-2 md:grid-cols-[1.1fr_0.7fr_2fr]">
                       <div>
                         <input
@@ -220,17 +226,15 @@ export function DesignForm({
                         }}
                       />
                     </div>
-                  </motion.div>
-                  <RemoveButton
-                    disabled={disabled || value.classes.length === 1}
-                    onClick={() => patch({ classes: value.classes.filter((_, j) => j !== i) })}
-                  />
-                </Row>
+                  </div>
+                </ClassRow>
               )
             })}
           </AnimatePresence>
 
-          <AddButton
+          {/* The dashed row from the design: a place to name the next class. */}
+          <button
+            type="button"
             disabled={disabled}
             onClick={() =>
               patch({
@@ -240,9 +244,11 @@ export function DesignForm({
                 ],
               })
             }
+            className="flex w-full items-center gap-4 rounded-2xl border-2 border-dashed border-dashed bg-white px-5 py-4 text-left transition-colors hover:bg-soft disabled:opacity-50"
           >
-            Add class
-          </AddButton>
+            <span className="h-3 w-3 flex-none rounded-full bg-line" />
+            <span className="text-[15px] leading-none text-faint">{frozen ? 'Name the class the change should land in…' : 'Name the next class…'}</span>
+          </button>
         </div>
       </Section>
 
@@ -466,22 +472,79 @@ function Section({
   title,
   hint,
   error,
+  action,
   children,
 }: {
   title: string
   hint: string
   error?: string
+  action?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
-    <section>
-      <div className="mb-2.5">
-        <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
-        <p className="mt-0.5 text-xs leading-relaxed text-ink-faint">{hint}</p>
+    <section className="flex flex-col gap-3.5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="h-section">{title}</h3>
+          <p className="mt-2 text-[13px] leading-relaxed text-muted">{hint}</p>
+        </div>
+        {action}
       </div>
       {children}
       <FieldError message={error} />
     </section>
+  )
+}
+
+/**
+ * A class as the design draws it: a pastel dot, the name, its methods, a
+ * chevron — and the full editor underneath when opened. A class with no name
+ * yet opens by itself, because there is nothing to show collapsed.
+ */
+function ClassRow({ index, name, stereotype, methods, state, defaultOpen, disabled, canRemove, onRemove, children }: {
+  index: number
+  name: string
+  stereotype: string
+  methods: string[]
+  state: 'added' | 'modified' | null
+  defaultOpen: boolean
+  disabled?: boolean
+  canRemove: boolean
+  onRemove: () => void
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  const dot = ['#F5C6C8', '#F8D9B7', '#D8D3F6', '#BCEAD4'][index % 4]
+  const ring = state === 'added' ? '0 0 0 2px #4E9E77' : state === 'modified' ? '0 0 0 2px #C98F4E' : '0 0 0 0px transparent'
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto', boxShadow: ring }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.22, ease: EASE }}
+      className="overflow-hidden rounded-2xl border border-soft bg-white"
+    >
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full items-center gap-4 px-5 py-4 text-left">
+        <span className="h-3 w-3 flex-none rounded-full" style={{ background: dot }} />
+        <span className="w-[150px] flex-none truncate font-mono text-[15px] font-medium leading-none text-ink-strong">
+          {name.trim() || <span className="font-sans font-normal text-faint">Unnamed class</span>}
+          {stereotype !== 'class' && name.trim() && <span className="ml-1.5 font-sans text-[11px] font-normal text-muted">{stereotype}</span>}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-[14px] leading-[1.4] text-muted">
+          {methods.filter(Boolean).join(' · ') || (state === null ? 'no methods yet' : '')}
+          {state === 'added' && <span className="ml-2 text-tint-green">added</span>}
+          {state === 'modified' && <span className="ml-2 text-tint-amber">changed</span>}
+        </span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6E6E" strokeWidth="1.8" strokeLinecap="round" className={`flex-none transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden><path d="M9 6l6 6-6 6" /></svg>
+      </button>
+      {open && (
+        <div className="flex items-start gap-2 border-t border-soft px-5 pb-5 pt-4">
+          <div className="flex-1">{children}</div>
+          <RemoveButton disabled={disabled || !canRemove} onClick={onRemove} />
+        </div>
+      )}
+    </motion.div>
   )
 }
 
@@ -514,7 +577,7 @@ function AddButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="rounded-lg px-2 py-1.5 text-xs font-medium text-brand transition-colors hover:bg-brand-soft disabled:opacity-40"
+      className="inline-flex h-9 items-center gap-2 self-start rounded-full border border-line bg-white px-4 text-[13px] font-medium leading-none text-ink-strong transition-colors hover:bg-soft disabled:opacity-40"
     >
       + {children}
     </button>
@@ -528,7 +591,7 @@ function RemoveButton({ onClick, disabled }: { onClick: () => void; disabled?: b
       onClick={onClick}
       disabled={disabled}
       aria-label="Remove row"
-      className="mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-ink-faint transition-colors hover:bg-raised hover:text-critical disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-ink-faint"
+      className="mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-faint transition-colors hover:bg-soft hover:text-tint-rose disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-faint"
     >
       ×
     </button>

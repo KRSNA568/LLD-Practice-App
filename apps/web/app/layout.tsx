@@ -1,27 +1,22 @@
 import type { Metadata } from 'next'
+import { Sora } from 'next/font/google'
 import './globals.css'
-import { THEME_BOOTSTRAP } from '@/lib/theme'
-import { TopBar } from '@/components/TopBar'
 import { IdentityGate } from '@/components/IdentityGate'
+import { Shell } from '@/components/shell/Shell'
+
+const sora = Sora({ subsets: ['latin'], weight: ['300', '400', '500', '600'], variable: '--font-sora', display: 'swap' })
 
 export const metadata: Metadata = {
   title: 'Deliberate — LLD practice',
-  description:
-    'Practice Low-Level Design and get feedback anchored to evidence in your own submission.',
+  description: 'Practice Low-Level Design and get feedback anchored to evidence in your own submission.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        {/* Applies the stored theme before first paint, so there is no flash of
-            the wrong one on load. */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
-      </head>
-      <body className="min-h-screen">
+    <html lang="en" className={sora.variable}>
+      <body className="min-h-screen font-sans">
         <IdentityGate>
-          <TopBar />
-          <main className="mx-auto w-full max-w-6xl px-5 pb-24 pt-6">{children}</main>
+          <Shell>{children}</Shell>
         </IdentityGate>
       </body>
     </html>

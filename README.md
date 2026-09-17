@@ -27,12 +27,14 @@ npm run seed     # creates the SQLite database, validates every content file, se
 npm run dev      # API on :4000, web on :3000
 ```
 
-Open **http://localhost:3000**. It asks for a name first — that is the whole sign-in: attempts are
-kept under the name, there is no password, and **Switch** in the top bar hands the keyboard to the
+Open **http://localhost:3000**. The interface is the Claude Design mockups in
+`ui-mockups-for-learning-platform/` implemented on the real data; [REDESIGN.md](REDESIGN.md) records
+every place a drawn element met a feature that did not exist. It asks for a name first — that is the whole sign-in: attempts are
+kept under the name, there is no password, and **Switch** behind the gear hands the keyboard to the
 next person. It exists so several people can share one instance (the validity study needs that);
-real accounts come later. Four places: **Dashboard** (where you are), **Learn** (the
-problems, by level), **Concepts** (the curriculum map with your standing on each idea),
-**Progress** (every attempt, every criterion, the habit worth breaking).
+real accounts come later. Six places on the rail: **Critique** (the warm-ups), **Dashboard**,
+**Learn** (the catalogue), **Concepts** (the curriculum map with your standing on each idea),
+**Progress** (every criterion, time on stages, the habit worth breaking), **History** (every attempt).
 
 With no key set, the two read criteria (*edge cases*, *reasoning*) are scored by a deterministic
 heuristic that parses the same prompt the real model would see, so the whole loop works on a fresh
@@ -69,7 +71,7 @@ that learner unless asked. [STUDY_PROTOCOL.md](STUDY_PROTOCOL.md) is the six-per
 two scripts exist for.
 
 ```bash
-npm test         # 260 tests, including a calibration suite over 26 gold designs across 8 problems
+npm test         # 262 tests, including a calibration suite over 26 gold designs across 8 problems
 npm run typecheck
 ```
 
@@ -79,9 +81,9 @@ If you have a database from an earlier version, delete `apps/api/prisma/dev.db` 
 
 About ten minutes, and it shows every part of the product:
 
-1. On **Parking Lot**, click **Warm up first**. Three pairs of designs, one question each — click the
-   class that decides it. Read the paragraph that appears. That paragraph is the point.
-2. **Start** the attempt. Submit a deliberately bad design: one class `ParkingLotManager` whose
+1. Open **Critique** on the rail and pick **Parking Lot**. Three pairs of designs, one question each —
+   click the class that decides it, submit, and read the paragraph that appears. That paragraph is the point.
+2. Click the **Parking Lot** card to start the attempt. Submit a deliberately bad design: one class `ParkingLotManager` whose
    responsibility is *"Handles parking, pricing, exit, payment and ticket generation"* with methods
    `park, exit, calculateFee, findSpot`, plus `Spot`, `Vehicle`, `Ticket`. In **Run it**, walk every
    scenario with `ParkingLotManager` on every step and let *"nothing suitable is free"* end as

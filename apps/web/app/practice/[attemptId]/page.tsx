@@ -8,10 +8,11 @@ import type { Attempt, DialogueTurn, FieldError, ProbeAnswer, PublicProblem, Raw
 import { api, ApiRequestError } from '@/lib/api'
 import { liveDiff } from '@/lib/diff'
 import { DesignForm, emptyForm, type FormState } from '@/components/DesignForm'
-import { StageRail } from '@/components/StageRail'
-import { ChangeReveal } from '@/components/ChangeReveal'
+import { StageRail } from '@/components/ui/StageRail'
 import { ProbePanel } from '@/components/ProbePanel'
-import { riseIn } from '@/components/motion'
+import { Panel } from '@/components/shell/Panel'
+import { PanelCard } from '@/components/ui/Cards'
+import { Icon } from '@/components/ui/Icon'
 
 /**
  * The workspace. One route, three stages.
@@ -152,177 +153,162 @@ export default function PracticePage() {
 
   if (!problem || !form || !attempt) {
     return (
-      <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
-        <div className="card h-64 p-5">
-          <div className="skeleton h-6 w-2/3" />
-          <div className="skeleton mt-4 h-3 w-full" />
-          <div className="skeleton mt-2 h-3 w-5/6" />
-        </div>
-        <div className="card h-96 p-5">
-          <div className="skeleton h-5 w-1/4" />
-          <div className="skeleton mt-4 h-9 w-full" />
-          <div className="skeleton mt-2 h-9 w-full" />
-        </div>
-      </div>
+      <>
+        <div className="flex gap-3">{[0, 1, 2].map((i) => <span key={i} className="h-12 w-28 rounded-full bg-panel" />)}</div>
+        <span className="h-12 w-1/2 rounded-full bg-panel" />
+        <div className="flex flex-col gap-3">{[0, 1, 2, 3].map((i) => <span key={i} className="h-[60px] rounded-2xl bg-panel" />)}</div>
+      </>
     )
   }
 
   const stage = attempt.stage
   const completed = attempt.report?.stagesCompleted ?? []
-  const runStarted = form.walkthroughs.some((w) => w.steps.some((s) => s.className.trim() && s.method.trim()))
   const frozenRaw = attempt.design ? withBlanks(designToRaw(attempt.design)) : null
   const diff = stage === 'change' && frozenRaw ? liveDiff(frozenRaw, form) : null
+  const elapsed = Math.max(0, Math.round((Date.now() - new Date(attempt.createdAt).getTime()) / 60000))
 
   const answered = attempt.probes?.filter((p) => (dialogue[p.id] ?? []).some((t) => t.role === 'learner')).length ?? 0
   const submitLabel =
     stage === 'design'
-      ? 'Submit for review'
+      ? 'Submit design'
       : stage === 'change'
-        ? 'Submit the revision'
+        ? 'Submit revision'
         : answered === (attempt.probes?.length ?? 0)
           ? 'Submit answers'
           : `Submit what I have (${answered}/${attempt.probes?.length ?? 0})`
+  const heading = stage === 'design' ? 'Design it, then run it.' : stage === 'change' ? 'Revise for the change.' : 'Defend it.'
+
+  // Which requirements the design-stage review found covered. The coverage
+  // concern names the ones it did not, in quotes; before any review, no marks.
+  const coverageConcern = attempt.report?.results.find((r) => r.criterionId === 'requirement-coverage' && r.stage === 'design')?.concern
+  const covered = (text: string): boolean | null => (coverageConcern ? !coverageConcern.includes(`"${text}"`) : null)
+  const decisions = form.decisions.filter((d) => d.what.trim())
 
   return (
-    <div className="space-y-5">
-      <motion.div initial="hidden" animate="show" variants={riseIn}>
-        <StageRail current={stage} completed={completed} runStarted={runStarted} />
-      </motion.div>
+    <>
+      <div className="flex flex-wrap items-center gap-4">
+        <StageRail current={stage} done={completed} />
+        <span className="ml-auto text-[14px] leading-none text-muted">{problem.title} · {elapsed} min</span>
+      </div>
+      <h2 className="h-stage">{heading}</h2>
 
-      <div className="grid gap-6 lg:grid-cols-[340px_1fr] lg:items-start">
-        <motion.aside initial="hidden" animate="show" variants={riseIn} className="lg:sticky lg:top-20">
-          <div className="card p-5">
-            <div className="flex items-center justify-between gap-3">
-              <h1 className="text-lg font-semibold tracking-tight">{problem.title}</h1>
-              <span className="chip shrink-0 !py-0.5 !text-[11px]">Attempt {attempt.attemptNumber}</span>
-            </div>
-            <p className="mt-2.5 text-sm leading-relaxed text-ink-muted">{problem.brief}</p>
+      <AnimatePresence>
+        {banner && (
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-2xl bg-blush px-5 py-4 text-[14px] text-ink-strong">
+            {banner}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            <h2 className="mt-5 text-xs font-semibold uppercase tracking-wide text-ink-faint">Requirements</h2>
-            <ul className="mt-2 space-y-1.5">
-              {problem.requirements.map((r, i) => (
-                <li key={r.id} className="flex gap-2.5 text-sm leading-relaxed text-ink-muted">
-                  <span className="mt-0.5 select-none font-mono text-xs text-ink-faint">
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                  <span>{r.text}</span>
-                </li>
-              ))}
-            </ul>
+      {(stage === 'design' || stage === 'change') && (
+        <DesignForm
+          value={form}
+          onChange={updateForm}
+          errors={errors}
+          disabled={submitting}
+          scenarios={problem.scenarios}
+          touched={diff ? { added: diff.added, modified: diff.modified } : undefined}
+          frozen={stage === 'change'}
+        />
+      )}
 
-            {problem.constraints.length > 0 && (
-              <>
-                <h2 className="mt-5 text-xs font-semibold uppercase tracking-wide text-ink-faint">Constraints</h2>
-                <ul className="mt-2 space-y-1">
-                  {problem.constraints.map((c) => (
-                    <li key={c} className="text-sm text-ink-muted">
-                      · {c}
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-
-            {stage === 'design' && problem.scenarios.length > 0 && (
-              <>
-                <h2 className="mt-5 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-                  You will walk these
-                </h2>
-                <ul className="mt-2 space-y-1">
-                  {problem.scenarios.map((s) => (
-                    <li key={s.id} className="text-sm text-ink-muted">
-                      · {s.title}
-                    </li>
-                  ))}
-                </ul>
-                {problem.hiddenChangeCount > 0 && (
-                  <p className="mt-4 rounded-xl bg-raised px-3 py-2.5 text-xs leading-relaxed text-ink-faint">
-                    After your design is reviewed, the requirements will change. You will not be told
-                    how until then — design for the change you cannot see.
-                  </p>
-                )}
-              </>
-            )}
-
-            {stage === 'defend' && (
-              <p className="mt-4 rounded-xl bg-raised px-3 py-2.5 text-xs leading-relaxed text-ink-faint">
-                These questions were chosen from what the review found in your own design. Answer
-                them the way you would across the table from an interviewer.
-              </p>
-            )}
-
-            <div className="mt-5 border-t border-line pt-4">
-              <Link href={`/report/${attemptId}`} className="text-xs text-ink-faint hover:text-ink">
-                {completed.length > 0 ? '← Back to the report so far' : ''}
-              </Link>
-            </div>
+      {stage === 'change' && (
+        <section className="flex flex-col gap-3.5">
+          <div>
+            <h3 className="h-section">What did you touch, and why?</h3>
+            <p className="mt-2 text-[13px] leading-relaxed text-muted">One paragraph. If you renamed something rather than replacing it, say so here — the diff cannot tell the difference.</p>
           </div>
-        </motion.aside>
+          <textarea
+            className="field min-h-[110px] resize-y leading-relaxed"
+            placeholder="I added EnergyPricing implementing PricingStrategy and marked charging as a capability on Spot. ParkingLot only changed to pick the strategy by capability; nothing else knows about kWh…"
+            value={rationale}
+            disabled={submitting}
+            onChange={(e) => updateRationale(e.target.value)}
+          />
+        </section>
+      )}
 
-        <div className="space-y-6">
-          <AnimatePresence>
-            {banner && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="card border-critical/30 bg-critical/5 p-3.5 text-sm text-critical"
-              >
-                {banner}
-              </motion.div>
-            )}
-          </AnimatePresence>
+      {stage === 'defend' && attempt.probes && (
+        <ProbePanel probes={attempt.probes} dialogue={dialogue} onTurn={turn} disabled={submitting} live={live} />
+      )}
 
-          {stage === 'change' && attempt.revealedChange && diff && (
-            <ChangeReveal change={attempt.revealedChange} diff={diff} />
-          )}
+      <div className="mt-auto flex items-center justify-end gap-4 pb-1.5 pt-2">
+        <span className="text-[14px] leading-none text-muted">{saving === 'saving' ? 'Saving…' : saving === 'saved' ? 'Autosaved' : ''}</span>
+        <button onClick={submit} disabled={submitting} className="btn-primary">
+          {submitting ? 'Submitting…' : submitLabel}
+        </button>
+      </div>
 
-          {(stage === 'design' || stage === 'change') && (
-            <div className="card p-5">
-              <DesignForm
-                value={form}
-                onChange={updateForm}
-                errors={errors}
-                disabled={submitting}
-                scenarios={problem.scenarios}
-                touched={diff ? { added: diff.added, modified: diff.modified } : undefined}
-                frozen={stage === 'change'}
-              />
+      <Panel>
+        {stage === 'change' && attempt.revealedChange && (
+          <div className="flex flex-col gap-3 rounded-3xl bg-apricot p-6">
+            <div className="flex items-center gap-2.5">
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-white"><Icon name="change" size={18} stroke="#222222" width={1.8} /></span>
+              <span className="text-[15px] font-medium leading-none text-ink-strong">Requirement change</span>
             </div>
-          )}
-
-          {stage === 'change' && (
-            <motion.div initial="hidden" animate="show" variants={riseIn} className="card p-5">
-              <h3 className="text-sm font-semibold tracking-tight">What did you touch, and why?</h3>
-              <p className="mt-0.5 text-xs leading-relaxed text-ink-faint">
-                One paragraph. If you renamed something rather than replacing it, say so here — the
-                diff cannot tell the difference.
-              </p>
-              <textarea
-                className="field mt-3 min-h-[96px] resize-y leading-relaxed"
-                placeholder="I added EnergyPricing implementing PricingStrategy and marked charging as a capability on Spot. ParkingLot only changed to pick the strategy by capability; nothing else knows about kWh…"
-                value={rationale}
-                disabled={submitting}
-                onChange={(e) => updateRationale(e.target.value)}
-              />
-            </motion.div>
-          )}
-
-          {stage === 'defend' && attempt.probes && (
-            <ProbePanel probes={attempt.probes} dialogue={dialogue} onTurn={turn} disabled={submitting} live={live} />
-          )}
-
-          <div className="flex items-center gap-3">
-            <button onClick={submit} disabled={submitting} className="btn-primary min-w-[170px]">
-              {submitting ? 'Submitting…' : submitLabel}
-            </button>
-            <span className="text-xs text-ink-faint">
-              {saving === 'saving' ? 'Saving…' : saving === 'saved' ? 'Draft saved' : ''}
+            <p className="text-[20px] font-medium leading-[1.35] tracking-[-0.01em] text-ink-strong">{attempt.revealedChange.prompt}</p>
+            <span className="text-[13px] leading-none text-ink-2">
+              {diff ? `${diff.added.length} added · ${diff.modified.length} changed · ${diff.removed.length} removed so far` : 'Blast radius measured on submit'}
             </span>
           </div>
-        </div>
-      </div>
-    </div>
+        )}
+        {stage === 'defend' && (
+          <div className="flex flex-col gap-3 rounded-3xl bg-lilac p-6">
+            <span className="text-[15px] font-medium leading-none text-ink-strong">Three questions, about your design</span>
+            <p className="text-[14px] leading-[1.55] text-ink-2">Chosen from what the review found. Answer the way you would across the table from an interviewer; one follow-up may come back on each.</p>
+          </div>
+        )}
+        <PanelCard title="Problem brief">
+          <p className="text-[14px] leading-[1.6] text-ink">{problem.brief}</p>
+          {problem.constraints.length > 0 && (
+            <ul className="mt-1 flex flex-col gap-1.5">
+              {problem.constraints.map((c) => <li key={c} className="text-[13px] leading-[1.5] text-muted">· {c}</li>)}
+            </ul>
+          )}
+        </PanelCard>
+        <PanelCard title="Requirements">
+          <ul className="flex flex-col gap-2.5">
+            {problem.requirements.map((r) => {
+              const ok = covered(r.text)
+              return (
+                <li key={r.id} className="flex gap-2.5">
+                  {ok === true ? (
+                    <Icon name="check" size={16} stroke="#4E9E77" width={2.4} className="mt-0.5 flex-none" />
+                  ) : ok === false ? (
+                    <span className="mt-0.5 h-4 w-4 flex-none rounded-full border-[1.5px] border-dashed" />
+                  ) : (
+                    <span className="mt-[7px] h-1.5 w-1.5 flex-none rounded-full bg-line" />
+                  )}
+                  <span className={`text-[14px] leading-[1.5] ${ok === false ? 'text-muted' : 'text-ink'}`}>{r.text}</span>
+                </li>
+              )
+            })}
+          </ul>
+          {stage === 'design' && problem.hiddenChangeCount > 0 && (
+            <p className="mt-1 text-[13px] leading-[1.5] text-muted">After your design is reviewed, the requirements will change. You will not be told how until then.</p>
+          )}
+        </PanelCard>
+        {stage !== 'defend' && problem.scenarios.length > 0 && (
+          <PanelCard title="Scenarios to walk">
+            <ul className="flex flex-col gap-1.5">
+              {problem.scenarios.map((sc) => <li key={sc.id} className="text-[14px] leading-[1.5] text-ink">· {sc.title}</li>)}
+            </ul>
+          </PanelCard>
+        )}
+        <PanelCard title="Decisions logged">
+          {decisions.length > 0 ? (
+            <p className="text-[14px] leading-[1.55] text-muted">
+              {decisions.map((d, i) => <span key={i} className="block">{i + 1} · {d.what}{d.why.trim() ? ` — ${d.why}` : ''}</span>)}
+            </p>
+          ) : (
+            <p className="text-[14px] leading-[1.55] text-muted">None yet. A decision is a choice with the alternative you rejected.</p>
+          )}
+        </PanelCard>
+        {completed.length > 0 && (
+          <Link href={`/report/${attemptId}`} className="btn-secondary btn-xs self-start">Report so far</Link>
+        )}
+      </Panel>
+    </>
   )
 }
 

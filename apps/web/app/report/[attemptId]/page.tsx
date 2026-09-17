@@ -12,40 +12,21 @@ import {
   type Attempt,
   type AttemptNotes,
   type EvaluationReport,
+  type DesignModel,
   type MicroLesson,
+  type NextProblemSuggestion,
   type EvidenceRef,
   type PublicProblem,
   type Rubric,
   type Stage,
 } from '@lld/contracts'
 import { api } from '@/lib/api'
-import { CriterionCard } from '@/components/CriterionCard'
-import { MentorNote } from '@/components/MentorNote'
 import { LessonDrawer } from '@/components/LessonDrawer'
 import { SubmittedDesign } from '@/components/SubmittedDesign'
-import { DesignDiffView } from '@/components/DesignDiff'
-import { StageRail } from '@/components/StageRail'
-import { Counter } from '@/components/Counter'
-import { stagger, riseIn } from '@/components/motion'
-import { scoreTone, STAGE_LABEL } from '@/lib/format'
-
-const TONE_TEXT = {
-  critical: 'text-critical',
-  caution: 'text-caution',
-  positive: 'text-positive',
-} as const
-
-const STAGE_INTRO: Record<Stage, string> = {
-  design: 'What the structure and the walkthroughs prove, plus one judged reading of your assumptions.',
-  change: 'How much of the design had to be reopened when the requirements moved — measured from the diff.',
-  defend: 'How well the decisions held up under questioning.',
-}
-
-const CONTINUE_LABEL: Record<Stage, string> = {
-  design: '',
-  change: 'Continue — the requirements are about to change',
-  defend: 'Continue — defend your decisions',
-}
+import { Panel } from '@/components/shell/Panel'
+import { BandPill, EmptyState, EvidenceLink } from '@/components/ui/Pills'
+import { PASTEL_BG, bandPastel } from '@/lib/tokens'
+import { CRITERION_ORDER, STAGE_LABEL } from '@/lib/format'
 
 export default function ReportPage() {
   const { attemptId } = useParams<{ attemptId: string }>()
@@ -55,7 +36,8 @@ export default function ReportPage() {
   const [problem, setProblem] = useState<PublicProblem | null>(null)
   const [rubric, setRubric] = useState<Rubric | null>(null)
   const [highlight, setHighlight] = useState<EvidenceRef | null>(null)
-  const [side, setSide] = useState<'yours' | 'diff' | 'exemplar'>('yours')
+  const [side, setSide] = useState<'yours' | 'exemplar'>('yours')
+  const [nextPick, setNextPick] = useState<NextProblemSuggestion | null>(null)
   const [busy, setBusy] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout>>()
 
@@ -79,6 +61,7 @@ export default function ReportPage() {
             setProblem(problem)
             setRubric(rubric)
           }
+          api.getHistory(attempt.problemId).then((h) => !cancelled && setNextPick(h.next)).catch(() => {})
         }
 
         // Stop as soon as evaluation settles — including on failure, which is a
@@ -159,7 +142,7 @@ export default function ReportPage() {
 
   function cite(ref: EvidenceRef) {
     setHighlight(ref)
-    if (side !== 'yours' && ref.kind !== 'class') setSide('yours')
+    if (side !== 'yours') setSide('yours')
     const id =
       ref.kind === 'class'
         ? `class-${ref.name.toLowerCase()}`
@@ -230,32 +213,20 @@ export default function ReportPage() {
 
   if (!report && (failedStage || attempt.state === 'DRAFT')) {
     return (
-      <motion.div initial="hidden" animate="show" variants={riseIn} className="mx-auto max-w-lg pt-16">
-        <div className="card p-6 text-center">
-          <h1 className="text-lg font-semibold">
-            {attempt.state === 'DRAFT' ? 'Nothing submitted yet' : 'Evaluation could not finish'}
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-            {attempt.state === 'DRAFT'
-              ? 'This attempt is still a draft.'
-              : attempt.failureReason ?? 'Something went wrong while reviewing this design.'}
-          </p>
+      <div className="mx-auto w-full max-w-lg pt-10">
+        <EmptyState
+          icon={attempt.state === 'DRAFT' ? 'learn' : 'info'}
+          title={attempt.state === 'DRAFT' ? 'Nothing submitted yet' : 'Evaluation could not finish'}
+          body={attempt.state === 'DRAFT' ? 'This attempt is still a draft.' : `${attempt.failureReason ?? 'Something went wrong while reviewing this design.'} Your submission is saved — retrying does not ask you to enter it again.`}
+        />
+        <div className="mt-4 flex justify-center">
           {attempt.state === 'DRAFT' ? (
-            <Link href={`/practice/${attemptId}`} className="btn-primary mt-5 inline-flex">
-              Back to the workspace
-            </Link>
+            <Link href={`/practice/${attemptId}`} className="btn-primary btn-sm">Back to the workspace</Link>
           ) : (
-            <>
-              <p className="mt-2 text-xs text-ink-faint">
-                Your submission is saved — nothing was lost, and retrying does not ask you to enter it again.
-              </p>
-              <button onClick={retry} disabled={busy} className="btn-primary mt-5">
-                {busy ? 'Retrying…' : 'Retry evaluation'}
-              </button>
-            </>
+            <button onClick={retry} disabled={busy} className="btn-primary btn-sm">{busy ? 'Retrying…' : 'Retry evaluation'}</button>
           )}
         </div>
-      </motion.div>
+      </div>
     )
   }
 
@@ -266,257 +237,305 @@ export default function ReportPage() {
   const canAdvance = next !== null && ADVANCEABLE_STATES.includes(attempt.state)
   const finished = next === null && ADVANCEABLE_STATES.includes(attempt.state)
   const latestDesign = attempt.revision?.design ?? attempt.design
-  const stagesShown = STAGES.filter((s) => report.results.some((r) => r.stage === s))
+  const byId = new Map((rubric?.criteria ?? []).map((c) => [c.id, c]))
+  const ordered = [...report.results].sort((a, b) => STAGES.indexOf(a.stage) - STAGES.indexOf(b.stage) || CRITERION_ORDER.indexOf(a.criterionId) - CRITERION_ORDER.indexOf(b.criterionId))
+  const minutes = Math.max(1, Math.round((new Date(attempt.updatedAt).getTime() - new Date(attempt.createdAt).getTime()) / 60000))
+  const latestStage = report.stagesCompleted.at(-1)
+  const notePending = !notes || (!!latestStage && !notes.review[latestStage] && Date.now() - notesStarted.current < 25_000)
+  const noteStages = STAGES.filter((st) => notes?.review[st])
+  const blast = report.results.find((r) => r.criterionId === 'change-resilience')
+  const citedBy = highlight ? ordered.find((r) => r.evidence.some((e) => sameRef(e, highlight))) : undefined
+  const diffRows = attempt.design && attempt.revision ? classify(attempt.design, attempt.revision.design) : null
 
   return (
-    <div className="space-y-5">
-      <motion.div initial="hidden" animate="show" variants={riseIn}>
-        <StageRail current={attempt.stage} completed={report.stagesCompleted} runStarted={!!attempt.design?.walkthroughs.length} />
-      </motion.div>
-
-      <motion.header initial="hidden" animate="show" variants={riseIn} className="mt-1">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-ink-faint">
-              {problem?.title ?? 'Design'} · Attempt {attempt.attemptNumber}
-            </p>
-            <h1 className="mt-0.5 text-[26px] font-semibold tracking-tight">
-              {finished ? 'Full review' : `Review so far`}
-            </h1>
-            <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-ink-muted">{whatThisMeans(report, rubric)}</p>
-          </div>
-
-          <div className="flex items-center gap-5">
-            <div className="text-right">
-              <div className={`text-3xl font-semibold tabular-nums ${TONE_TEXT[scoreTone(report.summary.overall)]}`}>
-                <Counter value={report.summary.overall} />
-                <span className="text-base text-ink-faint">/4</span>
-              </div>
-              <p className="text-[11px] uppercase tracking-wide text-ink-faint">
-                {report.summary.criteriaScored} of {report.summary.criteriaTotal} criteria
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Link href={`/history/${attempt.problemId}`} className="btn-quiet">
-                History
-              </Link>
-              {canAdvance ? (
-                <button onClick={advance} disabled={busy} className="btn-primary">
-                  {busy ? 'Opening…' : CONTINUE_LABEL[next!]}
-                </button>
-              ) : (
-                <button onClick={tryAgain} className="btn-primary">
-                  Try again
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </motion.header>
+    <>
+      <div className="flex flex-wrap items-end gap-4">
+        <h2 className="text-[64px] font-medium leading-[1.05] tracking-[-0.03em] text-ink-strong">
+          Band {report.summary.overall.toFixed(1)}<br />{finished ? 'overall.' : 'so far.'}
+        </h2>
+        <span className="pill-soft mb-1.5">Attempt {attempt.attemptNumber} · {minutes} min</span>
+        <Link href={`/history/${attempt.problemId}`} className="btn-ghost btn-xs mb-1.5 ml-auto">{problem?.title ?? 'History'} history</Link>
+      </div>
 
       <AnimatePresence>
         {failedStage && (
-          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="card border-critical/30 bg-critical/5 p-4">
-            <p className="text-sm font-medium text-critical">The {STAGE_LABEL[attempt.stage].toLowerCase()} stage could not be evaluated</p>
-            <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
-              {attempt.failureReason ?? 'The evaluator failed.'} Everything below is from the stages that did complete.
-            </p>
-            <button onClick={retry} disabled={busy} className="btn-quiet mt-3">
-              {busy ? 'Retrying…' : 'Retry this stage'}
-            </button>
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-2 rounded-3xl bg-blush p-6">
+            <p className="text-[15px] font-medium leading-none text-ink-strong">The {STAGE_LABEL[attempt.stage].toLowerCase()} stage could not be evaluated</p>
+            <p className="text-[14px] leading-relaxed text-ink-2">{attempt.failureReason ?? 'The evaluator failed.'} Everything below is from the stages that did complete.</p>
+            <button onClick={retry} disabled={busy} className="btn-secondary btn-xs self-start">{busy ? 'Retrying…' : 'Retry this stage'}</button>
           </motion.div>
         )}
-
         {partial && (
-          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="card border-caution/30 bg-caution/5 p-4">
-            <p className="text-sm font-medium text-caution">AI review unavailable</p>
-            <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
-              The measured criteria below ran normally and are complete. The judged criteria are
-              missing from this report rather than guessed at.
-            </p>
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-2 rounded-3xl bg-apricot p-6">
+            <p className="text-[15px] font-medium leading-none text-ink-strong">AI review unavailable</p>
+            <p className="text-[14px] leading-relaxed text-ink-2">The measured criteria ran normally and are complete. The judged criteria are missing from this report rather than guessed at.</p>
           </motion.div>
         )}
-
         {report.unchangedFromPrevious && (
-          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="card border-line p-4">
-            <p className="text-sm font-medium">This is the same design as last time</p>
-            <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
-              Nothing substantive changed since your previous attempt, so the feedback will not
-              either. Try acting on one suggestion before resubmitting.
-            </p>
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-2 rounded-3xl bg-soft p-6">
+            <p className="text-[15px] font-medium leading-none text-ink-strong">This is the same design as last time</p>
+            <p className="text-[14px] leading-relaxed text-muted">Nothing substantive changed since your previous attempt, so the feedback will not either. Try acting on one suggestion before resubmitting.</p>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_400px] lg:items-start">
-        <div className="space-y-8">
-          {stagesShown.map((stage) => (
-            <section key={stage}>
-              <div className="mb-3 flex items-baseline gap-3">
-                <h2 className="text-[15px] font-semibold tracking-tight">{STAGE_LABEL[stage]}</h2>
-                <p className="text-xs text-ink-faint">{STAGE_INTRO[stage]}</p>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {ordered.map((result) => {
+          const criterion = byId.get(result.criterionId)
+          const lessonable = notes?.lessonable.includes(result.criterionId)
+          const explanation = notes?.explanations[result.criterionId]
+          return (
+            <div key={result.criterionId} className={`flex flex-col gap-3 rounded-3xl p-[22px] ${PASTEL_BG[bandPastel(result.score)]}`}>
+              <div className="flex items-center justify-between gap-2.5">
+                <span className="text-[18px] font-medium leading-[1.2] tracking-[-0.01em] text-ink-strong">{criterion?.name ?? result.criterionId}</span>
+                <span className="flex flex-none items-center gap-2">
+                  {result.evaluatorKind === 'llm' && <span className="text-[11px] leading-none text-ink-2" title="Read by the AI reviewer, not measured">read</span>}
+                  <BandPill score={result.score} decimals={0} onWhite size="sm" />
+                </span>
               </div>
-
-              <MentorNote
-                text={notes?.review[stage]?.text ?? null}
-                pending={!notes || (!notes.review[stage] && stage === report.stagesCompleted.at(-1) && Date.now() - notesStarted.current < 25_000)}
-                live={notes?.live ?? false}
-              />
-
-              {stage === 'change' && attempt.design && attempt.revision && (
-                <div className="mb-4">
-                  <DesignDiffView before={attempt.design} after={attempt.revision.design} highlight={highlight} />
-                  {attempt.revision.rationale && (
-                    <p id="prose-rationale" className="mt-3 rounded-xl bg-raised px-4 py-3 text-[13px] leading-relaxed text-ink-muted">
-                      <span className="mr-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">Your rationale</span>
-                      {attempt.revision.rationale}
-                    </p>
+              <span className="text-[14px] leading-[1.5] text-ink">{result.concern}</span>
+              <span className="text-[14px] leading-[1.5] text-ink-3">{result.suggestion}</span>
+              {result.evidence.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {result.evidence.slice(0, 4).map((e, i) => (
+                    <EvidenceLink key={i} onClick={() => cite(e)} active={!!highlight && sameRef(e, highlight)}>{refLabel(e, attempt)}</EvidenceLink>
+                  ))}
+                </div>
+              )}
+              {explanation && <p className="rounded-2xl bg-white/70 p-3.5 text-[13px] leading-[1.5] text-ink">{explanation.text}</p>}
+              {notes && (
+                <div className="flex flex-wrap gap-3 pt-0.5">
+                  {!explanation && (
+                    <button type="button" onClick={() => explain(result.criterionId)} disabled={explaining === result.criterionId} className="text-[13px] font-medium leading-none text-ink-strong underline-offset-4 hover:underline disabled:opacity-50">
+                      {explaining === result.criterionId ? 'Asking…' : 'Why does this matter here?'}
+                    </button>
+                  )}
+                  {lessonable && (
+                    <button type="button" onClick={() => learn(result.criterionId, criterion?.name ?? result.criterionId)} className="text-[13px] font-medium leading-none text-ink-strong underline-offset-4 hover:underline">
+                      {notes.lessons[result.criterionId] ? 'Reopen the lesson' : 'Learn the concept behind this'}
+                    </button>
                   )}
                 </div>
               )}
+            </div>
+          )
+        })}
+      </div>
 
-              {stage === 'defend' && attempt.probes && attempt.answers && (
-                <ol className="mb-4 space-y-2">
-                  {attempt.probes.map((p) => {
-                    const a = attempt.answers!.find((x) => x.probeId === p.id)
-                    const lit = highlight?.kind === 'prose' && highlight.field === 'answer' && highlight.probeId === p.id
-                    return (
-                      <li key={p.id} id={`answer-${p.id}`} className={`rounded-xl border px-4 py-3 transition-colors ${lit ? 'border-brand/50 bg-brand-soft' : 'border-line bg-raised/40'}`}>
-                        <p className="text-[13px] font-medium">{p.prompt}</p>
-                        {a && a.transcript.length > 0 ? (
-                          <ol className="mt-2 space-y-1.5">
-                            {a.transcript.map((t, i) => (
-                              <li key={i} className={`text-[13px] leading-relaxed ${t.role === 'mentor' ? 'text-judged' : 'text-ink-muted'}`}>
-                                <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-wide">
-                                  {t.role === 'mentor' ? '◈ Interviewer' : 'You'}
-                                </span>
-                                {t.text}
-                              </li>
-                            ))}
-                          </ol>
-                        ) : (
-                          <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">{a?.response?.trim() || <em>No answer.</em>}</p>
-                        )}
-                      </li>
-                    )
-                  })}
-                </ol>
-              )}
-
-              <motion.ul initial="hidden" animate="show" variants={stagger} className="space-y-4">
-                {report.results
-                  .filter((r) => r.stage === stage)
-                  .map((result) => (
-                    <CriterionCard
-                      key={result.criterionId}
-                      result={result}
-                      criterion={rubric?.criteria.find((c) => c.id === result.criterionId)}
-                      onCite={cite}
-                      onLearn={
-                        notes?.lessonable.includes(result.criterionId)
-                          ? () => learn(result.criterionId, rubric?.criteria.find((c) => c.id === result.criterionId)?.name ?? result.criterionId)
-                          : undefined
-                      }
-                      learnLabel={notes?.lessons[result.criterionId] ? 'Reopen the lesson' : 'Learn the concept behind this'}
-                      onExplain={notes ? () => explain(result.criterionId) : undefined}
-                      explanation={notes?.explanations[result.criterionId] ?? null}
-                      explaining={explaining === result.criterionId}
-                    />
-                  ))}
-              </motion.ul>
-            </section>
-          ))}
-
-          {canAdvance && (
-            <motion.div initial="hidden" animate="show" variants={riseIn} className="card border-brand/25 bg-brand-soft/40 p-5">
-              <p className="text-sm font-semibold">
-                {next === 'change' ? 'Now the requirements change.' : 'Now defend it.'}
-              </p>
-              <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
-                {next === 'change'
-                  ? 'Your design is frozen. You are about to be shown a requirement you did not know was coming, and asked to revise. What gets measured is how much of the design you have to reopen.'
-                  : 'Three questions, chosen from what the review found. Answer them as you would across the table.'}
-              </p>
-              <button onClick={advance} disabled={busy} className="btn-primary mt-4">
-                {busy ? 'Opening…' : CONTINUE_LABEL[next!]}
-              </button>
-            </motion.div>
+      {diffRows && attempt.design && attempt.revision && (
+        <>
+          <h3 className="h-section">What the change cost you</h3>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="card-lined flex flex-col gap-3 p-[22px]">
+              <span className="text-[15px] font-medium leading-none text-muted">v1 · before</span>
+              {attempt.design.classes.map((c) => {
+                const row = diffRows.find((r) => r.name.toLowerCase() === c.name.toLowerCase())
+                return <span key={c.name} className={`flex h-[38px] items-center rounded-xl border border-soft px-3.5 font-mono text-[14px] font-medium leading-none text-ink-strong ${row?.change === 'removed' ? 'bg-blush' : 'bg-ground'}`}>{c.name}</span>
+              })}
+            </div>
+            <div className="card-lined flex flex-col gap-3 p-[22px]">
+              <span className="text-[15px] font-medium leading-none text-ink-strong">v2 · after</span>
+              {attempt.revision.design.classes.map((c) => {
+                const row = diffRows.find((r) => r.name.toLowerCase() === c.name.toLowerCase())
+                const bg = row?.change === 'added' ? 'bg-mint' : row?.change === 'modified' ? 'bg-apricot' : 'bg-ground'
+                return <span key={c.name} className={`flex h-[38px] items-center rounded-xl border border-soft px-3.5 font-mono text-[14px] font-medium leading-none text-ink-strong ${bg}`}>{c.name}</span>
+              })}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2.5">
+            {diffRows.filter((r) => r.change !== 'same').map((r) => (
+              <span key={r.name} className={`flex h-[38px] items-center rounded-full px-4 font-mono text-[13px] font-medium leading-none text-ink-strong ${r.change === 'added' ? 'bg-mint' : r.change === 'modified' ? 'bg-apricot' : 'bg-blush'}`}>
+                {r.change === 'added' ? '+' : r.change === 'modified' ? '~' : '−'} {r.name}{r.fields.length ? ` → ${r.fields.join(', ')}` : ''}
+              </span>
+            ))}
+            {diffRows.every((r) => r.change === 'same') && <span className="text-[14px] text-muted">No class changed.</span>}
+          </div>
+          {attempt.revision.rationale && (
+            <p id="prose-rationale" className={`rounded-2xl px-5 py-4 text-[14px] leading-relaxed ${highlight?.kind === 'prose' && highlight.field === 'rationale' ? 'bg-lilac text-ink-strong' : 'bg-soft text-muted'}`}>
+              <span className="mr-2 text-[12px] font-medium uppercase tracking-wide text-faint">Your rationale</span>{attempt.revision.rationale}
+            </p>
           )}
-        </div>
+        </>
+      )}
 
-        <div className="space-y-3 lg:sticky lg:top-20">
-          <div className="flex gap-1 rounded-xl border border-line bg-surface p-1">
-            {(
-              [
-                ['yours', 'Your design'],
-                ['diff', 'Diff'],
-                ['exemplar', 'A strong design'],
-              ] as const
-            ).map(([id, label]) => {
-              const enabled = id === 'yours' || (id === 'diff' ? !!attempt.revision : !!attempt.exemplar)
+      {attempt.probes && attempt.answers && attempt.answers.length > 0 && (
+        <>
+          <h3 className="h-section">Your answers</h3>
+          <ol className="flex flex-col gap-3">
+            {attempt.probes.map((p) => {
+              const a = attempt.answers!.find((x) => x.probeId === p.id)
+              const lit = highlight?.kind === 'prose' && highlight.field === 'answer' && highlight.probeId === p.id
               return (
-                <button
-                  key={id}
-                  disabled={!enabled}
-                  onClick={() => setSide(id)}
-                  className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors disabled:opacity-35 ${
-                    side === id ? 'bg-brand-soft text-brand' : 'text-ink-muted hover:bg-raised'
-                  }`}
-                >
-                  {label}
-                </button>
+                <li key={p.id} id={`answer-${p.id}`} className={`flex flex-col gap-2.5 rounded-3xl p-[22px] ${lit ? 'bg-lilac' : 'card-lined'}`}>
+                  <p className="text-[15px] font-medium leading-[1.4] text-ink-strong">{p.prompt}</p>
+                  {a && a.transcript.length > 0 ? a.transcript.map((t, i) => (
+                    <p key={i} className={`text-[14px] leading-relaxed ${t.role === 'mentor' ? 'text-tint-violet' : 'text-ink'}`}>
+                      <span className="mr-2 text-[11px] font-medium uppercase tracking-wide text-faint">{t.role === 'mentor' ? 'Interviewer' : 'You'}</span>{t.text}
+                    </p>
+                  )) : (
+                    <p className="text-[14px] leading-relaxed text-muted">{a?.response?.trim() || <em>No answer.</em>}</p>
+                  )}
+                </li>
               )
             })}
-          </div>
+          </ol>
+        </>
+      )}
 
-          {side === 'yours' && latestDesign && (
-            <SubmittedDesign
-              design={latestDesign}
-              highlight={highlight}
-              scenarios={problem?.scenarios ?? []}
-              title={attempt.revision ? 'Your revised design' : 'Your design'}
-            />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.4fr_1fr]">
+        <div className="card-lined flex flex-col gap-3.5 p-[26px]">
+          <span className="flex items-center gap-2 text-[16px] font-medium leading-none text-muted">
+            Mentor note
+            {notes && !notes.live && <span className="pill-soft h-6 px-2 text-[11px]" title="No model is configured; this note is a template over the lowest finding">stand-in</span>}
+          </span>
+          {noteStages.length > 0 ? (
+            <>
+              <p className="text-[20px] leading-[1.5] text-ink-strong">“{notes!.review[noteStages.at(-1)!]!.text}”</p>
+              {noteStages.length > 1 && (
+                <details className="group">
+                  <summary className="cursor-pointer list-none text-[13px] font-medium leading-none text-muted">Earlier stages <span className="group-open:hidden">▸</span><span className="hidden group-open:inline">▾</span></summary>
+                  <div className="mt-3 flex flex-col gap-3">
+                    {noteStages.slice(0, -1).map((st) => (
+                      <p key={st} className="text-[15px] leading-[1.5] text-ink-2">
+                        <span className="mr-2 text-[12px] font-medium uppercase tracking-wide text-faint">{STAGE_LABEL[st]}</span>“{notes!.review[st]!.text}”
+                      </p>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </>
+          ) : notePending ? (
+            <div className="flex flex-col gap-2"><span className="skeleton h-5 w-11/12" /><span className="skeleton h-5 w-4/5" /><span className="skeleton h-5 w-2/3" /></div>
+          ) : (
+            <p className="text-[15px] leading-[1.5] text-muted">{whatThisMeans(report, rubric)}</p>
           )}
-          {side === 'diff' && attempt.design && attempt.revision && (
-            <DesignDiffView before={attempt.design} after={attempt.revision.design} highlight={highlight} />
-          )}
-          {side === 'exemplar' && attempt.exemplar && (
-            <div className="space-y-2">
-              <p className="px-1 text-xs leading-relaxed text-ink-faint">
-                One strong design for this problem — not <em>the</em> answer. Compare it against the
-                criterion you scored lowest on, not the whole thing.
-              </p>
-              <SubmittedDesign design={attempt.exemplar} highlight={highlight} scenarios={problem?.scenarios ?? []} title="A strong design" compact />
-            </div>
+        </div>
+        <div className="flex flex-col justify-between gap-4 rounded-3xl bg-ink-strong p-[26px]">
+          {canAdvance ? (
+            <>
+              <div className="flex flex-col gap-2.5">
+                <span className="text-[15px] font-medium leading-none text-faint">Next</span>
+                <span className="text-[26px] font-medium leading-[1.2] tracking-[-0.02em] text-white">{next === 'change' ? 'The requirements change.' : 'Now defend it.'}</span>
+                <span className="text-[14px] leading-[1.5] text-dashed">{next === 'change' ? 'Your design is frozen. You are about to be shown a requirement you did not know was coming, and asked to revise.' : 'Three questions, chosen from what the review found. Answer them as you would across the table.'}</span>
+              </div>
+              <button onClick={advance} disabled={busy} className="btn-sm self-start rounded-full bg-white px-6 text-[14px] font-medium text-ink-strong">{busy ? 'Opening…' : 'Continue'}</button>
+            </>
+          ) : (
+            <>
+              <div className="flex flex-col gap-2.5">
+                <span className="text-[15px] font-medium leading-none text-faint">Next for you</span>
+                <span className="text-[26px] font-medium leading-[1.2] tracking-[-0.02em] text-white">{nextPick?.title ?? problem?.title ?? 'Try again'}</span>
+                <span className="text-[14px] leading-[1.5] text-dashed">{nextPick?.reason ?? 'Another attempt at the same problem, with what you now know.'}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {nextPick && <Link href={`/learn/${nextPick.problemId}`} className="btn-sm rounded-full bg-white px-6 text-[14px] font-medium text-ink-strong">Start attempt</Link>}
+                <button onClick={tryAgain} className={`btn-sm rounded-full px-6 text-[14px] font-medium ${nextPick ? 'border border-white/40 text-white' : 'bg-white text-ink-strong'}`}>Try this one again</button>
+              </div>
+            </>
           )}
         </div>
       </div>
-      <LessonDrawer
-        open={lesson !== null}
-        title={lesson?.title ?? ''}
-        lesson={lesson?.data ?? null}
-        loading={lesson?.loading ?? false}
-        failed={lesson?.failed ?? false}
-        onClose={() => setLesson(null)}
-      />
-    </div>
+
+      <LessonDrawer open={lesson !== null} title={lesson?.title ?? ''} lesson={lesson?.data ?? null} loading={lesson?.loading ?? false} failed={lesson?.failed ?? false} onClose={() => setLesson(null)} />
+
+      <Panel>
+        <div className="flex items-center justify-between">
+          <span className="h-section">{side === 'exemplar' ? 'A strong design' : 'Submitted design'}</span>
+          <span className="pill-soft bg-white">{attempt.revision ? 'v2' : 'v1'} · {(side === 'exemplar' ? attempt.exemplar : latestDesign)?.classes.length ?? 0} classes</span>
+        </div>
+        {side !== 'exemplar' && (
+          <span className="text-[13px] leading-[1.5] text-muted">
+            {citedBy ? <>Cited by <strong className="font-medium text-ink">{byId.get(citedBy.criterionId)?.name ?? citedBy.criterionId}</strong> — outlined below.</> : 'Click an evidence chip on a card to see what it points at.'}
+          </span>
+        )}
+        {side !== 'exemplar' && latestDesign && latestDesign.classes.map((c) => {
+          const lit = highlight?.kind === 'class' && highlight.name.toLowerCase() === c.name.toLowerCase()
+          return (
+            <div key={c.name} id={`class-${c.name.toLowerCase()}`} className={`flex flex-col gap-1.5 rounded-2xl bg-white px-[18px] py-4 ${lit ? 'border-2 border-ink-strong' : 'border border-soft'}`}>
+              <span className="font-mono text-[16px] font-medium leading-none text-ink-strong">{c.name}{c.stereotype !== 'class' && <span className="ml-1.5 font-sans text-[11px] font-normal text-muted">{c.stereotype}</span>}</span>
+              <span className="text-[13px] leading-[1.4] text-muted">{c.methods.length ? c.methods.join(' · ') : c.responsibility}</span>
+            </div>
+          )
+        })}
+        {side !== 'exemplar' && latestDesign && (
+          <details className="group">
+            <summary className="cursor-pointer list-none text-[13px] font-medium leading-none text-ink-strong">Assumptions, decisions and walkthroughs <span className="text-muted group-open:hidden">▸</span><span className="hidden text-muted group-open:inline">▾</span></summary>
+            <div className="mt-3"><SubmittedDesign design={latestDesign} highlight={highlight} scenarios={problem?.scenarios ?? []} title="" compact /></div>
+          </details>
+        )}
+        {side === 'exemplar' && attempt.exemplar && (
+          <>
+            <p className="text-[13px] leading-[1.5] text-muted">One strong design for this problem — not <em>the</em> answer. Compare it against the criterion you scored lowest on, not the whole thing.</p>
+            <SubmittedDesign design={attempt.exemplar} highlight={null} scenarios={problem?.scenarios ?? []} title="" compact />
+          </>
+        )}
+        {blast && (
+          <div className="flex flex-col gap-1.5 rounded-2xl bg-blush p-[18px]">
+            <span className="text-[15px] font-medium leading-none text-ink-strong">Blast radius</span>
+            <span className="text-[13px] leading-[1.5] text-ink">{blast.concern}</span>
+          </div>
+        )}
+        {attempt.exemplar && (
+          <button type="button" onClick={() => setSide(side === 'exemplar' ? 'yours' : 'exemplar')} className="btn-secondary btn-xs self-start">
+            {side === 'exemplar' ? 'Back to your design' : 'Compare with a strong design'}
+          </button>
+        )}
+      </Panel>
+    </>
   )
 }
 
 function EvaluatingState({ label }: { label: string }) {
   return (
     <div className="mx-auto max-w-md pt-24 text-center">
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 2.4, repeat: Infinity, ease: 'linear' }}
-        className="mx-auto grid h-11 w-11 place-items-center rounded-2xl border-2 border-line border-t-brand"
-      />
-      <motion.p key={label} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="mt-5 text-sm text-ink-muted">
-        {label}
-      </motion.p>
-      <p className="mt-1.5 text-xs text-ink-faint">Your submission is already saved. This page updates itself.</p>
+      <motion.div animate={{ rotate: 360 }} transition={{ duration: 2.4, repeat: Infinity, ease: 'linear' }} className="mx-auto h-11 w-11 rounded-full border-2 border-line border-t-ink-strong" />
+      <motion.p key={label} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="mt-5 text-[15px] text-muted">{label}</motion.p>
+      <p className="mt-1.5 text-[13px] text-faint">Your submission is already saved. This page updates itself.</p>
     </div>
   )
+}
+
+/** "ParkingLot.assignSpot"-style label for an evidence chip. */
+function refLabel(e: EvidenceRef, attempt: Attempt): string {
+  switch (e.kind) {
+    case 'class': return e.name
+    case 'relationship': return `${e.from} → ${e.to}`
+    case 'assumption': return `Assumption ${e.index + 1}`
+    case 'decision': return `Decision ${e.index + 1}`
+    case 'step': {
+      const w = (attempt.revision?.design ?? attempt.design)?.walkthroughs.find((x) => x.scenarioId === e.scenarioId)
+      const st = w?.steps[e.index]
+      return st ? `Step ${e.index + 1} · ${st.className}.${st.method}` : `Step ${e.index + 1}`
+    }
+    case 'prose': return e.field === 'answer' ? 'Your answer' : e.field === 'tradeoffs' ? 'Trade-offs' : 'Rationale'
+    default: return 'Evidence'
+  }
+}
+
+function sameRef(a: EvidenceRef, b: EvidenceRef): boolean {
+  return JSON.stringify(a) === JSON.stringify(b)
+}
+
+/** The class-level diff the "what the change cost you" block draws. */
+type Change = 'added' | 'removed' | 'modified' | 'same'
+function classify(before: DesignModel, after: DesignModel): Array<{ name: string; change: Change; fields: string[] }> {
+  const key = (s: string) => s.trim().toLowerCase()
+  const list = (xs: readonly string[]) => xs.map(key).sort().join('|')
+  const b = new Map(before.classes.map((c) => [key(c.name), c]))
+  const a = new Map(after.classes.map((c) => [key(c.name), c]))
+  const rows: Array<{ name: string; change: Change; fields: string[] }> = []
+  for (const c of before.classes) {
+    const now = a.get(key(c.name))
+    if (!now) { rows.push({ name: c.name, change: 'removed', fields: [] }); continue }
+    const fields: string[] = []
+    if (c.stereotype !== now.stereotype) fields.push('type')
+    if (c.responsibility.trim() !== now.responsibility.trim()) fields.push('responsibility')
+    if (list(c.attributes) !== list(now.attributes)) fields.push('attributes')
+    if (list(c.methods) !== list(now.methods)) fields.push('methods')
+    rows.push({ name: now.name, change: fields.length ? 'modified' : 'same', fields })
+  }
+  for (const c of after.classes) if (!b.has(key(c.name))) rows.push({ name: c.name, change: 'added', fields: [] })
+  return rows
 }
 
 /**

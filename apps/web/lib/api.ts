@@ -19,6 +19,7 @@ import type {
   RawStageInput,
   RecurringWeakness,
   Rubric,
+  UpcomingProblem,
 } from '@lld/contracts'
 
 /** Requests go to /api on this origin; Next rewrites them to the Express process. */
@@ -74,12 +75,14 @@ export const api = {
   createLearner: (name: string) =>
     request<LearnerPayload>('/learners', { method: 'POST', body: JSON.stringify({ name }) }),
 
+  me: () => request<LearnerPayload>('/learners/me'),
+
   getProgress: () => request<ProgressPayload>('/learners/me/progress'),
 
   getConcepts: () => request<ConceptsPayload>('/concepts'),
 
   listProblems: () =>
-    request<{ problems: ProblemSummary[]; next: NextProblemSuggestion | null }>('/problems'),
+    request<{ problems: ProblemSummary[]; upcoming: UpcomingProblem[]; next: NextProblemSuggestion | null }>('/problems'),
 
   getProblem: (id: string) =>
     request<{ problem: PublicProblem; rubric: Rubric }>(`/problems/${id}`),

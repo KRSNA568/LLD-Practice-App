@@ -7,7 +7,8 @@ import type { LearnerPayload } from '@lld/contracts'
  * it with real sessions and this file goes away.
  */
 
-export type Learner = LearnerPayload['learner']
+/** `createdAt` is optional only because a learner stored before it existed has none; the gate refreshes it. */
+export type Learner = Omit<LearnerPayload['learner'], 'createdAt'> & { createdAt?: string }
 
 const KEY = 'lld.learner'
 
@@ -16,7 +17,9 @@ export function readLearner(): Learner | null {
     const raw = window.localStorage.getItem(KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<Learner>
-    return typeof parsed.id === 'string' && typeof parsed.name === 'string' ? { id: parsed.id, name: parsed.name } : null
+    return typeof parsed.id === 'string' && typeof parsed.name === 'string'
+      ? { id: parsed.id, name: parsed.name, ...(typeof parsed.createdAt === 'string' ? { createdAt: parsed.createdAt } : {}) }
+      : null
   } catch {
     return null
   }

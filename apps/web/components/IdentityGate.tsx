@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { api } from '@/lib/api'
+import { Logo } from '@/components/ui/Icon'
 import { clearLearner, readLearner, storeLearner, type Learner } from '@/lib/identity'
 
 /**
@@ -28,7 +29,12 @@ export function IdentityGate({ children }: { children: ReactNode }) {
   const [learner, setLearner] = useState<Learner | null | undefined>(undefined)
 
   useEffect(() => {
-    setLearner(readLearner())
+    const stored = readLearner()
+    setLearner(stored)
+    // A learner stored before `createdAt` existed: fill it in from the API once.
+    if (stored && !stored.createdAt) {
+      api.me().then(({ learner }) => { storeLearner(learner); setLearner(learner) }).catch(() => {})
+    }
   }, [])
 
   function switchLearner() {
@@ -62,33 +68,24 @@ function NamePrompt({ onDone }: { onDone: (learner: Learner) => void }) {
   }
 
   return (
-    <div className="grid min-h-[70vh] place-items-center px-5">
+    <div className="grid min-h-screen place-items-center bg-ground px-5">
       <motion.form
         onSubmit={submit}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
-        className="card w-full max-w-md p-7"
+        className="flex w-full max-w-[440px] flex-col rounded-4xl bg-panel p-8"
       >
-        <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand text-[16px] font-bold text-white shadow-soft">D</span>
-        <h1 className="mt-5 text-xl font-semibold tracking-tight">What should we call you?</h1>
-        <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-          Your attempts and progress are kept under this name on this device. No password, no
-          email — this is a practice space, not an account.
+        <Logo size={28} />
+        <h1 className="mt-6 text-[28px] font-medium leading-[1.2] tracking-[-0.02em] text-ink-strong">What should we call you?</h1>
+        <p className="mt-3 text-[14px] leading-[1.55] text-muted">
+          Your attempts and progress are kept under this name on this device. No password, no email — this is a practice space, not an account.
         </p>
         <label className="mt-6 block">
           <span className="sr-only">Your name</span>
-          <input
-            autoFocus
-            className="field"
-            placeholder="Your name"
-            value={name}
-            maxLength={60}
-            onChange={(e) => setName(e.target.value)}
-            disabled={busy}
-          />
+          <input autoFocus className="field" placeholder="Your name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} disabled={busy} />
         </label>
-        {error && <p className="mt-2 text-sm text-critical">{error}</p>}
+        {error && <p className="mt-2 text-[13px] text-tint-rose">{error}</p>}
         <button type="submit" className="btn-primary mt-4 w-full" disabled={busy || !name.trim()}>
           {busy ? 'Starting…' : 'Start practising'}
         </button>
@@ -96,3 +93,4 @@ function NamePrompt({ onDone }: { onDone: (learner: Learner) => void }) {
     </div>
   )
 }
+

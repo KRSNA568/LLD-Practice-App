@@ -133,6 +133,10 @@ export type ActivityMonth = {
   defend: number
   critique: number
   seconds: number
+  /** The same time split by stage: start → design frozen; design report → revision; change report → defend. */
+  designSeconds: number
+  changeSeconds: number
+  defendSeconds: number
 }
 
 export type ProgressPayload = {

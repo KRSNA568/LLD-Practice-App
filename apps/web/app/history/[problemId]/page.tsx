@@ -3,209 +3,103 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
 import type { PublicProblem, Rubric } from '@lld/contracts'
 import { api, type HistoryPayload } from '@/lib/api'
-import { relativeTime, scoreTone, STAGE_LABEL } from '@/lib/format'
-import { NextForYou } from '@/components/NextForYou'
-import { riseIn, stagger } from '@/components/motion'
+import { CRITERION_ORDER } from '@/lib/format'
+import { PASTEL_BG, bandPastel, starred } from '@/lib/tokens'
+import { AttemptRow } from '@/components/AttemptRow'
+import { Star } from '@/components/ui/Icon'
+import { PanelCard, SectionHead } from '@/components/ui/Cards'
+import { Panel, PanelHeader } from '@/components/shell/Panel'
 
-const TONE_TEXT = {
-  critical: 'text-critical',
-  caution: 'text-caution',
-  positive: 'text-positive',
-} as const
-const TONE_BG = {
-  critical: 'bg-critical',
-  caution: 'bg-caution',
-  positive: 'bg-positive',
-} as const
-
-export default function HistoryPage() {
+/** One problem's attempts, and how each criterion moved across them. */
+export default function ProblemHistory() {
   const { problemId } = useParams<{ problemId: string }>()
   const router = useRouter()
-
   const [problem, setProblem] = useState<PublicProblem | null>(null)
   const [rubric, setRubric] = useState<Rubric | null>(null)
   const [history, setHistory] = useState<HistoryPayload | null>(null)
+  const [starting, setStarting] = useState(false)
 
   useEffect(() => {
     void (async () => {
       const [{ problem, rubric }, history] = await Promise.all([api.getProblem(problemId), api.getHistory(problemId)])
-      setProblem(problem)
-      setRubric(rubric)
-      setHistory(history)
+      setProblem(problem); setRubric(rubric); setHistory(history)
     })()
   }, [problemId])
 
   async function tryAgain() {
-    const { attempt } = await api.startAttempt(problemId)
-    router.push(`/practice/${attempt.id}`)
+    setStarting(true)
+    try {
+      const { attempt } = await api.startAttempt(problemId)
+      router.push(`/practice/${attempt.id}`)
+    } catch { setStarting(false) }
   }
 
-  const attempts = history?.attempts ?? []
-  const weaknesses = history?.recurringWeaknesses ?? []
+  if (!problem || !history || !rubric) return <h2 className="h-hero">History.</h2>
+  const attempts = history.attempts
   const scored = attempts.filter((a) => a.overall !== null).reverse()
+  const best = scored.length ? Math.max(...scored.map((a) => a.overall!)) : null
 
   return (
-    <div>
-      <motion.header initial="hidden" animate="show" variants={riseIn} className="mb-6 mt-2">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <Link href="/" className="text-xs text-ink-faint hover:text-ink">
-              ← All problems
-            </Link>
-            <h1 className="mt-1 text-[26px] font-semibold tracking-tight">{problem?.title ?? 'History'}</h1>
-            <p className="mt-1 text-sm text-ink-muted">
-              {attempts.length} {attempts.length === 1 ? 'attempt' : 'attempts'}
-              {history && history.critique.total > 0 && (
-                <>
-                  {' '}
-                  · critique {history.critique.correct}/{history.critique.total}
-                  {history.critique.answered < history.critique.total && (
-                    <Link href={`/critique/${problemId}`} className="ml-1 text-brand hover:underline">
-                      finish the warm-up
-                    </Link>
-                  )}
-                </>
-              )}
-            </p>
-          </div>
-          <button onClick={tryAgain} className="btn-primary">
-            Try again
-          </button>
-        </div>
-      </motion.header>
+    <>
+      <div className="flex flex-col gap-3">
+        <Link href="/history" className="text-[14px] leading-none text-muted">← All attempts</Link>
+        <h2 className="h-hero">{problem.title}.</h2>
+      </div>
+      <div className="flex items-center justify-between">
+        <h3 className="h-section">{attempts.length} attempt{attempts.length === 1 ? '' : 's'}, newest first</h3>
+        <button type="button" className="btn-primary btn-sm" disabled={starting} onClick={tryAgain}>{starting ? 'Starting…' : 'Try again'}</button>
+      </div>
+      <div className="flex flex-col gap-3">
+        {attempts.map((a) => <AttemptRow key={a.id} a={a} title={`Attempt ${a.attemptNumber}`} subtitle={`${a.stagesCompleted.length} of 3 stages · ${new Date(a.createdAt).toLocaleDateString()}`} />)}
+        {attempts.length === 0 && <p className="text-[14px] text-muted">No attempts on this problem yet.</p>}
+      </div>
 
-      {weaknesses.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card mb-4 border-caution/30 bg-caution/[0.06] p-5">
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-caution/15 text-caution">!</span>
-            <div>
-              <h2 className="text-sm font-semibold tracking-tight">Recurring weakness</h2>
-              <p className="mt-1.5 text-[14px] leading-relaxed">
-                <strong className="font-semibold">{weaknesses[0]!.criterionName}</strong> has scored below par in{' '}
-                {weaknesses[0]!.occurrences} of your last {weaknesses[0]!.windowSize} attempts, averaging{' '}
-                {weaknesses[0]!.averageScore.toFixed(1)} out of 4.
-              </p>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-ink-muted">
-                One low score is a bad day. The same one three attempts running is a habit — and that
-                is the thing worth working on next.
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {history?.next && attempts.length > 0 && (
-        <div className="mb-6">
-          <NextForYou next={history.next} />
-        </div>
-      )}
-
-      {scored.length >= 2 && rubric && (
-        <motion.section initial="hidden" animate="show" variants={riseIn} className="card mb-6 p-5">
-          <h2 className="mb-4 text-sm font-semibold tracking-tight">Per-criterion trend</h2>
-          <div className="space-y-3">
-            {rubric.criteria.map((criterion) => {
-              const series = scored.map((a) => a.scores[criterion.id])
-              if (series.every((s) => s === undefined)) return null
-              const weak = weaknesses.some((w) => w.criterionId === criterion.id)
+      {scored.length > 1 && (
+        <>
+          <SectionHead title="How each band moved" right="oldest → newest" />
+          <div className="card-lined px-6 pb-4 pt-2">
+            {CRITERION_ORDER.map((id) => {
+              const c = rubric.criteria.find((x) => x.id === id)
+              const series = scored.map((a) => a.scores[id]).filter((v): v is number => v !== undefined)
+              if (series.length === 0) return null
+              const last = series[series.length - 1]!
               return (
-                <div key={criterion.id} className="flex items-center gap-3">
-                  <span className={`w-44 shrink-0 truncate text-[13px] ${weak ? 'font-medium text-caution' : 'text-ink-muted'}`}>
-                    {criterion.name}
-                    <span className="ml-1.5 text-[10px] uppercase tracking-wide text-ink-faint">{STAGE_LABEL[criterion.stage]}</span>
+                <div key={id} className="flex h-14 items-center gap-4 border-b border-soft last:border-b-0">
+                  <span className="min-w-0 flex-1 text-[15px] leading-none text-ink">{c?.name ?? id}</span>
+                  <span className="flex gap-1.5">
+                    {series.map((v, i) => <span key={i} className={`h-3 w-3 rounded-full ${PASTEL_BG[bandPastel(v)]}`} title={`Attempt: band ${v}`} />)}
                   </span>
-                  <div className="flex flex-1 items-end gap-1.5">
-                    {series.map((score, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ height: 4 }}
-                        animate={{ height: score === undefined ? 4 : 6 + score * 7 }}
-                        transition={{ duration: 0.4, delay: i * 0.04, ease: [0.22, 1, 0.36, 1] }}
-                        title={score === undefined ? 'Not scored on this attempt' : `Attempt ${i + 1}: ${score}/4`}
-                        className={`w-6 rounded ${score === undefined ? 'bg-line' : TONE_BG[scoreTone(score)]}`}
-                      />
-                    ))}
-                  </div>
+                  <span className={`flex h-8 w-24 flex-none items-center justify-center gap-1.5 rounded-full text-[13px] font-medium leading-none text-ink-strong ${PASTEL_BG[bandPastel(last)]}`}>
+                    <Star filled={starred(last)} />Band {last}
+                  </span>
                 </div>
               )
             })}
           </div>
-          <p className="mt-4 text-xs text-ink-faint">
-            Oldest attempt on the left. Grey means that criterion was not scored on that attempt —
-            usually because the attempt stopped before that stage.
-          </p>
-        </motion.section>
+        </>
       )}
 
-      <motion.ul initial="hidden" animate="show" variants={stagger} className="space-y-2.5">
-        {attempts.map((attempt) => (
-          <motion.li key={attempt.id} variants={riseIn} className="list-none">
-            <Link href={attempt.state === 'DRAFT' ? `/practice/${attempt.id}` : `/report/${attempt.id}`} className="block">
-              <motion.div
-                whileHover={{ x: 3 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                className="card flex items-center gap-4 p-4 hover:shadow-lift"
-              >
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-raised font-mono text-sm">
-                  {attempt.attemptNumber}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">
-                    {attempt.state === 'DRAFT'
-                      ? `Draft — ${STAGE_LABEL[attempt.stage].toLowerCase()} stage open`
-                      : attempt.state === 'FAILED'
-                        ? `${STAGE_LABEL[attempt.stage]} stage failed`
-                        : attempt.state === 'COMPLETED_PARTIAL'
-                          ? 'Reviewed — measured checks only'
-                          : attempt.stagesCompleted.length === 3
-                            ? 'Fully reviewed'
-                            : 'Reviewed'}
-                  </p>
-                  <div className="mt-1 flex items-center gap-1.5">
-                    {(['design', 'change', 'defend'] as const).map((s) => (
-                      <span
-                        key={s}
-                        className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
-                          attempt.stagesCompleted.includes(s) ? 'bg-positive/12 text-positive' : 'bg-raised text-ink-faint'
-                        }`}
-                      >
-                        {STAGE_LABEL[s]}
-                      </span>
-                    ))}
-                    <span className="ml-1 text-xs text-ink-faint">{relativeTime(attempt.createdAt)}</span>
-                  </div>
-                </div>
-                {attempt.overall !== null ? (
-                  <span className={`text-lg font-semibold tabular-nums ${TONE_TEXT[scoreTone(attempt.overall)]}`}>
-                    {attempt.overall.toFixed(1)}
-                  </span>
-                ) : (
-                  <span className="text-xs text-ink-faint">—</span>
-                )}
-              </motion.div>
-            </Link>
-          </motion.li>
-        ))}
-      </motion.ul>
-
-      {history && attempts.length === 0 && (
-        <div className="card p-10 text-center">
-          <p className="text-sm text-ink-muted">No attempts yet.</p>
-          <div className="mt-4 flex justify-center gap-2">
-            {history.critique.total > 0 && (
-              <Link href={`/critique/${problemId}`} className="btn-quiet">
-                Warm up first
-              </Link>
-            )}
-            <button onClick={tryAgain} className="btn-primary">
-              Start the first one
-            </button>
+      <Panel>
+        <PanelHeader />
+        <PanelCard title="Best so far">
+          <p className="text-[32px] font-medium leading-none tracking-[-0.02em] text-ink-strong">{best === null ? '—' : `Band ${best.toFixed(1)}`}</p>
+          <p className="text-[14px] leading-[1.55] text-muted">{scored.length} scored attempt{scored.length === 1 ? '' : 's'} · {history.critique.correct} of {history.critique.total} warm-up pairs right</p>
+        </PanelCard>
+        {history.recurringWeaknesses[0] && (
+          <div className="flex flex-col gap-3 rounded-3xl bg-blush p-6">
+            <span className="text-[15px] font-medium leading-none text-ink-strong">Recurring weakness</span>
+            <p className="text-[20px] font-medium leading-[1.35] tracking-[-0.01em] text-ink-strong">{history.recurringWeaknesses[0].criterionName} in {history.recurringWeaknesses[0].occurrences} of your last {history.recurringWeaknesses[0].windowSize} attempts here.</p>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+        {history.next && (
+          <PanelCard title="Next for you">
+            <p className="text-[14px] leading-[1.55] text-muted">{history.next.reason}</p>
+            <Link href={`/learn/${history.next.problemId}`} className="btn-primary btn-xs self-start">Open {history.next.title.toLowerCase()}</Link>
+          </PanelCard>
+        )}
+      </Panel>
+    </>
   )
 }

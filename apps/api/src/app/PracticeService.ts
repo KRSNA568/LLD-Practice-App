@@ -648,7 +648,13 @@ export class PracticeService {
       const seconds = attemptSeconds(row.createdAt, row.submissions.map((s) => s.submittedAt))
       practiceSeconds += seconds
       const started = bucket(row.createdAt)
-      if (started) started.seconds += seconds
+      if (started) {
+        started.seconds += seconds
+        const split = stageSeconds(row.createdAt, row.submissions, row.evaluations)
+        started.designSeconds += split.design
+        started.changeSeconds += split.change
+        started.defendSeconds += split.defend
+      }
       const scores = scoresByCriterion(results)
       for (const [id, score] of Object.entries(scores)) {
         if (score !== undefined) perCriterion.set(id, [...(perCriterion.get(id) ?? []), score])
@@ -942,7 +948,7 @@ function emptyActivity(n: number): ActivityMonth[] {
   const now = new Date()
   for (let i = n - 1; i >= 0; i -= 1) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    out.push({ month: monthKey(d), label: MONTHS[d.getMonth()]!, design: 0, change: 0, defend: 0, critique: 0, seconds: 0 })
+    out.push({ month: monthKey(d), label: MONTHS[d.getMonth()]!, design: 0, change: 0, defend: 0, critique: 0, seconds: 0, designSeconds: 0, changeSeconds: 0, defendSeconds: 0 })
   }
   return out
 }
@@ -953,6 +959,24 @@ function emptyActivity(n: number): ActivityMonth[] {
  * attempt's budget and below any plausible walk-away.
  */
 const ATTEMPT_CAP_SECONDS = 3 * 3600
+
+/**
+ * Per stage, the same derivation the study export uses: designing runs from
+ * the attempt's start to the design submission; revising from the design
+ * report landing to the change submission; defending from the change report
+ * to the defend submission. Each leg is capped like the whole.
+ */
+function stageSeconds(
+  startedAt: Date,
+  submissions: Array<{ stage: string; submittedAt: Date }>,
+  evaluations: Array<{ stage: string; completedAt: Date }>,
+): { design: number; change: number; defend: number } {
+  const sub = (s: string) => submissions.find((x) => x.stage === s)?.submittedAt
+  const rep = (s: string) => evaluations.find((x) => x.stage === s)?.completedAt
+  const leg = (from?: Date, to?: Date) => (from && to ? Math.min(ATTEMPT_CAP_SECONDS, Math.max(0, Math.round((to.getTime() - from.getTime()) / 1000))) : 0)
+  return { design: leg(startedAt, sub('design')), change: leg(rep('design'), sub('change')), defend: leg(rep('change'), sub('defend')) }
+}
+
 function attemptSeconds(startedAt: Date, submittedAt: Date[]): number {
   if (submittedAt.length === 0) return 0
   const last = Math.max(...submittedAt.map((d) => d.getTime()))
