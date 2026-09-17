@@ -8,6 +8,7 @@ import {
   type ProblemSummary,
   type PublicProblem,
   type Rubric,
+  type UpcomingProblem,
 } from '@lld/contracts'
 
 /**
@@ -39,6 +40,8 @@ export class ContentStore {
   private readonly problems = new Map<string, Problem>()
   private readonly rubrics = new Map<string, Rubric>()
   private readonly order: string[] = []
+  /** Catalogued, not yet instrumented. Listed so the library's shape is honest. */
+  private readonly upcoming: UpcomingProblem[] = []
   private concepts: Concept[] = []
 
   private constructor() {}
@@ -69,7 +72,17 @@ export class ContentStore {
       // real content waiting on its requirements, variation points, scenarios and
       // hidden change — listing them as startable would promise a practice loop the
       // evaluator cannot actually deliver.
-      if (!existsSync(fileURLToPath(path))) continue
+      if (!existsSync(fileURLToPath(path))) {
+        store.upcoming.push({
+          id: entry.id,
+          title: entry.title,
+          tier: entry.tier,
+          minutes: entry.minutes,
+          domain: entry.domain,
+          conceptTags: entry.conceptTags,
+        })
+        continue
+      }
 
       const parsed = problemSchema.safeParse(read<unknown>(`problems/${file}`))
       if (!parsed.success) {
@@ -136,6 +149,10 @@ export class ContentStore {
     return this.order.map((id) => this.problems.get(id)!)
   }
 
+  listUpcoming(): UpcomingProblem[] {
+    return this.upcoming
+  }
+
   getProblem(id: string): Problem | undefined {
     return this.problems.get(id)
   }
@@ -175,6 +192,7 @@ export class ContentStore {
     attemptCount: number,
     bestOverall: number | null,
     critiquesCorrect: number,
+    extra: { lastAttemptAt: string | null; critiquesAnswered: number } = { lastAttemptAt: null, critiquesAnswered: critiquesCorrect },
   ): ProblemSummary {
     return {
       id: problem.id,
@@ -185,7 +203,9 @@ export class ContentStore {
       conceptTags: problem.conceptTags,
       attemptCount,
       bestOverall,
+      lastAttemptAt: extra.lastAttemptAt,
       critiquePairCount: problem.critiquePairs.length,
+      critiquesAnswered: extra.critiquesAnswered,
       critiquesCorrect,
     }
   }

@@ -183,8 +183,21 @@ export type ProblemSummary = {
   conceptTags: string[]
   attemptCount: number
   bestOverall: number | null
+  /** When this learner last touched an attempt here; null if never. */
+  lastAttemptAt: string | null
   critiquePairCount: number
+  critiquesAnswered: number
   critiquesCorrect: number
+}
+
+/** A catalogued problem that is not yet playable — shown so the shape of the library is honest. */
+export type UpcomingProblem = {
+  id: string
+  title: string
+  tier: number
+  minutes: number
+  domain: string
+  conceptTags: string[]
 }
 
 /** A critique pair as served to the learner — designs inlined, answer withheld. */

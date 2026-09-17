@@ -502,3 +502,34 @@ describe('defend as a dialogue', () => {
     await expect(coach.turn(LEARNER, settled.id, 'p-nope', 'x')).rejects.toThrow(/not asked/)
   })
 })
+
+describe('progress: activity and time', () => {
+  it('buckets stages, critiques and time by month, and reports a median band', async () => {
+    const settled = await designAndSettle(strongDesign)
+    expect(settled.state).toBe('COMPLETED')
+    const progress = await service.getProgress(LEARNER)
+
+    expect(progress.activity).toHaveLength(12)
+    const thisMonth = progress.activity[11]!
+    const now = new Date()
+    expect(thisMonth.month).toBe(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
+    expect(thisMonth.design).toBe(1)
+    expect(thisMonth.change).toBe(0)
+    // Time is start → last submission; a test attempt is fast, but never negative and never the cap.
+    expect(progress.practiceSeconds).toBeGreaterThanOrEqual(0)
+    expect(progress.practiceSeconds).toBeLessThan(60)
+    expect(thisMonth.seconds).toBe(progress.practiceSeconds)
+    expect(progress.medianOverall).toBe(settled.report!.summary.overall)
+    expect(progress.openAttempt?.startedAt).toBeDefined()
+  })
+
+  it('lists what is catalogued but not playable, separately', async () => {
+    const { problems, upcoming } = await service.listProblems(LEARNER)
+    expect(problems.length).toBeGreaterThan(0)
+    expect(upcoming.length).toBeGreaterThan(0)
+    const ids = new Set(problems.map((p) => p.id))
+    for (const u of upcoming) expect(ids.has(u.id)).toBe(false)
+    expect(problems[0]).toHaveProperty('lastAttemptAt')
+    expect(problems[0]).toHaveProperty('critiquesAnswered')
+  })
+})

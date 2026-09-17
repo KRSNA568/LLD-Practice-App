@@ -5,6 +5,7 @@ import {
   nextStage,
   STAGES,
   submissionPayloadSchema,
+  type ActivityMonth,
   type Attempt,
   type AttemptState,
   type AttemptSummary,
@@ -565,7 +566,11 @@ export class PracticeService {
     }
   }
 
-  async listProblems(learnerId: string): Promise<{ problems: ReturnType<ContentStore['toSummary']>[]; next: NextProblemSuggestion | null }> {
+  async listProblems(learnerId: string): Promise<{
+    problems: ReturnType<ContentStore['toSummary']>[]
+    upcoming: ReturnType<ContentStore['listUpcoming']>
+    next: NextProblemSuggestion | null
+  }> {
     const rows = await this.prisma.attempt.findMany({
       where: { learnerId },
       include: { evaluations: true },
@@ -582,11 +587,16 @@ export class PracticeService {
           return results.length > 0 ? summarise(results, rubric, stagesOf(r.evaluations)).overall : null
         })
         .filter((s): s is number => s !== null)
+      const here = critiques.filter((c) => c.problemId === problem.id)
       return this.content.toSummary(
         problem,
         mine.length,
         scores.length > 0 ? Math.max(...scores) : null,
-        critiques.filter((c) => c.problemId === problem.id && c.correct).length,
+        here.filter((c) => c.correct).length,
+        {
+          lastAttemptAt: mine[0]?.updatedAt.toISOString() ?? null,
+          critiquesAnswered: here.length,
+        },
       )
     })
 
@@ -594,7 +604,7 @@ export class PracticeService {
     const recent = rows.find((r) => r.evaluations.length > 0)
     const next = recent ? (await this.getHistory(learnerId, recent.problemId)).next : null
 
-    return { problems, next }
+    return { problems, upcoming: this.content.listUpcoming(), next }
   }
 
   /* --------------------------------------------------------------------- */
@@ -609,12 +619,15 @@ export class PracticeService {
   async getProgress(learnerId: string): Promise<Omit<ProgressPayload, 'coach'>> {
     const rows = await this.prisma.attempt.findMany({
       where: { learnerId },
-      include: { evaluations: true, submissions: { select: { submittedAt: true } } },
+      include: { evaluations: true, submissions: { select: { stage: true, submittedAt: true } } },
       orderBy: { createdAt: 'desc' },
     })
     const critiques = await this.prisma.critique.findMany({ where: { learnerId } })
 
     const recent: ProgressPayload['recent'] = []
+    const activity = emptyActivity(12)
+    const bucket = (at: Date) => activity.find((m) => m.month === monthKey(at))
+    let practiceSeconds = 0
     const stagesCompleted = { design: 0, change: 0, defend: 0 }
     const perCriterion = new Map<string, number[]>()
     let rubric = this.content.rubricFor(this.content.listProblems()[0]!)
@@ -626,6 +639,16 @@ export class PracticeService {
       const results = resultsOf(row)
       const done = stagesOf(row.evaluations)
       for (const s of done) stagesCompleted[s] += 1
+      // Activity: each stage lands in the month it was evaluated; time lands in
+      // the month the attempt started. An attempt with no submission cost nothing.
+      for (const e of row.evaluations) {
+        const m = bucket(e.completedAt)
+        if (m && (e.stage === 'design' || e.stage === 'change' || e.stage === 'defend')) m[e.stage] += 1
+      }
+      const seconds = attemptSeconds(row.createdAt, row.submissions.map((s) => s.submittedAt))
+      practiceSeconds += seconds
+      const started = bucket(row.createdAt)
+      if (started) started.seconds += seconds
       const scores = scoresByCriterion(results)
       for (const [id, score] of Object.entries(scores)) {
         if (score !== undefined) perCriterion.set(id, [...(perCriterion.get(id) ?? []), score])
@@ -644,7 +667,15 @@ export class PracticeService {
       })
     }
 
+    for (const c of critiques) {
+      const m = bucket(c.createdAt)
+      if (m) m.critique += 1
+    }
+
     const scored = recent.filter((a) => a.overall !== null).map((a) => ({ scores: a.scores }))
+    const overalls = recent.map((a) => a.overall).filter((o): o is number => o !== null).sort((a, b) => a - b)
+    const medianOverall =
+      overalls.length === 0 ? null : overalls.length % 2 ? overalls[(overalls.length - 1) / 2]! : (overalls[overalls.length / 2 - 1]! + overalls[overalls.length / 2]!) / 2
     const criterionAverages: Record<string, number> = {}
     for (const [id, list] of perCriterion) {
       criterionAverages[id] = list.reduce((a, b) => a + b, 0) / list.length
@@ -661,6 +692,7 @@ export class PracticeService {
             problemTitle: openProblem.title,
             stage: open.stage as Stage,
             attemptNumber: open.attemptNumber,
+            startedAt: open.createdAt.toISOString(),
           }
         : null
 
@@ -675,6 +707,9 @@ export class PracticeService {
       criteriaAtPar: Object.values(criterionAverages).filter((v) => v >= 3).length,
       conceptMastery: conceptMastery(scored, rubric, this.content.listConcepts()),
       streakDays: streakDays(rows.flatMap((r) => r.submissions.map((s) => s.submittedAt))),
+      activity,
+      practiceSeconds,
+      medianOverall,
       recurringWeaknesses,
       critique: { answered: critiques.length, correct: critiques.filter((c) => c.correct).length },
       openAttempt,
@@ -889,4 +924,37 @@ function fingerprintOf(payload: SubmissionPayload): string {
     return createHash('sha256').update(canonical).digest('hex')
   }
   return new DesignGraph(payload.design).fingerprint()
+}
+
+/* ------------------------------------------------------------------------- */
+/* Activity helpers                                                           */
+/* ------------------------------------------------------------------------- */
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+function monthKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+/** The last `n` months, oldest first, ending with the current one. */
+function emptyActivity(n: number): ActivityMonth[] {
+  const out: ActivityMonth[] = []
+  const now = new Date()
+  for (let i = n - 1; i >= 0; i -= 1) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    out.push({ month: monthKey(d), label: MONTHS[d.getMonth()]!, design: 0, change: 0, defend: 0, critique: 0, seconds: 0 })
+  }
+  return out
+}
+
+/**
+ * Time in one attempt: start to last submission. Capped, because a draft left
+ * open overnight is not eight hours of practice. Three hours is above any
+ * attempt's budget and below any plausible walk-away.
+ */
+const ATTEMPT_CAP_SECONDS = 3 * 3600
+function attemptSeconds(startedAt: Date, submittedAt: Date[]): number {
+  if (submittedAt.length === 0) return 0
+  const last = Math.max(...submittedAt.map((d) => d.getTime()))
+  return Math.min(ATTEMPT_CAP_SECONDS, Math.max(0, Math.round((last - startedAt.getTime()) / 1000)))
 }

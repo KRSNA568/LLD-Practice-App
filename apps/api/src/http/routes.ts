@@ -49,7 +49,7 @@ export function createRouter(service: PracticeService, content: ContentStore, co
       if (!prisma) throw new NotFoundError('Learner sign-in')
       const { name } = createLearnerRequestSchema.parse(req.body)
       const learner = await prisma.learner.create({ data: { id: randomUUID(), name } })
-      res.status(201).json({ learner: { id: learner.id, name: learner.name } })
+      res.status(201).json({ learner: { id: learner.id, name: learner.name, createdAt: learner.createdAt.toISOString() } })
     }),
   )
 
@@ -59,7 +59,7 @@ export function createRouter(service: PracticeService, content: ContentStore, co
       if (!prisma) throw new NotFoundError('Learner sign-in')
       const learner = await prisma.learner.findUnique({ where: { id: req.learnerId } })
       if (!learner) throw new NotFoundError('Learner')
-      res.json({ learner: { id: learner.id, name: learner.name } })
+      res.json({ learner: { id: learner.id, name: learner.name, createdAt: learner.createdAt.toISOString() } })
     }),
   )
 

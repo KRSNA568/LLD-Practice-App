@@ -70,7 +70,7 @@ export const createLearnerRequestSchema = z.object({
   name: z.string().trim().min(1, 'A name is needed').max(60),
 })
 export type CreateLearnerRequest = z.infer<typeof createLearnerRequestSchema>
-export type LearnerPayload = { learner: { id: string; name: string } }
+export type LearnerPayload = { learner: { id: string; name: string; createdAt: string } }
 export const LEARNER_HEADER = 'x-learner-id'
 
 export { stageSchema }
@@ -117,6 +117,24 @@ export type ApiError = {
 export type { CritiqueVerdict }
 
 /** The learner's standing across every problem — what the dashboard and progress pages read. */
+/**
+ * One month of practice, for the activity chart. The stage columns are counts of
+ * stages completed in that month; `critique` is warm-up pairs answered; `seconds`
+ * is time spent in attempts started that month, from the timestamps that already
+ * exist (start → last submission, capped so an abandoned draft cannot count days).
+ */
+export type ActivityMonth = {
+  /** YYYY-MM */
+  month: string
+  /** Short month name for the axis, e.g. "Sep". */
+  label: string
+  design: number
+  change: number
+  defend: number
+  critique: number
+  seconds: number
+}
+
 export type ProgressPayload = {
   attempts: number
   problemsTried: number
@@ -128,6 +146,12 @@ export type ProgressPayload = {
   conceptMastery: ConceptMastery[]
   /** Consecutive calendar days (ending today) with at least one submission. */
   streakDays: number
+  /** The last twelve months, oldest first, the current month last. */
+  activity: ActivityMonth[]
+  /** Total time in attempts, from timestamps; the "3.5h" on the dashboard. */
+  practiceSeconds: number
+  /** Median overall band across scored attempts; null before the first. */
+  medianOverall: number | null
   recurringWeaknesses: RecurringWeakness[]
   critique: { answered: number; correct: number }
   /** The most recent attempt still open, if any — the "continue" affordance. */
@@ -137,6 +161,7 @@ export type ProgressPayload = {
     problemTitle: string
     stage: 'design' | 'change' | 'defend'
     attemptNumber: number
+    startedAt: string
   } | null
   /** Every attempt across problems, newest first. */
   recent: Array<AttemptSummary & { problemTitle: string }>

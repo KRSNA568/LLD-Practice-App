@@ -93,8 +93,9 @@ afterAll(async () => {
 
 describe('identity', () => {
   it('creates a learner from a name and reports who is asking', async () => {
-    const me = (await (await call('/learners/me', { as: alice })).json()) as { learner: { id: string; name: string } }
-    expect(me.learner).toEqual({ id: alice, name: 'Alice' })
+    const me = (await (await call('/learners/me', { as: alice })).json()) as { learner: { id: string; name: string; createdAt: string } }
+    expect(me.learner).toMatchObject({ id: alice, name: 'Alice' })
+    expect(Date.parse(me.learner.createdAt)).not.toBeNaN()
   })
 
   it('falls back to the demo learner with no header, so scripts and a fresh clone still work', async () => {
