@@ -41,18 +41,26 @@ export class Dialogue {
       usage.outputTokens += response.usage?.outputTokens ?? 0
       const parsed = followUpSchema.safeParse(readJson(response.text))
       if (!parsed.success) continue
-      const question = acceptable(parsed.data.question.trim(), ctx, probe)
+      const question = acceptable(parsed.data.question.trim(), ctx, probe, transcript)
       if (question) return { question, usage: response.usage ? usage : undefined }
     }
     return null
   }
 }
 
-/** Grounded, a question, short, and not a verdict in disguise. */
-export function acceptable(text: string, ctx: EvaluationContext, probe: Probe): string | null {
+/**
+ * Grounded, a question, short, not a verdict in disguise — and not putting words
+ * in the learner's mouth. Seen live: "You chose an enum for Spot size" to a learner
+ * who had said nothing about enums. Name grounding cannot catch that (Spot is a
+ * real class), so an attribution is checked against what the learner actually
+ * wrote: the content words after "you chose / you said / your …" have to appear in
+ * their own turns, or the question is rejected and the model tries once more.
+ */
+export function acceptable(text: string, ctx: EvaluationContext, probe: Probe, transcript: DialogueTurn[] = []): string | null {
   if (!text.includes('?')) return null
   if (text.split(/\s+/).length > MAX_WORDS) return null
   if (/\b(you should|the right answer|the correct|you need to|instead, use)\b/i.test(text)) return null
+  if (!attributionsBacked(text, transcript)) return null
   // The probe itself may name a class (it was templated from the design), so
   // anything the probe mentions is fair game for the follow-up too.
   const known = identifiersIn(probe.prompt)
@@ -71,6 +79,8 @@ export function followUpPrompt(ctx: EvaluationContext, probe: Probe, transcript:
     'Rules for the question:',
     '- It must be a question. It must not contain a solution, a hint of the solution, or a verdict.',
     '- At most 40 words. Reference something the learner actually wrote.',
+    '- Never attribute to the learner anything they did not write. If they did not address',
+    '  something, ask about it rather than assume what they chose.',
     '- Name only classes from the list below or from the probe itself.',
     '',
     `PROBLEM: ${ctx.problem.title}`,
@@ -86,4 +96,28 @@ export function followUpPrompt(ctx: EvaluationContext, probe: Probe, transcript:
     '',
     'Return exactly: {"question": "..."}',
   ].join('\n')
+}
+
+const ATTRIBUTION = /\b(?:you(?:'ve| have)? (?:chose|chosen|said|picked|decided|used|went with|mentioned|proposed|suggested|claimed|argued|described)|your (?:enum|choice|decision|answer|approach|design uses|use of))\b([^.?!,;:—–]*)/gi
+const STOP = new Set(['the', 'a', 'an', 'that', 'this', 'for', 'with', 'and', 'or', 'of', 'to', 'in', 'on', 'as', 'is', 'are', 'was', 'be', 'it', 'its', 'by', 'from', 'than', 'then', 'not', 'your', 'you', 'their', 'there', 'here', 'would', 'should', 'could', 'have', 'has', 'into', 'over', 'about', 'which', 'what', 'when', 'where', 'how', 'why'])
+const stem = (w: string) => w.toLowerCase().replace(/(ies|es|s|ing|ed)$/, '').slice(0, 6)
+
+/**
+ * Every "you chose X" in the question must find X in the learner's turns: at least
+ * half of X's content words (stemmed), and at least one. A question with no
+ * attribution passes. The probe's own wording is not the learner's, so it does
+ * not count as backing.
+ */
+export function attributionsBacked(text: string, transcript: DialogueTurn[]): boolean {
+  const said = transcript.filter((t) => t.role === 'learner').map((t) => t.text).join(' ')
+  const saidStems = new Set(said.split(/[^A-Za-z]+/).filter((w) => w.length >= 3).map(stem))
+  for (const m of text.matchAll(ATTRIBUTION)) {
+    // The claim is the first few content words after the attribution; what follows a
+    // dash or a clause break is the question, not the claim.
+    const words = (m[1] ?? '').split(/[^A-Za-z]+/).filter((w) => w.length >= 3 && !STOP.has(w.toLowerCase())).slice(0, 5)
+    if (words.length === 0) continue
+    const hits = words.filter((w) => saidStems.has(stem(w))).length
+    if (hits === 0 || hits * 2 < words.length) return false
+  }
+  return true
 }

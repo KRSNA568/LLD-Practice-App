@@ -379,3 +379,23 @@ reaching for, and it took a measurement rather than a theory to find it.
 failing on the draft's un-repaired weak design and would have failed on any draft. Drafts are
 excluded until renamed; the API was never affected, since it only serves ids whose `<id>.json`
 exists.
+
+## 17. The interviewer said "you chose an enum" to a learner who had not
+
+**Where:** an end-to-end walk of the redesigned platform as a mid-level learner, 18 Sept 2026,
+defend stage, probe 2 (spot sizing).
+
+**What happened:** the learner's answer talked about pricing seams and never mentioned enums. The
+follow-up opened *"You chose an enum for Spot size. If Spot sizes needed to change dynamically, how
+would you adapt that choice?"* Every class it named was real, so name grounding passed it. It was
+the probe's own wording — "a value, an enum, or a class hierarchy" — reflected back as if the
+learner had answered it. Exactly the limitation DESIGN.md §12 states ("prose grounding checks
+names, not claims"), met live, in front of what would have been a senior engineer in the study.
+
+**What changed:** the follow-up's acceptance check now reads the transcript. An attribution — "you
+chose / you said / your enum…" — has to find its content words in the learner's own turns, or the
+question is rejected and the model tries once more. The probe's wording does not count as backing.
+The prompt says the rule too. Four tests, one of them the live transcript verbatim. It is a narrow
+check by design: it catches the mentor asserting what the learner chose, which is the case that
+damages trust, and leaves general claims to study V5, the truthfulness audit, which this is the
+first exhibit for.

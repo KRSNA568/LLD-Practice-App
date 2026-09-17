@@ -9,7 +9,7 @@ import type { EvaluationContext } from '../evaluation/Evaluator.js'
  * Each prompt starts with a `TASK:` line. The stub reads it to decide which
  * template to answer with; real models ignore it.
  */
-export const COACH_PROMPT_VERSION = '1.0.0'
+export const COACH_PROMPT_VERSION = '1.1.0'
 
 export const MENTOR_SYSTEM = [
   'You are a design mentor on a Low-Level Design practice platform, writing to one learner',

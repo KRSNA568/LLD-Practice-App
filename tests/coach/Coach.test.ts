@@ -219,3 +219,40 @@ describe('Coach', () => {
     expect(n?.text).toContain('Vending Machine')
   })
 })
+
+describe('Dialogue: attributions must be backed by what the learner wrote', () => {
+  it('rejects a follow-up that puts words in the learner\'s mouth, verbatim from a live session', async () => {
+    const { attributionsBacked } = await import('../../apps/api/src/coach/Dialogue.js')
+    // The learner answered a probe about spot sizing by talking about pricing seams;
+    // the interviewer opened with a choice they never made.
+    const transcript = [{ role: 'learner' as const, text: 'The lot would ask FeeCalculator through an interface, say PricingPolicy, with HourlyPricing as the first implementation. I rejected that in the design because there was one rate scheme.' }]
+    expect(attributionsBacked('You chose an enum for Spot size. If Spot sizes needed to change dynamically, how would you adapt that choice?', transcript)).toBe(false)
+  })
+
+  it('accepts an attribution the learner actually made, in their words or a close paraphrase', async () => {
+    const { attributionsBacked } = await import('../../apps/api/src/coach/Dialogue.js')
+    const transcript = [{ role: 'learner' as const, text: 'calculateFee gets a branch for the weekend rate; ParkingLotManager already owns pricing so that is the natural place.' }]
+    expect(attributionsBacked('You said calculateFee gets a branch — which other classes must change?', transcript)).toBe(true)
+    expect(attributionsBacked('You chose to keep pricing in ParkingLotManager; what does a second rate rule cost?', transcript)).toBe(true)
+  })
+
+  it('leaves a question with no attribution alone, and ignores the probe\'s own wording as backing', async () => {
+    const { attributionsBacked } = await import('../../apps/api/src/coach/Dialogue.js')
+    expect(attributionsBacked('Which class would refuse entry when nothing fits?', [])).toBe(true)
+    // "enum" appears in the mentor's earlier turn, not the learner's — that is not backing.
+    const transcript = [{ role: 'mentor' as const, text: 'Is spot size an enum in your design?' }, { role: 'learner' as const, text: 'Pricing lives in FeeCalculator.' }]
+    expect(attributionsBacked('You chose an enum for spot size — why?', transcript)).toBe(false)
+  })
+
+  it('makes the generator retry rather than ask it', async () => {
+    const { Dialogue } = await import('../../apps/api/src/coach/Dialogue.js')
+    const probe = { id: 'p-pricing', prompt: 'Weekend rates start next month. Which method in ParkingLotManager changes?', targetsConcept: 'open-closed', goodSignal: ['names a single class'], badSignal: ['adds a branch'] }
+    const ctx = designCtx(godClassDesign, { stage: 'defend' })
+    const transcript = [{ role: 'learner' as const, text: 'calculateFee gets a branch.' }]
+    let n = 0
+    const client = { id: 'fake', complete: async () => ({ text: JSON.stringify({ question: n++ === 0 ? 'You chose an enum for Spot size — why?' : 'What breaks in ParkingLotManager first?' }) }) }
+    const out = await new Dialogue(client).followUp(ctx, probe, transcript)
+    expect(out?.question).toBe('What breaks in ParkingLotManager first?')
+    expect(n).toBe(2)
+  })
+})
