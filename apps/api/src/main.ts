@@ -13,6 +13,11 @@ import { InProcessQueue } from './infra/queue/InProcessQueue.js'
 import { createRouter, DEMO_LEARNER_ID, errorHandler } from './http/routes.js'
 import { identity } from './http/identity.js'
 import { resolveLlmClient, resolveLlmProvider } from './evaluation/llm/index.js'
+import { captureProcessErrors, errorFields, log, requestLogger } from './infra/log.js'
+import { readFileSync } from 'node:fs'
+
+const VERSION = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version
+const STARTED = Date.now()
 
 const PORT = Number(process.env.PORT ?? 4000)
 
@@ -34,10 +39,7 @@ async function main(): Promise<void> {
     // Retries exist mostly for rate limits, which clear in seconds, not milliseconds.
     baseDelayMs: 4000,
     onError: (error, attempt, id) => {
-      console.warn(
-        `[queue] evaluation for ${id ?? 'unknown'} failed on attempt ${attempt + 1}:`,
-        error instanceof Error ? error.message : error,
-      )
+      log('warn', 'queue job failed', { job: id ?? 'unknown', attempt: attempt + 1, ...errorFields(error) })
     },
   })
 
@@ -64,13 +66,36 @@ async function main(): Promise<void> {
     )
   }
 
+  captureProcessErrors()
   const app = express()
   app.use(cors())
   app.use(express.json({ limit: '1mb' }))
+  app.use(requestLogger)
   app.use('/api', identity(prisma))
-  app.get('/api/health', (_req, res) => {
-    res.json({
-      ok: true,
+
+  /**
+   * The health check answers the questions an alert would ask: can it reach the
+   * database, how long did that take, is the queue backing up, when did the last
+   * evaluation land, and what version is this. `ok` is false when the database is
+   * unreachable, so a probe on this route is a real probe.
+   */
+  app.get('/api/health', async (_req, res) => {
+    const t0 = Date.now()
+    let db: { ok: boolean; ms: number; error?: string }
+    try {
+      await prisma.$queryRaw`SELECT 1`
+      db = { ok: true, ms: Date.now() - t0 }
+    } catch (error) {
+      db = { ok: false, ms: Date.now() - t0, error: error instanceof Error ? error.message : String(error) }
+    }
+    const last = db.ok ? await prisma.evaluation.findFirst({ orderBy: { completedAt: 'desc' }, select: { completedAt: true } }).catch(() => null) : null
+    res.status(db.ok ? 200 : 503).json({
+      ok: db.ok,
+      version: VERSION,
+      uptimeSeconds: Math.round((Date.now() - STARTED) / 1000),
+      db,
+      queue: { depth: queue.depth },
+      lastEvaluationAt: last?.completedAt.toISOString() ?? null,
       problems: content.listProblems().length,
       evaluator: llm.id,
       provider: resolveLlmProvider(),
@@ -80,20 +105,18 @@ async function main(): Promise<void> {
   app.use(errorHandler)
 
   app.listen(PORT, () => {
-    const playable = content.listProblems().map((p) => p.id).join(', ')
-    console.log(`[api] listening on http://localhost:${PORT}`)
-    console.log(`[api] playable problems: ${playable}`)
-    if (loadedEnv.length > 0) console.log(`[api] loaded from .env.local: ${loadedEnv.join(', ')}`)
-    console.log(
-      `[api] evaluator: ${
-        resolveLlmProvider() === 'stub' ? 'deterministic stub (no API key set)' : llm.id
-      }`,
-    )
-    if (resolveLlmProvider() !== 'stub') console.log(`[api] mentor: ${mentorLlm.id}`)
+    log('info', 'listening', {
+      port: PORT,
+      version: VERSION,
+      problems: content.listProblems().map((p) => p.id),
+      envLoaded: loadedEnv,
+      evaluator: resolveLlmProvider() === 'stub' ? 'stub (no API key set)' : llm.id,
+      mentor: resolveLlmProvider() === 'stub' ? 'stub' : mentorLlm.id,
+    })
   })
 }
 
 main().catch((error) => {
-  console.error('[api] failed to start:', error)
+  log('error', 'failed to start', errorFields(error))
   process.exit(1)
 })

@@ -18,6 +18,7 @@ import { NoteStore } from '../coach/NoteStore.js'
 import { Reviewer } from '../coach/Reviewer.js'
 import { LessonWriter } from '../coach/Lesson.js'
 import { COACH_PROMPT_VERSION } from '../coach/prompts.js'
+import { errorFields, log } from '../infra/log.js'
 import type { ContentStore } from '../infra/content/ContentStore.js'
 
 /** What the coach needs from an attempt: the same context the evaluators saw, plus their results. */
@@ -146,7 +147,7 @@ export class CoachService {
     // rules is simply not asked; the probe ends at one turn.
     if (learnerTurns === 0) {
       const followUp = await this.dialogue.followUp(loaded.ctx, probe, transcript).catch((error: unknown) => {
-        console.warn(`[coach] no follow-up for ${attemptId}/${probeId}:`, error instanceof Error ? error.message : error)
+        log('warn', 'no follow-up', { attemptId, probeId, ...errorFields(error) })
         return null
       })
       if (followUp) {

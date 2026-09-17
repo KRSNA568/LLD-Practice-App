@@ -1,0 +1,19 @@
+// One-off, Phase 3: carry the SQLite rows into Postgres. Reads the JSON dumps that
+// `sqlite3 -json` wrote before the provider switched. Dates in SQLite were epoch
+// milliseconds; booleans were 0/1. Idempotent — reruns skip rows that exist.
+import { readFileSync } from 'node:fs'
+import { PrismaClient } from '@prisma/client'
+const prisma = new PrismaClient()
+const load = (t: string) => JSON.parse(readFileSync(`backups/sqlite-${t}.json`, 'utf8')) as Array<Record<string, unknown>>
+const d = (v: unknown) => new Date(Number(v))
+const b = (v: unknown) => v === 1 || v === true
+let n = 0
+for (const r of load('Learner')) { await prisma.learner.upsert({ where: { id: r.id as string }, update: {}, create: { id: r.id as string, name: r.name as string, createdAt: d(r.createdAt) } }); n++ }
+for (const r of load('Attempt')) { await prisma.attempt.upsert({ where: { id: r.id as string }, update: {}, create: { id: r.id as string, problemId: r.problemId as string, learnerId: r.learnerId as string, attemptNumber: Number(r.attemptNumber), stage: r.stage as string, state: r.state as string, draftsJson: (r.draftsJson as string | null) ?? null, changeId: (r.changeId as string | null) ?? null, failureReason: (r.failureReason as string | null) ?? null, attempts: Number(r.attempts), createdAt: d(r.createdAt), updatedAt: d(r.updatedAt) } }); n++ }
+for (const r of load('Submission')) { await prisma.submission.upsert({ where: { id: r.id as string }, update: {}, create: { id: r.id as string, attemptId: r.attemptId as string, stage: r.stage as string, format: r.format as string, payloadJson: r.payloadJson as string, fingerprint: (r.fingerprint as string | null) ?? null, idempotencyKey: r.idempotencyKey as string, submittedAt: d(r.submittedAt) } }); n++ }
+for (const r of load('Evaluation')) { await prisma.evaluation.upsert({ where: { id: r.id as string }, update: {}, create: { id: r.id as string, attemptId: r.attemptId as string, stage: r.stage as string, rubricId: r.rubricId as string, rubricVersion: r.rubricVersion as string, promptVersion: r.promptVersion as string, evaluatorIds: r.evaluatorIds as string, resultsJson: r.resultsJson as string, summaryJson: r.summaryJson as string, unchangedFromPrevious: b(r.unchangedFromPrevious), inputTokens: r.inputTokens == null ? null : Number(r.inputTokens), outputTokens: r.outputTokens == null ? null : Number(r.outputTokens), completedAt: d(r.completedAt) } }); n++ }
+for (const r of load('Critique')) { await prisma.critique.upsert({ where: { id: r.id as string }, update: {}, create: { id: r.id as string, learnerId: r.learnerId as string, problemId: r.problemId as string, pairId: r.pairId as string, choiceDesign: r.choiceDesign as string, choiceClass: r.choiceClass as string, correct: b(r.correct), createdAt: d(r.createdAt) } }); n++ }
+for (const r of load('AiNote')) { await prisma.aiNote.upsert({ where: { id: r.id as string }, update: {}, create: { id: r.id as string, learnerId: r.learnerId as string, kind: r.kind as string, key: r.key as string, attemptId: (r.attemptId as string | null) ?? null, stage: (r.stage as string | null) ?? null, refId: (r.refId as string | null) ?? null, modelId: r.modelId as string, json: r.json as string, inputTokens: r.inputTokens == null ? null : Number(r.inputTokens), outputTokens: r.outputTokens == null ? null : Number(r.outputTokens), createdAt: d(r.createdAt) } }); n++ }
+for (const r of load('DialogueTurn')) { await prisma.dialogueTurn.upsert({ where: { id: r.id as string }, update: {}, create: { id: r.id as string, attemptId: r.attemptId as string, probeId: r.probeId as string, turn: Number(r.turn), role: r.role as string, text: r.text as string, inputTokens: r.inputTokens == null ? null : Number(r.inputTokens), outputTokens: r.outputTokens == null ? null : Number(r.outputTokens), createdAt: d(r.createdAt) } }); n++ }
+console.log(`imported ${n} rows`)
+await prisma.$disconnect()

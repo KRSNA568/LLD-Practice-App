@@ -14,8 +14,11 @@ const DEMO_LEARNER_ID = 'learner-demo'
 const apiDir = fileURLToPath(new URL('../../../', import.meta.url))
 
 async function seed(): Promise<void> {
-  console.log('· applying database schema')
-  execFileSync('npx', ['prisma', 'db', 'push', '--skip-generate'], {
+  // Migrations, not `db push`: the schema's history is a set of files that apply
+  // in order on any database, and a change is a new file rather than a diff
+  // Prisma worked out on the spot.
+  console.log('· applying migrations')
+  execFileSync('npx', ['prisma', 'migrate', 'deploy'], {
     cwd: apiDir,
     stdio: 'inherit',
   })

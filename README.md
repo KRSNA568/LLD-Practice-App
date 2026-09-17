@@ -19,13 +19,21 @@ of your design survives.
 
 ## Running it
 
-Node 20+. Nothing else — **no API key needed**; a free one makes the AI half real.
+Node 20+ and Postgres 14+ (`brew install postgresql@16` on a Mac). **No API key needed**; a free one
+makes the AI half real.
 
 ```bash
 npm install
-npm run seed     # creates the SQLite database, validates every content file, seeds the demo learner
+createdb lld_practice && createdb lld_practice_test
+cp apps/api/.env.example apps/api/.env       # set DATABASE_URL to your Postgres user
+npm run seed     # applies the migrations, validates every content file, seeds the demo learner
 npm run dev      # API on :4000, web on :3000
 ```
+
+The schema is a migration history (`apps/api/prisma/migrations`), never a `db push`: a schema change
+is `npm run db:migrate:new -- <name>` in `apps/api`, and a fresh database gets `npm run db:migrate`.
+`npm run db:backup` writes a compressed dump to `apps/api/backups/`; `npm run db:restore <dump> <db>`
+brings one back — the restore was performed once against a real dump and matched byte for byte.
 
 Open **http://localhost:3000**. The interface is the Claude Design mockups in
 `ui-mockups-for-learning-platform/` implemented on the real data; [REDESIGN.md](REDESIGN.md) records
@@ -71,11 +79,18 @@ that learner unless asked. [STUDY_PROTOCOL.md](STUDY_PROTOCOL.md) is the six-per
 two scripts exist for.
 
 ```bash
-npm test         # 262 tests, including a calibration suite over 26 gold designs across 8 problems
+npm test         # 266 tests, including a calibration suite over 26 gold designs across 8 problems
 npm run typecheck
 ```
 
-If you have a database from an earlier version, delete `apps/api/prisma/dev.db` before seeding.
+`/api/health` reports the database round-trip, the queue depth, the last evaluation and the version,
+and answers 503 when the database is unreachable. The API logs one JSON line per request and per
+error (`LLD_LOG=pretty` for a terminal). `npm run canary` in `apps/api` runs one real attempt against
+an instance (`--url https://…/api`, `--full` for all three stages) and exits non-zero if the loop is
+broken — the thing to put on a schedule.
+
+If you have a SQLite database from before Phase 3, `apps/api/scripts/import-sqlite-json.ts` is the
+one-off that carried its rows across.
 
 ## Try this first
 

@@ -1,8 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { execFileSync } from 'node:child_process'
-import { rmSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
 import type { AddressInfo } from 'node:net'
+import { pushSchema, testDatabaseUrl } from '../testdb.js'
 import express from 'express'
 import cors from 'cors'
 import { LEARNER_HEADER } from '@lld/contracts'
@@ -27,9 +25,7 @@ import { strongDesign } from '../fixtures.js'
  * would pass a service-level test and fail this one.
  */
 
-const apiDir = fileURLToPath(new URL('../../apps/api', import.meta.url))
-const dbFile = fileURLToPath(new URL('../../apps/api/prisma/ownership.db', import.meta.url))
-const DB_URL = 'file:./ownership.db'
+const DB_URL = testDatabaseUrl('ownership')
 
 let prisma: import('@prisma/client').PrismaClient
 let server: import('node:http').Server
@@ -46,12 +42,7 @@ const call = (path: string, init: RequestInit & { as?: string } = {}) => {
 
 beforeAll(async () => {
   process.env.LLD_FORCE_STUB = '1'
-  rmSync(dbFile, { force: true })
-  execFileSync('npx', ['prisma', 'db', 'push', '--skip-generate', '--accept-data-loss'], {
-    cwd: apiDir,
-    env: { ...process.env, DATABASE_URL: DB_URL },
-    stdio: 'pipe',
-  })
+  await pushSchema(DB_URL)
   const { PrismaClient } = await import('@prisma/client')
   prisma = new PrismaClient({ datasources: { db: { url: DB_URL } } })
   await prisma.learner.create({ data: { id: 'learner-demo', name: 'Demo learner' } })
@@ -88,7 +79,6 @@ beforeAll(async () => {
 afterAll(async () => {
   server?.close()
   await prisma?.$disconnect()
-  rmSync(dbFile, { force: true })
 })
 
 describe('identity', () => {

@@ -11,3 +11,9 @@ dist/
 .env.*.local
 *.tsbuildinfo
 *.md
+
+# Database dumps and the one-off SQLite export carry learner data
+apps/api/backups/
+
+# Machine-specific now that the database is Postgres; copy .env.example
+apps/api/.env

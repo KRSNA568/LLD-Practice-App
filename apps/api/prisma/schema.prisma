@@ -1,5 +1,6 @@
 // Storage is deliberately thin. The domain owns the rules; these tables only
-// remember what happened. Design models and evaluation results are stored as JSON
+// remember what happened. Postgres from Phase 3 on, with a migration history —
+// a schema change is a migration file, never a `db push`. Design models and evaluation results are stored as JSON
 // because they are versioned documents validated by zod at the edges — shredding
 // them into columns would buy nothing and would make every rubric change a migration.
 
@@ -8,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

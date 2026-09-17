@@ -8,7 +8,12 @@
     "dev": "tsx watch src/main.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
-    "seed": "tsx src/infra/content/seed.ts"
+    "seed": "tsx src/infra/content/seed.ts",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:new": "prisma migrate dev --skip-seed --name",
+    "db:backup": "sh scripts/backup.sh",
+    "db:restore": "sh scripts/restore.sh",
+    "canary": "tsx scripts/canary.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

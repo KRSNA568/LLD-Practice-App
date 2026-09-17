@@ -17,7 +17,7 @@ start now. Phases 3 onward are bets on the answer being yes, so they wait for it
 |---|---|---|---|---|---|
 | 1 | Evidence without asking anyone | [FINDINGS-01.md](FINDINGS-01.md) | Nothing | 1 session | ✅ |
 | 2 | Make the study runnable | [STUDY_PROTOCOL.md](STUDY_PROTOCOL.md) | Nothing | 1 session | ✅ |
-| 3 | Reachable | A link you can send | Go-ahead after the study | 1 session | ⬜ |
+| 3 | Reachable | A link you can send | Go-ahead after the study | 1 session | 🟦 all but the deploy |
 | 4 | Safe for strangers | Closed beta can open | Go-ahead | 2 sessions | ⬜ |
 | 5 | Confidence and content | Changes stop being scary | Paid inference budget | continuous | ⬜ |
 
@@ -115,6 +115,14 @@ documented; API and web deployed with secrets held properly; health check and er
 synthetic full attempt on a schedule so you learn it is broken before a learner tells you.
 
 **Done when:** you can send a link, and you find out within minutes when it breaks.
+
+**18 Sept 2026 — everything but the deploy, on request.** Postgres with a migration history and
+the SQLite data carried across (300 rows, dates intact); a backup taken and a restore performed
+into a scratch database that matched byte for byte; JSON logs per request and per error, with
+process-level capture; a health check that probes the database and reports queue depth and the
+last evaluation; and `scripts/canary.ts`, one real attempt against any instance with a non-zero
+exit on failure. Tests run on Postgres in per-file schemas; CI has a Postgres service. What is
+left is the hosting itself: the platform choice, secrets there, and a schedule for the canary.
 
 **Not in this phase:** scaling. One small instance is right for this stage.
 

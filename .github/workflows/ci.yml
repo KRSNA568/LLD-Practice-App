@@ -8,10 +8,25 @@ on:
     branches: [main]
   pull_request:
 
+# Both jobs need Postgres: the integration tests push the schema into their own
+# schema of a scratch database, and the gate's typecheck needs a generated client.
+x-postgres: &postgres
+  image: postgres:16
+  env:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    POSTGRES_DB: lld_practice_test
+  ports: ['5432:5432']
+  options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+
 jobs:
   gate:
     name: calibration + adversarial + typecheck
     runs-on: ubuntu-latest
+    services:
+      postgres: *postgres
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lld_practice_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,6 +41,11 @@ jobs:
     name: full suite
     runs-on: ubuntu-latest
     needs: gate
+    services:
+      postgres: *postgres
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lld_practice_test
+      LLD_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lld_practice_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

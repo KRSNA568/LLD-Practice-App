@@ -21,6 +21,11 @@ export class InProcessQueue implements JobQueue {
   private running = 0
   private readonly waiters: Array<() => void> = []
 
+  /** Jobs queued or in flight right now — for the health check. */
+  get depth(): number {
+    return this.running
+  }
+
   constructor(
     private readonly options: {
       maxRetries?: number

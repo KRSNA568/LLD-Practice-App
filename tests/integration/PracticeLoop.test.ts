@@ -1,8 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { execFileSync } from 'node:child_process'
-import { rmSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
 import type { DesignModel, RawStageInput } from '@lld/contracts'
+import { pushSchema, testDatabaseUrl } from '../testdb.js'
 import { CoachService } from '../../apps/api/src/app/CoachService.js'
 import { StubLlmClient } from '../../apps/api/src/evaluation/llm/StubLlmClient.js'
 import { PracticeService } from '../../apps/api/src/app/PracticeService.js'
@@ -11,9 +9,7 @@ import { InProcessQueue } from '../../apps/api/src/infra/queue/InProcessQueue.js
 import { toRawStructuredSubmission } from '../../apps/api/src/submission/StructuredDesignParser.js'
 import { godClassDesign, strongDesign } from '../fixtures.js'
 
-const apiDir = fileURLToPath(new URL('../../apps/api', import.meta.url))
-const dbFile = fileURLToPath(new URL('../../apps/api/prisma/test.db', import.meta.url))
-const DB_URL = 'file:./test.db'
+const DB_URL = testDatabaseUrl('loop')
 
 const LEARNER = 'learner-test'
 
@@ -70,12 +66,7 @@ beforeAll(async () => {
   // Deterministic by construction: whatever keys the developer has lying around,
   // this suite talks to the stub. The live provider is exercised by hand.
   process.env.LLD_FORCE_STUB = '1'
-  rmSync(dbFile, { force: true })
-  execFileSync('npx', ['prisma', 'db', 'push', '--skip-generate', '--accept-data-loss'], {
-    cwd: apiDir,
-    env: { ...process.env, DATABASE_URL: DB_URL },
-    stdio: 'pipe',
-  })
+  await pushSchema(DB_URL)
   const { PrismaClient } = await import('@prisma/client')
   prisma = new PrismaClient({ datasources: { db: { url: DB_URL } } })
   await prisma.learner.upsert({
@@ -87,7 +78,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await prisma?.$disconnect()
-  rmSync(dbFile, { force: true })
 })
 
 beforeEach(async () => {
