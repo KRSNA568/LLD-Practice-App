@@ -64,6 +64,17 @@ describe('prose grounding', () => {
     expect(groundProse('Spot references PaymentGateway.', graph).dropped[0]!.unknown).toEqual(['PaymentGateway'])
   })
 
+  it('rewrites a proposed class name as words instead of dropping the sentence', () => {
+    // Measured live: the mentor's one concrete suggestion was the sentence the
+    // filter dropped, note after note.
+    const g = groundProse('Introduce a `FeeCalculator` interface and let ParkingLot depend on it. Then add StandardPricing and PeakHourPricing behind it.', graph)
+    expect(g.kept).toBe(2)
+    expect(g.text).toBe('Introduce a fee calculator interface and let ParkingLot depend on it. Then add standard pricing and peak hour pricing behind it.')
+    // An asserted name is not a proposal.
+    const asserted = groundProse('Your PaymentGateway already handles refunds, so leave it.', graph)
+    expect(asserted.kept).toBe(0)
+  })
+
   it('accepts names the caller vouches for, like the problem title', () => {
     expect(groundProse('This is the Parking Lot problem.', graph, ['Parking Lot']).kept).toBe(1)
     expect(groundProse('ParkingLot is here.', graph).kept).toBe(1)
@@ -78,7 +89,7 @@ describe('Reviewer', () => {
   })
 
   it('omits a note that was mostly about classes the learner never wrote', async () => {
-    const reviewer = new Reviewer(canned(JSON.stringify({ note: 'Add a PaymentGateway. Then a FeeEngine. Also a Ledger.' })))
+    const reviewer = new Reviewer(canned(JSON.stringify({ note: 'Your PaymentGateway is thin. Your FeeEngine hides it. So does your LedgerBook.' })))
     expect(await reviewer.note(designCtx(strongDesign), [result()])).toBeNull()
   })
 

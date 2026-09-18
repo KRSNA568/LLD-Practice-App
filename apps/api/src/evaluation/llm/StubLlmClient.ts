@@ -281,7 +281,8 @@ function stubLesson(prompt: string): { title: string; body: string; example: { b
  */
 function stubFollowUp(prompt: string): { question: string } {
   const weak = /What a weak answer does: ([^\n]+)/.exec(prompt)?.[1]?.split(';')[0]?.trim() ?? 'leaves the alternative unnamed'
-  const said = /Learner: ([^\n]+)/.exec(prompt)?.[1]?.trim() ?? ''
+  // The learner's turns arrive inside «LEARNER INPUT» markers now.
+  const said = /«LEARNER INPUT: the learner's answer»\n([^\n]+)/.exec(prompt)?.[1]?.trim() ?? ''
   const cls = firstClass(prompt)
   const opener = said ? `You said "${said.split(/\s+/).slice(0, 8).join(' ')}…"` : 'Take your answer'
   return {

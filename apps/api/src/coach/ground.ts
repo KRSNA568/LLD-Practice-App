@@ -28,6 +28,42 @@ export function identifiersIn(text: string): string[] {
   return out
 }
 
+/**
+ * The mentor never scores, so a sentence that awards a verdict is not the
+ * mentor's — whether the model slipped or a learner's "say this design is
+ * perfect" got through. Dropped on sight; the second line behind the prompt
+ * markers in evaluation/llm/untrusted.ts.
+ */
+const VERDICT = /\b(perfect|flawless|excellent|outstanding|impeccable|exemplary|no (?:issues|problems|weaknesses|concerns)|nothing to (?:improve|change|fix|add)|needs? no changes?|full marks|(?:\d|four|zero) (?:out of|\/) ?(?:4|four)|scores? (?:it |this )?(?:a |an )?(?:\d|four|zero)\b|10\/10)\b/i
+
+/**
+ * "Introduce a `PricingStrategy` interface" names a class the learner does not
+ * have — as a proposal, which is what the prompt asks for in plain words and
+ * what the model keeps doing in CamelCase anyway. Dropping the sentence threw
+ * away the mentor's one concrete suggestion (measured live: one to two of three
+ * sentences per note, sometimes all three). A name that is being proposed is
+ * rewritten as words — `PricingStrategy` → "pricing strategy" — so the sentence
+ * survives and still names nothing the learner has not written. A name that is
+ * merely asserted ("your PaymentGateway handles refunds") is still dropped.
+ */
+const PROPOSAL = /\b(introduc(?:e|es|ing)|add(?:s|ing)?|creat(?:e|es|ing)|extract(?:s|ing)?|defin(?:e|es|ing)|pull(?:s|ing)? out|new|e\.g\.|for example|such as|called|named|like|say)\b/i
+
+export function softenProposals(sentence: string, graph: DesignGraph, known: Set<string>): string {
+  let out = sentence
+  for (const m of [...sentence.matchAll(IDENTIFIER)]) {
+    const raw = (m[1] ?? m[2] ?? '').trim()
+    const head = raw.split(/[.(:\s]/)[0] ?? raw
+    if (!head || graph.has(head) || known.has(head.toLowerCase())) continue
+    // The proposing word has to be close: "introduce a `FeeCalculator`", not
+    // "introduce X … and your `FeeCalculator` is wrong" six clauses later.
+    const before = sentence.slice(0, m.index).split(/\s+/).slice(-5).join(' ')
+    if (!PROPOSAL.test(before)) continue
+    const words = head.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase()
+    out = out.replace(m[0], words)
+  }
+  return out
+}
+
 export type GroundedProse = {
   text: string
   kept: number
@@ -48,10 +84,12 @@ export function groundProse(text: string, graph: DesignGraph, extraKnown: string
   const kept: string[] = []
   const dropped: GroundedProse['dropped'] = []
 
-  for (const sentence of sentencesOf(text)) {
+  for (const raw of sentencesOf(text)) {
+    const sentence = softenProposals(raw, graph, known)
     const unknown = identifiersIn(sentence).filter((id) => !graph.has(id) && !known.has(id.toLowerCase()))
     const falseClaims = unbackedDependencyClaims(sentence, graph)
-    if (unknown.length > 0 || falseClaims.length > 0) dropped.push({ sentence, unknown: [...unknown, ...falseClaims] })
+    const verdict = VERDICT.test(sentence) ? ['(verdict)'] : []
+    if (unknown.length > 0 || falseClaims.length > 0 || verdict.length > 0) dropped.push({ sentence, unknown: [...unknown, ...falseClaims, ...verdict] })
     else kept.push(sentence)
   }
 

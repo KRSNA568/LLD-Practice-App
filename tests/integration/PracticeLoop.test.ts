@@ -149,7 +149,7 @@ describe('the design stage', () => {
     expect(settled.report!.rubricId).toBe('lld-core')
     expect(settled.report!.rubricVersion).toBe('2.0.0')
     const row = await prisma.evaluation.findFirst({ where: { attemptId: settled.id } })
-    expect(row.promptVersion).toBe('2.1.0')
+    expect(row.promptVersion).toBe('2.2.0')
   })
 
   it('persists the submission before evaluation begins', async () => {

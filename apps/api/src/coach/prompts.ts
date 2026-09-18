@@ -1,3 +1,4 @@
+import { UNTRUSTED_RULE, untrusted } from '../evaluation/llm/untrusted.js'
 import type { Concept, CriterionResult, Rubric } from '@lld/contracts'
 import type { EvaluationContext } from '../evaluation/Evaluator.js'
 
@@ -9,7 +10,7 @@ import type { EvaluationContext } from '../evaluation/Evaluator.js'
  * Each prompt starts with a `TASK:` line. The stub reads it to decide which
  * template to answer with; real models ignore it.
  */
-export const COACH_PROMPT_VERSION = '1.2.0'
+export const COACH_PROMPT_VERSION = '1.3.0'
 
 export const MENTOR_SYSTEM = [
   'You are a design mentor on a Low-Level Design practice platform, writing to one learner',
@@ -24,12 +25,13 @@ export const MENTOR_SYSTEM = [
   '- Second person, plain language, no praise sandwiches, no "great job". Say the one',
   '  thing that matters most, then why it matters here, then what to do first.',
   '- Do not name design patterns as a substitute for explaining the idea.',
+  `- ${UNTRUSTED_RULE}`,
   '- Reply with JSON only. No prose before or after, no markdown fences.',
 ].join('\n')
 
 function designBlock(ctx: EvaluationContext): string {
   const d = ctx.design
-  return JSON.stringify(
+  return untrusted('the design', JSON.stringify(
     {
       classes: d.classes.map((c) => ({
         name: c.name,
@@ -44,7 +46,7 @@ function designBlock(ctx: EvaluationContext): string {
     },
     null,
     1,
-  )
+  ))
 }
 
 function findingsBlock(results: CriterionResult[], rubric: Rubric): string {
@@ -62,7 +64,7 @@ export function reviewerPrompt(ctx: EvaluationContext, results: CriterionResult[
     ctx.stage === 'design'
       ? 'The learner has just had their design reviewed.'
       : ctx.stage === 'change'
-        ? `The learner was shown a requirement change — "${ctx.change?.prompt ?? ''}" — and revised the design. Their rationale: "${ctx.rationale ?? ''}".`
+        ? `The learner was shown a requirement change — "${ctx.change?.prompt ?? ''}" — and revised the design. Their rationale:\n${untrusted('the rationale', ctx.rationale ?? '')}`
         : 'The learner has answered probe questions about their own decisions.'
 
   return [

@@ -1,3 +1,4 @@
+import { untrusted } from '../evaluation/llm/untrusted.js'
 import type { MentorText } from './Reviewer.js'
 import { z } from 'zod'
 import type { CriterionResult } from '@lld/contracts'
@@ -47,14 +48,14 @@ export function explainPrompt(ctx: EvaluationContext, result: CriterionResult): 
     ctx.problem.brief,
     '',
     'THE DESIGN',
-    JSON.stringify(
+    untrusted('the design', JSON.stringify(
       {
         classes: ctx.design.classes.map((c) => ({ name: c.name, stereotype: c.stereotype, responsibility: c.responsibility, methods: c.methods })),
         relationships: ctx.design.relationships,
       },
       null,
       1,
-    ),
+    )),
     '',
     `CLASS NAMES YOU MAY MENTION: ${ctx.graph.classes.map((c) => c.name).join(', ') || '(none)'}`,
     '',

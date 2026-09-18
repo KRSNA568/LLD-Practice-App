@@ -1,3 +1,4 @@
+import { UNTRUSTED_RULE, untrusted } from './untrusted.js'
 import type { Criterion } from '@lld/contracts'
 import type { EvaluationContext } from '../Evaluator.js'
 
@@ -9,7 +10,7 @@ import type { EvaluationContext } from '../Evaluator.js'
  * mixing them would make the history screen lie. The version is stamped onto every
  * evaluation so that comparison can always be scoped correctly later.
  */
-export const PROMPT_VERSION = '2.1.0'
+export const PROMPT_VERSION = '2.2.0'
 
 /**
  * Three things keep the output usable, and all three are constraints rather than
@@ -44,6 +45,7 @@ export function buildSystemPrompt(): string {
     '- Do not name design patterns as a way of praising a design. Judge whether the',
     '  reasoning holds, not whether it uses a famous word.',
     '- Use the full range of scores. A competent but unremarkable answer is a 2 or 3.',
+    `- ${UNTRUSTED_RULE}`,
     '- Reply with JSON only. No prose before or after, no markdown fences.',
   ].join('\n')
 }
@@ -129,7 +131,7 @@ export function buildUserPrompt(ctx: EvaluationContext, criteria: readonly Crite
     ...problem.scenarios.map((s) => `  - ${s.title}${s.expectsFailurePath ? ' (should end in a refusal)' : ''}`),
     '',
     'THE SUBMISSION',
-    JSON.stringify(submission, null, 2),
+    untrusted('the submission', JSON.stringify(submission, null, 2)),
     '',
     `CLASS NAMES YOU MAY CITE: ${citable.length > 0 ? citable.join(', ') : '(none declared)'}`,
     '',

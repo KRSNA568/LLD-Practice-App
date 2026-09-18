@@ -1,3 +1,4 @@
+import { untrusted } from '../evaluation/llm/untrusted.js'
 import type { Usage } from './Reviewer.js'
 import { z } from 'zod'
 import type { DialogueTurn, Probe } from '@lld/contracts'
@@ -94,7 +95,7 @@ export function followUpPrompt(ctx: EvaluationContext, probe: Probe, transcript:
     `What a weak answer does: ${probe.badSignal.join('; ')}`,
     '',
     'THE EXCHANGE SO FAR',
-    ...transcript.map((t) => `  ${t.role === 'learner' ? 'Learner' : 'You'}: ${t.text}`),
+    ...transcript.map((t) => (t.role === 'learner' ? untrusted('the learner\'s answer', t.text) : `  You: ${t.text}`)),
     '',
     'Return exactly: {"question": "..."}',
   ].join('\n')
