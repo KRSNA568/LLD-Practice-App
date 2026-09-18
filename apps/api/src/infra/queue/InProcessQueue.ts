@@ -11,11 +11,17 @@
  * — and this interface is where the seam already is.
  */
 
+/** Which run of the job this is. A job that will be retried should not report a final failure. */
+export type JobRun = { attempt: number; final: boolean }
+
 export interface JobQueue {
-  enqueue(job: () => Promise<void>, options?: { id?: string }): void
+  enqueue(job: (run: JobRun) => Promise<void>, options?: { id?: string }): void
   /** Test hook: resolves once nothing is queued or running. */
   drain(): Promise<void>
 }
+
+/** The longest a hinted retry waits — beyond this the learner should see the failure. */
+const MAX_HINTED_DELAY_MS = 60_000
 
 export class InProcessQueue implements JobQueue {
   private running = 0
@@ -34,7 +40,7 @@ export class InProcessQueue implements JobQueue {
     } = {},
   ) {}
 
-  enqueue(job: () => Promise<void>, options: { id?: string } = {}): void {
+  enqueue(job: (run: JobRun) => Promise<void>, options: { id?: string } = {}): void {
     this.running += 1
     // setImmediate rather than await: the caller returns to the learner straight
     // away, which is the whole reason this exists.
@@ -43,19 +49,24 @@ export class InProcessQueue implements JobQueue {
     })
   }
 
-  private async run(job: () => Promise<void>, id?: string): Promise<void> {
+  private async run(job: (run: JobRun) => Promise<void>, id?: string): Promise<void> {
     const maxRetries = this.options.maxRetries ?? 2
     const base = this.options.baseDelayMs ?? 50
 
     try {
       for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
         try {
-          await job()
+          await job({ attempt, final: attempt === maxRetries })
           return
         } catch (error) {
           this.options.onError?.(error, attempt, id)
           if (attempt === maxRetries) return
-          await new Promise((resolve) => setTimeout(resolve, base * 2 ** attempt))
+          // Exponential backoff for faults; when the error says when a rate limit
+          // clears, wait that long instead (capped). Seen live: three retries 50ms
+          // apart against a "try again in 30s" limit were three certain failures.
+          const hinted = (error as { retryAfterMs?: unknown })?.retryAfterMs
+          const delay = typeof hinted === 'number' && hinted > 0 ? Math.min(hinted, MAX_HINTED_DELAY_MS) : base * 2 ** attempt
+          await new Promise((resolve) => setTimeout(resolve, delay))
         }
       }
     } finally {

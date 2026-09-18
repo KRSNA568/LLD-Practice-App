@@ -30,6 +30,37 @@ describe('resolveWalkthrough', () => {
     expect(resolved.steps[0]).toMatchObject({ classFound: true, methodFound: false })
   })
 
+  it('matches a method by its name, ignoring a return type or parameter list around it', () => {
+    // From the simulated study: a Java-style `Receipt exitVehicle(String ticketId)`
+    // never matched the step `exitVehicle`, and the design scored 0 on behaviour.
+    const graph = new DesignGraph({
+      ...strongDesign,
+      classes: strongDesign.classes.map((c) => (c.name === 'ParkingLot' ? { ...c, methods: ['Receipt exitVehicle(String ticketId)', '+ enter(Vehicle v): Ticket'] } : c)),
+    })
+    for (const [method, found] of [['exitVehicle', true], ['exitVehicle(ticket)', true], ['enter', true], ['Enter(v)', true], ['receipt', false]] as const) {
+      const resolved = resolveWalkthrough(
+        { scenarioId: 'sc-enter', outcome: 'ok', steps: [{ className: 'ParkingLot', method, note: '' }] },
+        scenario('sc-enter'),
+        graph,
+      )
+      expect(resolved.steps[0]!.methodFound, method).toBe(found)
+    }
+  })
+
+  it('treats a constructor step as declared, however it is spelled', () => {
+    // From the simulated study: `Ticket.<init>` was reported as a method Ticket
+    // does not declare. Every class can be constructed.
+    const graph = new DesignGraph(strongDesign)
+    for (const method of ['<init>', 'new', 'constructor', 'Ticket()', 'ctor']) {
+      const resolved = resolveWalkthrough(
+        { scenarioId: 'sc-enter', outcome: 'ok', steps: [{ className: 'Ticket', method, note: '' }] },
+        scenario('sc-enter'),
+        graph,
+      )
+      expect(resolved.steps[0], method).toMatchObject({ classFound: true, methodFound: true })
+    }
+  })
+
   it('flags a refusal scenario that ends ok as a silent failure', () => {
     const graph = new DesignGraph(strongDesign)
     const resolved = resolveWalkthrough(

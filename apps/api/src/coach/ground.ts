@@ -50,9 +50,45 @@ export function groundProse(text: string, graph: DesignGraph, extraKnown: string
 
   for (const sentence of sentencesOf(text)) {
     const unknown = identifiersIn(sentence).filter((id) => !graph.has(id) && !known.has(id.toLowerCase()))
-    if (unknown.length > 0) dropped.push({ sentence, unknown })
+    const falseClaims = unbackedDependencyClaims(sentence, graph)
+    if (unknown.length > 0 || falseClaims.length > 0) dropped.push({ sentence, unknown: [...unknown, ...falseClaims] })
     else kept.push(sentence)
   }
 
   return { text: kept.join(' '), kept: kept.length, dropped }
+}
+
+// Any capitalised word, not only CamelCase: `Spot` and `Ticket` are class names
+// too. Candidates are filtered against the design, so "Every" never matters.
+const ID = String.raw`(?:\x60[^\x60]+\x60|\b[A-Z][A-Za-z0-9]+\b)`
+const namesIn = (text: string): string[] =>
+  [...text.matchAll(/\x60([^\x60]+)\x60|\b([A-Z][A-Za-z0-9]+)\b/g)].map((m) => (m[1] ?? m[2] ?? '').split(/[.(:\s]/)[0]!).filter(Boolean)
+const SUBJECTS = String.raw`(${ID}(?:\s*,\s*${ID})*(?:\s*,?\s+(?:and|or)\s+${ID})?)`
+const VERB = String.raw`(?:reference|references|depend on|depends on|know about|knows about|call|calls|use|uses|talk to|talks to|hold|holds|point at|points at|couple to|couples to)`
+const DEPENDENCY = new RegExp(String.raw`${SUBJECTS}\s+(?:all\s+|each\s+|now\s+|must\s+|has to\s+|have to\s+|need to\s+|needs to\s+|directly\s+)*${VERB}\s+(?:the\s+|a\s+|an\s+|the concrete\s+)?(it|${ID})`)
+
+/**
+ * "ParkingLot, Spot and Ticket all reference ChargingSpot" is a claim the graph
+ * can check, and in the simulated study it was false for every class named:
+ * the mentor had turned "these classes were edited" into "these classes depend
+ * on the new one". Names existing is not the same as the sentence being true.
+ * Returns the unbacked pairs, as "A→B"; empty when the sentence makes no such claim
+ * or every pair holds. Only classes in the design are checked — an unknown name
+ * is already caught by the identifier rule.
+ */
+export function unbackedDependencyClaims(sentence: string, graph: DesignGraph): string[] {
+  const m = DEPENDENCY.exec(sentence)
+  if (!m) return []
+  const subjects = namesIn(m[1]!).filter((id) => graph.has(id))
+  let object = m[2]!
+  if (object === 'it') {
+    // "…know about ChargingSpot – A, B and C all reference it": the antecedent is
+    // the last identifier before the subject list.
+    const before = namesIn(sentence.slice(0, m.index)).filter((id) => graph.has(id))
+    object = before.at(-1) ?? ''
+  } else {
+    object = namesIn(object)[0] ?? ''
+  }
+  if (!object || !graph.has(object)) return []
+  return subjects.filter((s) => s.toLowerCase() !== object.toLowerCase() && !graph.dependsOn(s, object)).map((s) => `${s}→${object}`)
 }

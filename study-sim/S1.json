@@ -1,0 +1,1017 @@
+{
+  "persona": {
+    "code": "S1",
+    "group": "senior",
+    "name": "Meera",
+    "profile": "Eleven years, mostly Java and Kotlin on payments and ledger systems; has been the tech lead who reviews everyone else's designs for the last four. Before drawing anything she asks what is likely to change and what must never be wrong. Terse writer — short responsibilities, few decorations. Names things by what they do in the domain. Suspicious of clever patterns; uses one only when she can say what it buys."
+  },
+  "personaModel": "groq:openai/gpt-oss-120b",
+  "startedAt": "2026-09-18T18:26:54.740Z",
+  "learnerId": "e06bf43a-3c75-4192-a94d-12fe731422f3",
+  "design": {
+    "assumptions": [
+      "Single entry/exit point, tickets issued on entry",
+      "Time measured in whole minutes for fee calc",
+      "Spot size hierarchy: motorcycle<car<truck",
+      "Vehicle knows its type",
+      "Cash only, no change handling"
+    ],
+    "classes": [
+      {
+        "name": "ParkingLot",
+        "stereotype": "class",
+        "responsibility": "Manages floors and assigns spots on entry",
+        "attributes": [
+          "floors:List<Floor>"
+        ],
+        "methods": [
+          "enter(Vehicle):Ticket",
+          "exit(Ticket):void"
+        ]
+      },
+      {
+        "name": "Floor",
+        "stereotype": "class",
+        "responsibility": "Holds spots for one level",
+        "attributes": [
+          "level:int",
+          "spots:List<Spot>"
+        ],
+        "methods": [
+          "findSpot(Vehicle):Spot"
+        ]
+      },
+      {
+        "name": "Spot",
+        "stereotype": "class",
+        "responsibility": "Represents a physical parking space",
+        "attributes": [
+          "id:String",
+          "size:SpotSize",
+          "occupied:Boolean",
+          "vehicle:Vehicle"
+        ],
+        "methods": [
+          "canFit(Vehicle):Boolean",
+          "assign(Vehicle,Ticket):void",
+          "release():void"
+        ]
+      },
+      {
+        "name": "SpotSize",
+        "stereotype": "enum",
+        "responsibility": "Defines size categories",
+        "attributes": [],
+        "methods": [
+          "MOTORCYCLE",
+          "CAR",
+          "TRUCK"
+        ]
+      },
+      {
+        "name": "Vehicle",
+        "stereotype": "abstract",
+        "responsibility": "Base for all vehicle types",
+        "attributes": [
+          "licensePlate:String"
+        ],
+        "methods": [
+          "type():VehicleType"
+        ]
+      },
+      {
+        "name": "Motorcycle",
+        "stereotype": "class",
+        "responsibility": "Motorcycle vehicle",
+        "attributes": [],
+        "methods": []
+      },
+      {
+        "name": "Car",
+        "stereotype": "class",
+        "responsibility": "Car vehicle",
+        "attributes": [],
+        "methods": []
+      },
+      {
+        "name": "Truck",
+        "stereotype": "class",
+        "responsibility": "Truck vehicle",
+        "attributes": [],
+        "methods": []
+      },
+      {
+        "name": "VehicleType",
+        "stereotype": "enum",
+        "responsibility": "Vehicle categories",
+        "attributes": [],
+        "methods": [
+          "MOTORCYCLE",
+          "CAR",
+          "TRUCK"
+        ]
+      },
+      {
+        "name": "Ticket",
+        "stereotype": "class",
+        "responsibility": "Tracks entry time and spot",
+        "attributes": [
+          "id:String",
+          "spot:Spot",
+          "entryTime:long"
+        ],
+        "methods": [
+          "duration():long"
+        ]
+      },
+      {
+        "name": "PaymentProcessor",
+        "stereotype": "class",
+        "responsibility": "Calculates fee and processes cash",
+        "attributes": [
+          "rateCard:RateCard"
+        ],
+        "methods": [
+          "pay(Ticket):void"
+        ]
+      },
+      {
+        "name": "RateCard",
+        "stereotype": "class",
+        "responsibility": "Provides hourly rates per vehicle type",
+        "attributes": [
+          "rates:Map<VehicleType,Double>"
+        ],
+        "methods": [
+          "rateFor(VehicleType):double"
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "from": "ParkingLot",
+        "to": "Floor",
+        "kind": "has-a"
+      },
+      {
+        "from": "Floor",
+        "to": "Spot",
+        "kind": "has-a"
+      },
+      {
+        "from": "Spot",
+        "to": "Vehicle",
+        "kind": "uses"
+      },
+      {
+        "from": "Vehicle",
+        "to": "VehicleType",
+        "kind": "uses"
+      },
+      {
+        "from": "Ticket",
+        "to": "Spot",
+        "kind": "has-a"
+      },
+      {
+        "from": "PaymentProcessor",
+        "to": "Ticket",
+        "kind": "uses"
+      },
+      {
+        "from": "PaymentProcessor",
+        "to": "RateCard",
+        "kind": "has-a"
+      },
+      {
+        "from": "Motorcycle",
+        "to": "Vehicle",
+        "kind": "extends"
+      },
+      {
+        "from": "Car",
+        "to": "Vehicle",
+        "kind": "extends"
+      },
+      {
+        "from": "Truck",
+        "to": "Vehicle",
+        "kind": "extends"
+      }
+    ],
+    "tradeoffs": "Simple hierarchy avoids over‑engineering; enum rates make fee change easy but no tiered pricing yet.",
+    "decisions": [
+      {
+        "what": "Use enum SpotSize instead of separate classes",
+        "alternative": "Separate SmallSpot, MediumSpot, LargeSpot classes",
+        "why": "Enum maps directly to vehicle fit logic, keeps model flat and easy to extend."
+      },
+      {
+        "what": "Ticket stores entryTime as epoch ms",
+        "alternative": "Store java.time.Instant",
+        "why": "Epoch ms is primitive, no extra library churn for this single‑threaded demo."
+      },
+      {
+        "what": "PaymentProcessor handles cash only",
+        "alternative": "Introduce PaymentStrategy interface",
+        "why": "Requirement limits to cash; adding strategy now adds unnecessary indirection."
+      }
+    ],
+    "walkthroughs": [
+      {
+        "scenarioId": "sc-enter",
+        "steps": [
+          {
+            "className": "ParkingLot",
+            "method": "enter",
+            "note": "receives Car, calls Floor.findSpot"
+          },
+          {
+            "className": "Floor",
+            "method": "findSpot",
+            "note": "iterates spots, Spot.canFit true for Car"
+          },
+          {
+            "className": "Spot",
+            "method": "canFit",
+            "note": "size CAR fits CAR spot"
+          },
+          {
+            "className": "Spot",
+            "method": "assign",
+            "note": "marks occupied, creates Ticket"
+          },
+          {
+            "className": "Ticket",
+            "method": "<init>",
+            "note": "stores spot and entryTime"
+          }
+        ],
+        "outcome": "ok"
+      },
+      {
+        "scenarioId": "sc-exit-pay",
+        "steps": [
+          {
+            "className": "ParkingLot",
+            "method": "exit",
+            "note": "receives Ticket"
+          },
+          {
+            "className": "Ticket",
+            "method": "duration",
+            "note": "now‑minus‑entry in minutes"
+          },
+          {
+            "className": "PaymentProcessor",
+            "method": "pay",
+            "note": "gets rate from RateCard, calculates fee, cash received"
+          },
+          {
+            "className": "Spot",
+            "method": "release",
+            "note": "clears vehicle, occupied=false"
+          }
+        ],
+        "outcome": "ok"
+      },
+      {
+        "scenarioId": "sc-full",
+        "steps": [
+          {
+            "className": "ParkingLot",
+            "method": "enter",
+            "note": "receives Motorcycle"
+          },
+          {
+            "className": "Floor",
+            "method": "findSpot",
+            "note": "no Spot.canFit true for size MOTORCYCLE"
+          },
+          {
+            "className": "ParkingLot",
+            "method": "enter",
+            "note": "returns null or throws, entry denied"
+          }
+        ],
+        "outcome": "refused"
+      }
+    ]
+  },
+  "attemptId": "d5717928-fc3e-4c53-a7af-a2eb6de3b503",
+  "designReport": "Report for the design stage (overall so far 2.5):\n- requirement-coverage: 3/4 — 1 of 6 requirements have nothing in the design that speaks to them: \"Entry is refused when no suitable spot is free\". Suggestion: Add a class that owns each missing requirement, or state in your assumptions why it is out of scope.\n- class-responsibilities: 4/4 — Every class describes a single job. Suggestion: Keep responsibilities to one sentence as the design grows.\n- coupling-cohesion: 3/4 — SpotSize is declared but connected to nothing — usually a noun taken from the brief before deciding what it does. Suggestion: Either connect each orphan to the classes that use it, or drop it.\n- abstraction-use: 1/4 — pricing strategy has no interface or abstract type. It currently lives inside PaymentProcessor, so rate rules change constantly in the real world — hourly, daily cap, weekend, ev, validation stamps means editing that class every time. spot allocation strategy has no interface or abstract type. It currently lives inside ParkingLot, so nearest-to-entrance, floor-fill, and reserved-first are all legitimate and swappable means editing that class every time. Suggestion: Introduce an interface for pricing strategy and move the varying behaviour behind it.\n- behaviour: 2/4 — Step 5 of \"A car arrives and parks\" calls Ticket.<init>, but Ticket does not declare a method called <init>. The walkthrough and the class disagree about what Ticket can do. \"A car leaves and pays\" never touches anything pricing- or rate-shaped, so it is not clear where that part of the work happens. RateCard takes no part in any scenario. Either a scenario is missing a step, or the class is not needed. Suggestion: Either add the method to the class or move the step to the class that really owns it — the mismatch is telling you which.\n- edge-cases: 2/4 — Failure handling is only mentioned in the walkthrough and as a possible null/exception return; there is no explicit domain model for a refusal or error result. Suggestion: Define a dedicated result type (e.g., EntryResult or a Refusal exception) returned by ParkingLot.enter so that callers must handle the refusal explicitly.\n\nMentor's note: The biggest issue is that the design has no way to express an entry refusal when no suitable spot is free; ParkingLot.enter can currently return a Ticket but callers have no explicit handle for failure. Without a clear result type or exception, the system can silently fail or produce a null, breaking the parking flow and making error handling difficult. This change will allow callers to react to full capacity or no matching spot, making the system robust and the requirement coverage complete.",
+  "changeId": "hc-ev",
+  "revisedDesign": {
+    "assumptions": [
+      "Single entry/exit point, tickets issued on entry",
+      "Time measured in whole minutes for fee calc unless EV spot, then kWh recorded",
+      "Spot size hierarchy: motorcycle<car<truck, plus EV_CHARGING",
+      "Vehicle knows its type",
+      "Cash only, no change handling"
+    ],
+    "classes": [
+      {
+        "name": "ParkingLot",
+        "stereotype": "class",
+        "responsibility": "Manages floors, assigns spots, returns entry result",
+        "attributes": [
+          "floors:List<Floor>"
+        ],
+        "methods": [
+          "enter(Vehicle):EntryResult",
+          "exit(EntryResult):void"
+        ]
+      },
+      {
+        "name": "Floor",
+        "stereotype": "class",
+        "responsibility": "Holds spots for one level",
+        "attributes": [
+          "level:int",
+          "spots:List<Spot>"
+        ],
+        "methods": [
+          "findSpot(Vehicle,SpotAllocationStrategy):Spot"
+        ]
+      },
+      {
+        "name": "Spot",
+        "stereotype": "class",
+        "responsibility": "Represents a physical parking space",
+        "attributes": [
+          "id:String",
+          "size:SpotSize",
+          "occupied:Boolean",
+          "vehicle:Vehicle"
+        ],
+        "methods": [
+          "canFit(Vehicle):Boolean",
+          "assign(Vehicle,Ticket):void",
+          "release():void"
+        ]
+      },
+      {
+        "name": "ChargingSpot",
+        "stereotype": "class",
+        "responsibility": "Spot that provides electricity and records consumption",
+        "attributes": [
+          "kWhUsed:double"
+        ],
+        "methods": [
+          "recordConsumption(double):void",
+          "resetConsumption():void"
+        ]
+      },
+      {
+        "name": "SpotSize",
+        "stereotype": "enum",
+        "responsibility": "Defines size categories",
+        "attributes": [],
+        "methods": [
+          "MOTORCYCLE",
+          "CAR",
+          "TRUCK",
+          "EV_CHARGING"
+        ]
+      },
+      {
+        "name": "Vehicle",
+        "stereotype": "abstract",
+        "responsibility": "Base for all vehicle types",
+        "attributes": [
+          "licensePlate:String"
+        ],
+        "methods": [
+          "type():VehicleType"
+        ]
+      },
+      {
+        "name": "Motorcycle",
+        "stereotype": "class",
+        "responsibility": "Motorcycle vehicle",
+        "attributes": [],
+        "methods": []
+      },
+      {
+        "name": "Car",
+        "stereotype": "class",
+        "responsibility": "Car vehicle",
+        "attributes": [],
+        "methods": []
+      },
+      {
+        "name": "Truck",
+        "stereotype": "class",
+        "responsibility": "Truck vehicle",
+        "attributes": [],
+        "methods": []
+      },
+      {
+        "name": "ElectricCar",
+        "stereotype": "class",
+        "responsibility": "Electric vehicle",
+        "attributes": [],
+        "methods": []
+      },
+      {
+        "name": "VehicleType",
+        "stereotype": "enum",
+        "responsibility": "Vehicle categories",
+        "attributes": [],
+        "methods": [
+          "MOTORCYCLE",
+          "CAR",
+          "TRUCK",
+          "ELECTRIC"
+        ]
+      },
+      {
+        "name": "Ticket",
+        "stereotype": "class",
+        "responsibility": "Tracks entry, spot and billing data",
+        "attributes": [
+          "id:String",
+          "spot:Spot",
+          "entryTime:long",
+          "kWhAtEntry:double"
+        ],
+        "methods": [
+          "duration():long",
+          "totalCharge(PricingStrategy):double"
+        ]
+      },
+      {
+        "name": "EntryResult",
+        "stereotype": "class",
+        "responsibility": "Encapsulates success or refusal",
+        "attributes": [
+          "ticket:Ticket",
+          "refused:Boolean",
+          "reason:String"
+        ],
+        "methods": []
+      },
+      {
+        "name": "PricingStrategy",
+        "stereotype": "interface",
+        "responsibility": "Calculates fee for a ticket",
+        "attributes": [],
+        "methods": [
+          "calculate(Ticket):double"
+        ]
+      },
+      {
+        "name": "TimeBasedPricing",
+        "stereotype": "class",
+        "responsibility": "Pricing by minutes parked",
+        "attributes": [
+          "rateCard:RateCard"
+        ],
+        "methods": [
+          "calculate(Ticket):double"
+        ]
+      },
+      {
+        "name": "ChargingPricing",
+        "stereotype": "class",
+        "responsibility": "Pricing by kWh consumed",
+        "attributes": [
+          "ratePerKwh:double"
+        ],
+        "methods": [
+          "calculate(Ticket):double"
+        ]
+      },
+      {
+        "name": "RateCard",
+        "stereotype": "class",
+        "responsibility": "Provides hourly rates per vehicle type",
+        "attributes": [
+          "rates:Map<VehicleType,Double>"
+        ],
+        "methods": [
+          "rateFor(VehicleType):double"
+        ]
+      },
+      {
+        "name": "SpotAllocationStrategy",
+        "stereotype": "interface",
+        "responsibility": "Selects a suitable spot",
+        "attributes": [],
+        "methods": [
+          "selectSpot(Vehicle, List<Spot>):Spot"
+        ]
+      },
+      {
+        "name": "DefaultAllocation",
+        "stereotype": "class",
+        "responsibility": "First‑fit allocation respecting size hierarchy",
+        "attributes": [],
+        "methods": [
+          "selectSpot(Vehicle,List<Spot>):Spot"
+        ]
+      },
+      {
+        "name": "PaymentProcessor",
+        "stereotype": "class",
+        "responsibility": "Delegates fee calculation to PricingStrategy and processes cash",
+        "attributes": [
+          "strategy:PricingStrategy"
+        ],
+        "methods": [
+          "pay(EntryResult):void"
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "from": "ParkingLot",
+        "to": "Floor",
+        "kind": "has-a"
+      },
+      {
+        "from": "Floor",
+        "to": "Spot",
+        "kind": "has-a"
+      },
+      {
+        "from": "Spot",
+        "to": "Vehicle",
+        "kind": "uses"
+      },
+      {
+        "from": "Vehicle",
+        "to": "VehicleType",
+        "kind": "uses"
+      },
+      {
+        "from": "Ticket",
+        "to": "Spot",
+        "kind": "has-a"
+      },
+      {
+        "from": "Ticket",
+        "to": "PricingStrategy",
+        "kind": "uses"
+      },
+      {
+        "from": "PaymentProcessor",
+        "to": "EntryResult",
+        "kind": "uses"
+      },
+      {
+        "from": "PaymentProcessor",
+        "to": "PricingStrategy",
+        "kind": "has-a"
+      },
+      {
+        "from": "TimeBasedPricing",
+        "to": "RateCard",
+        "kind": "has-a"
+      },
+      {
+        "from": "Spot",
+        "to": "SpotSize",
+        "kind": "uses"
+      },
+      {
+        "from": "ChargingSpot",
+        "to": "Spot",
+        "kind": "extends"
+      },
+      {
+        "from": "ParkingLot",
+        "to": "SpotAllocationStrategy",
+        "kind": "uses"
+      },
+      {
+        "from": "Floor",
+        "to": "SpotAllocationStrategy",
+        "kind": "uses"
+      },
+      {
+        "from": "Motorcycle",
+        "to": "Vehicle",
+        "kind": "extends"
+      },
+      {
+        "from": "Car",
+        "to": "Vehicle",
+        "kind": "extends"
+      },
+      {
+        "from": "Truck",
+        "to": "Vehicle",
+        "kind": "extends"
+      },
+      {
+        "from": "ElectricCar",
+        "to": "Vehicle",
+        "kind": "extends"
+      },
+      {
+        "from": "EntryResult",
+        "to": "Ticket",
+        "kind": "has-a"
+      }
+    ],
+    "tradeoffs": "Added interfaces for pricing and allocation to avoid hard‑coding future rules; EV charging spot is a subclass to keep core Spot simple; EntryResult makes refusal explicit.",
+    "decisions": [
+      {
+        "what": "Introduce EntryResult",
+        "alternative": "return null or throw",
+        "why": "Requirement needs explicit refusal handling"
+      },
+      {
+        "what": "Add PricingStrategy hierarchy",
+        "alternative": "embed logic in PaymentProcessor",
+        "why": "Pricing varies by time or kWh, keep Processor stable"
+      },
+      {
+        "what": "Create ChargingSpot subclass",
+        "alternative": "add flag to Spot",
+        "why": "Charging behavior (kWh tracking) is distinct from plain spot"
+      },
+      {
+        "what": "Add SpotAllocationStrategy",
+        "alternative": "hard‑code in ParkingLot",
+        "why": "Allows swapping nearest‑entrance, floor‑fill, reserved‑first later"
+      }
+    ],
+    "walkthroughs": [
+      {
+        "scenarioId": "sc-enter-car",
+        "steps": [
+          {
+            "className": "ParkingLot",
+            "method": "enter",
+            "note": "receives Car, uses DefaultAllocation to find Spot"
+          },
+          {
+            "className": "Floor",
+            "method": "findSpot",
+            "note": "delegates to allocation strategy"
+          },
+          {
+            "className": "DefaultAllocation",
+            "method": "selectSpot",
+            "note": "first‑fit Spot.canFit true"
+          },
+          {
+            "className": "Spot",
+            "method": "assign",
+            "note": "marks occupied, creates Ticket"
+          },
+          {
+            "className": "Ticket",
+            "method": "<init>",
+            "note": "stores spot, entryTime"
+          }
+        ],
+        "outcome": "ok"
+      },
+      {
+        "scenarioId": "sc-enter-ev",
+        "steps": [
+          {
+            "className": "ParkingLot",
+            "method": "enter",
+            "note": "receives ElectricCar, allocation may pick ChargingSpot"
+          },
+          {
+            "className": "Floor",
+            "method": "findSpot",
+            "note": "strategy selects ChargingSpot if available"
+          },
+          {
+            "className": "ChargingSpot",
+            "method": "assign",
+            "note": "marks occupied, creates Ticket, records kWhAtEntry=0"
+          },
+          {
+            "className": "Ticket",
+            "method": "<init>",
+            "note": "stores spot, entryTime, kWhAtEntry"
+          }
+        ],
+        "outcome": "ok"
+      },
+      {
+        "scenarioId": "sc-exit-ev",
+        "steps": [
+          {
+            "className": "ParkingLot",
+            "method": "exit",
+            "note": "receives EntryResult with Ticket"
+          },
+          {
+            "className": "Ticket",
+            "method": "totalCharge",
+            "note": "delegates to ChargingPricing via strategy"
+          },
+          {
+            "className": "ChargingPricing",
+            "method": "calculate",
+            "note": "ratePerKwh * (spot.kWhUsed)"
+          }
+        ],
+        "outcome": "ok"
+      },
+      {
+        "scenarioId": "sc-full",
+        "steps": [
+          {
+            "className": "ParkingLot",
+            "method": "enter",
+            "note": "no Spot.canFit, returns EntryResult.refused=true"
+          }
+        ],
+        "outcome": "refused"
+      }
+    ]
+  },
+  "rationale": "I added EntryResult to make the refusal requirement concrete, introduced PricingStrategy (time‑based and kWh‑based) so the fee logic lives where it varies, and created a ChargingSpot subclass that tracks consumption; SpotAllocationStrategy lets us swap allocation rules without touching ParkingLot. EV handling needed a new vehicle type and a spot size, so I extended the enums and added the kWh fields on Ticket. All other classes stay the same, keeping the model flat and testable.",
+  "changeReport": "Report for the change stage (overall so far 2.6):\n- change-resilience: 3/4 — Added ChargingSpot, ElectricCar, EntryResult, PricingStrategy, TimeBasedPricing, ChargingPricing, SpotAllocationStrategy, DefaultAllocation behind Vehicle, which already existed. 6 existing classes were reopened: ParkingLot (responsibility, methods); Floor (methods); SpotSize (methods); VehicleType (methods); Ticket (responsibility, attributes, methods); PaymentProcessor (responsibility, attributes, methods). Suggestion: Reduce the wiring: only one existing class should need to know ChargingSpot exists.\n\nMentor's note: The biggest impact would be to move the kWh logic out of Spot (and its subclass ChargingSpot) and into the Ticket. If Ticket knows whether the spot was an EV spot and records consumption, Spot no longer needs to expose kWhUsed or a special subclass; this reduces the number of classes ParkingLot and Floor must interact with and keeps the allocation logic purely about spot fitting. First step: add a Boolean isEVSpot and a kWhUsed field to Ticket, and let ChargingPricing compute charge from Ticket.kWhUsed, removing ChargingSpot entirely.",
+  "transcripts": {
+    "p-pricing": [
+      {
+        "role": "mentor",
+        "text": "Weekend rates start next month. Which method in PaymentProcessor changes, and which other classes have to know about it?"
+      },
+      {
+        "role": "learner",
+        "text": "Only `PaymentProcessor.pay(EntryResult)` needs to switch to a different `PricingStrategy` for the weekend window, so the method that picks the strategy (or the strategy itself) changes. The strategy implementations (`TimeBasedPricing` / `ChargingPricing`) must understand the new weekend rate, so `RateCard` (or a new WeekendRateCard) gets the extra rates, and any code that builds the `PricingStrategy` – usually a factory or the `ParkingLot`‑initialisation code – has to be aware of the weekend schedule to inject the right strategy. No other domain classes (Spot, Ticket, etc.) need to change."
+      },
+      {
+        "role": "mentor",
+        "text": "How does the Ticket class handle the new weekend rate, if at all?"
+      },
+      {
+        "role": "learner",
+        "text": "Ticket doesn’t change. It only records entry data and delegates fee calculation to a PricingStrategy via Ticket.totalCharge(PricingStrategy). The weekend logic lives in the strategy (or RateCard) that the processor supplies. As long as the strategy you hand in knows the date‑time window and picks the correct rate, Ticket just calls calculate and returns the result. No new fields or methods are required on Ticket."
+      }
+    ],
+    "p-refusal": [
+      {
+        "role": "mentor",
+        "text": "A motorcycle arrives and every motorcycle spot is taken. Which class says no, and what exactly does the caller receive — a null, an exception, a result type?"
+      },
+      {
+        "role": "learner",
+        "text": "The Floor (or ParkingLot if you bypass the floor) is the one that says “no”. Floor.findSpot asks the SpotAllocationStrategy to select a Spot; the default strategy walks the list and finds none that Spot.canFit returns true, so it returns null. ParkingLot.enter receives that null and builds an EntryResult with refused = true and a reason (“no spot available”). No exception is thrown and the caller never sees a raw null Ticket – it gets the EntryResult object indicating the refusal."
+      },
+      {
+        "role": "mentor",
+        "text": "How would you modify Floor or SpotAllocationStrategy so that it returns an explicit result type instead of null when no motorcycle spot is found?"
+      },
+      {
+        "role": "learner",
+        "text": "Add a tiny “AllocationResult” value object:\n\n```java\npublic final class AllocationResult {\n    private final Spot spot;          // null when none\n    private final boolean success;   // false → no spot\n    private final String reason;     // optional diagnostic\n\n    private AllocationResult(Spot s, boolean ok, String r) {\n        this.spot = s; this.success = ok; this.reason = r;\n    }\n    public static AllocationResult ok(Spot s)   { return new AllocationResult(s,true,null); }\n    public static AllocationResult fail(String r){ return new AllocationResult(null,false,r); }\n    // getters …\n}\n```\n\nChange the strategy API to `AllocationResult selectSpot(Vehicle v, List<Spot> candidates)`.  \n`DefaultAllocation` walks the list; if it finds a fit it returns `AllocationResult.ok(found)`, otherwise `AllocationResult.fail(\"no \"+v.type()+\" spot\")`.  \n\n`Floor.findSpot` just forwards the result.  \n`ParkingLot.enter` checks `result.isSuccess()`. On failure it builds `EntryResult` with `refused=true` and the supplied reason, never returns a raw `null`. This makes the “no‑spot” case explicit and type‑safe."
+      }
+    ],
+    "p-spot-size": [
+      {
+        "role": "mentor",
+        "text": "Spot size and vehicle size: are they a value, an enum, or a class hierarchy in your design? What would make you change that choice?"
+      },
+      {
+        "role": "learner",
+        "text": "Spot size is an enum (SpotSize) and vehicle type is also an enum (VehicleType). I kept them as value objects because the only decision point is “can this vehicle fit this spot?” – a simple comparison of hierarchy (MOTORCYCLE < CAR < TRUCK < EV_CHARGING). If later we need more attributes (dimensions, power limits, reserved‑only flag) I’d promote SpotSize to a class hierarchy and give each size its own fit logic, but that adds indirection and a lot of boilerplate. Until we have a concrete requirement that varies per size, the enum stays the simplest, least error‑prone choice."
+      },
+      {
+        "role": "mentor",
+        "text": "If a new regulation required electric cars to only park in spots marked EV_CHARGING, would you still keep VehicleType as an enum, or would you change it to a class hierarchy?"
+      },
+      {
+        "role": "learner",
+        "text": "I’d keep VehicleType as an enum and add a rule in Spot.canFit / AllocationStrategy that checks vehicle.type == ELECTRIC → spot.size must be EV_CHARGING. The enum stays a simple value; the regulation is a policy change, not a new behavior intrinsic to the vehicle itself. If later we need per‑type behavior (e.g., different pricing, discounts, or charging‑specific logic) I’d extract a VehicleStrategy interface and let each concrete Vehicle subclass implement it, but for a single “must‑park‑in‑EV spot” rule the enum plus a rule change is the minimal, safest tweak."
+      }
+    ]
+  },
+  "finalState": "FAILED",
+  "finalOverall": 2.6,
+  "results": [
+    {
+      "criterionId": "requirement-coverage",
+      "stage": "design",
+      "score": 3,
+      "evidence": [
+        {
+          "kind": "class",
+          "name": "ParkingLot"
+        },
+        {
+          "kind": "class",
+          "name": "SpotSize"
+        },
+        {
+          "kind": "class",
+          "name": "Spot"
+        },
+        {
+          "kind": "class",
+          "name": "PaymentProcessor"
+        }
+      ],
+      "concern": "1 of 6 requirements have nothing in the design that speaks to them: \"Entry is refused when no suitable spot is free\".",
+      "suggestion": "Add a class that owns each missing requirement, or state in your assumptions why it is out of scope.",
+      "confidence": "high",
+      "evaluatorId": "rule-evaluator",
+      "evaluatorKind": "deterministic"
+    },
+    {
+      "criterionId": "class-responsibilities",
+      "stage": "design",
+      "score": 4,
+      "evidence": [],
+      "concern": "Every class describes a single job.",
+      "suggestion": "Keep responsibilities to one sentence as the design grows.",
+      "confidence": "medium",
+      "evaluatorId": "rule-evaluator",
+      "evaluatorKind": "deterministic"
+    },
+    {
+      "criterionId": "coupling-cohesion",
+      "stage": "design",
+      "score": 3,
+      "evidence": [
+        {
+          "kind": "class",
+          "name": "SpotSize"
+        }
+      ],
+      "concern": "SpotSize is declared but connected to nothing — usually a noun taken from the brief before deciding what it does.",
+      "suggestion": "Either connect each orphan to the classes that use it, or drop it.",
+      "confidence": "high",
+      "evaluatorId": "rule-evaluator",
+      "evaluatorKind": "deterministic"
+    },
+    {
+      "criterionId": "abstraction-use",
+      "stage": "design",
+      "score": 1,
+      "evidence": [
+        {
+          "kind": "class",
+          "name": "PaymentProcessor"
+        },
+        {
+          "kind": "class",
+          "name": "ParkingLot"
+        }
+      ],
+      "concern": "pricing strategy has no interface or abstract type. It currently lives inside PaymentProcessor, so rate rules change constantly in the real world — hourly, daily cap, weekend, ev, validation stamps means editing that class every time. spot allocation strategy has no interface or abstract type. It currently lives inside ParkingLot, so nearest-to-entrance, floor-fill, and reserved-first are all legitimate and swappable means editing that class every time.",
+      "suggestion": "Introduce an interface for pricing strategy and move the varying behaviour behind it.",
+      "confidence": "high",
+      "evaluatorId": "rule-evaluator",
+      "evaluatorKind": "deterministic"
+    },
+    {
+      "criterionId": "behaviour",
+      "stage": "design",
+      "score": 2,
+      "evidence": [
+        {
+          "kind": "step",
+          "scenarioId": "sc-enter",
+          "index": 4
+        },
+        {
+          "kind": "class",
+          "name": "Ticket"
+        },
+        {
+          "kind": "class",
+          "name": "RateCard"
+        }
+      ],
+      "concern": "Step 5 of \"A car arrives and parks\" calls Ticket.<init>, but Ticket does not declare a method called <init>. The walkthrough and the class disagree about what Ticket can do. \"A car leaves and pays\" never touches anything pricing- or rate-shaped, so it is not clear where that part of the work happens. RateCard takes no part in any scenario. Either a scenario is missing a step, or the class is not needed.",
+      "suggestion": "Either add the method to the class or move the step to the class that really owns it — the mismatch is telling you which.",
+      "confidence": "high",
+      "evaluatorId": "rule-evaluator",
+      "evaluatorKind": "deterministic"
+    },
+    {
+      "criterionId": "edge-cases",
+      "stage": "design",
+      "score": 2,
+      "evidence": [
+        {
+          "kind": "class",
+          "name": "ParkingLot"
+        },
+        {
+          "kind": "assumption",
+          "index": 0
+        },
+        {
+          "kind": "step",
+          "scenarioId": "sc-full",
+          "index": 0
+        }
+      ],
+      "concern": "Failure handling is only mentioned in the walkthrough and as a possible null/exception return; there is no explicit domain model for a refusal or error result.",
+      "suggestion": "Define a dedicated result type (e.g., EntryResult or a Refusal exception) returned by ParkingLot.enter so that callers must handle the refusal explicitly.",
+      "confidence": "medium",
+      "evaluatorId": "llm-evaluator:groq:openai/gpt-oss-120b:2.1.0",
+      "evaluatorKind": "llm"
+    },
+    {
+      "criterionId": "change-resilience",
+      "stage": "change",
+      "score": 3,
+      "evidence": [
+        {
+          "kind": "class",
+          "name": "ChargingSpot"
+        },
+        {
+          "kind": "class",
+          "name": "ElectricCar"
+        },
+        {
+          "kind": "class",
+          "name": "ParkingLot"
+        },
+        {
+          "kind": "class",
+          "name": "Floor"
+        }
+      ],
+      "concern": "Added ChargingSpot, ElectricCar, EntryResult, PricingStrategy, TimeBasedPricing, ChargingPricing, SpotAllocationStrategy, DefaultAllocation behind Vehicle, which already existed. 6 existing classes were reopened: ParkingLot (responsibility, methods); Floor (methods); SpotSize (methods); VehicleType (methods); Ticket (responsibility, attributes, methods); PaymentProcessor (responsibility, attributes, methods).",
+      "suggestion": "Reduce the wiring: only one existing class should need to know ChargingSpot exists.",
+      "confidence": "high",
+      "evaluatorId": "rule-evaluator",
+      "evaluatorKind": "deterministic"
+    }
+  ],
+  "defendReport": "Report for the defend stage (overall so far 2.6):\n\nMentor's note: The design lacks explicit discussion of rejected alternatives, which weakens the justification for key choices such as the EntryResult wrapper and the SpotAllocationStrategy interface. In this parking‑lot context, showing why you chose a separate EntryResult instead of null/exception handling clarifies how the system will signal refusal to a driver and supports future extensions like multi‑point entry. First, add an \"alternative\" entry for each decision (e.g., return null, throw an exception, or embed the result in ParkingLot.enter) and state the reason for rejection in the \"why\" field to strengthen the reasoning evidence.",
+  "notes": {
+    "design": {
+      "text": "The biggest issue is that the design has no way to express an entry refusal when no suitable spot is free; ParkingLot.enter can currently return a Ticket but callers have no explicit handle for failure. Without a clear result type or exception, the system can silently fail or produce a null, breaking the parking flow and making error handling difficult. This change will allow callers to react to full capacity or no matching spot, making the system robust and the requirement coverage complete.",
+      "modelId": "groq:openai/gpt-oss-20b"
+    },
+    "change": {
+      "text": "The biggest impact would be to move the kWh logic out of Spot (and its subclass ChargingSpot) and into the Ticket. If Ticket knows whether the spot was an EV spot and records consumption, Spot no longer needs to expose kWhUsed or a special subclass; this reduces the number of classes ParkingLot and Floor must interact with and keeps the allocation logic purely about spot fitting. First step: add a Boolean isEVSpot and a kWhUsed field to Ticket, and let ChargingPricing compute charge from Ticket.kWhUsed, removing ChargingSpot entirely.",
+      "modelId": "groq:openai/gpt-oss-20b"
+    },
+    "defend": {
+      "text": "The design lacks explicit discussion of rejected alternatives, which weakens the justification for key choices such as the EntryResult wrapper and the SpotAllocationStrategy interface. In this parking‑lot context, showing why you chose a separate EntryResult instead of null/exception handling clarifies how the system will signal refusal to a driver and supports future extensions like multi‑point entry. First, add an \"alternative\" entry for each decision (e.g., return null, throw an exception, or embed the result in ParkingLot.enter) and state the reason for rejection in the \"why\" field to strengthen the reasoning evidence.",
+      "modelId": "groq:openai/gpt-oss-20b"
+    }
+  },
+  "exit": {
+    "q1": "Yes – the entry‑refusal gap was obvious to me, but the mentor pointed out I had no explicit result type, which I hadn’t formalised. That forced me to add EntryResult and think about error handling as a first‑class domain concept.",
+    "q2": "I disagreed with the coupling‑cohesion score on SpotSize; I gave it a 3/4 because I intended it as a value object for size matching, not a behaviour hub. The mentor called it an orphan, but I see it used by the allocation strategy, so I think the critique overstated the issue.",
+    "q3": "I would share this because it shows how quickly missing result types and abstractions surface in a review. It also highlights the value of concrete alternatives and the need to keep the model tight, which are core interview lessons."
+  },
+  "usage": [
+    {
+      "step": "design",
+      "inputTokens": 916,
+      "outputTokens": 1190
+    },
+    {
+      "step": "change",
+      "inputTokens": 2693,
+      "outputTokens": 1747
+    },
+    {
+      "step": "defend:p-pricing:0",
+      "inputTokens": 2899,
+      "outputTokens": 147
+    },
+    {
+      "step": "defend:p-pricing:1",
+      "inputTokens": 3052,
+      "outputTokens": 101
+    },
+    {
+      "step": "defend:p-refusal:0",
+      "inputTokens": 2909,
+      "outputTokens": 143
+    },
+    {
+      "step": "defend:p-refusal:1",
+      "inputTokens": 3069,
+      "outputTokens": 286
+    },
+    {
+      "step": "defend:p-spot-size:0",
+      "inputTokens": 2906,
+      "outputTokens": 153
+    },
+    {
+      "step": "defend:p-spot-size:1",
+      "inputTokens": 3088,
+      "outputTokens": 151
+    },
+    {
+      "step": "exit",
+      "inputTokens": 1340,
+      "outputTokens": 196
+    }
+  ],
+  "finishedAt": "2026-09-18T18:33:04.079Z",
+  "wallSeconds": 369
+}

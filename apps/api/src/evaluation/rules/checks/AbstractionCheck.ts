@@ -78,10 +78,13 @@ export class AbstractionCheck implements DesignCheck {
     const evidence: EvidenceRef[] = []
 
     for (const { vp, absorbedBy } of missing) {
+      // The authored `why` is a clause in its own right; splicing it mid-sentence
+      // produced "so rate rules change constantly … means editing that class".
+      const why = /[.!?]$/.test(vp.why) ? vp.why : `${vp.why}.`
       notes.push(
         absorbedBy
-          ? `${vp.name} has no interface or abstract type. It currently lives inside ${absorbedBy.name}, so ${vp.why.toLowerCase()} means editing that class every time.`
-          : `${vp.name} has no seam in the design at all, and ${vp.why.toLowerCase()}.`,
+          ? `${vp.name} has no interface or abstract type; it currently lives inside ${absorbedBy.name}. ${why} Each of those means editing ${absorbedBy.name}.`
+          : `${vp.name} has no seam in the design at all. ${why}`,
       )
       if (absorbedBy) evidence.push({ kind: 'class', name: absorbedBy.name })
     }

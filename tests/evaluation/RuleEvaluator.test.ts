@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { DesignModel } from '@lld/contracts'
 import { DesignGraph } from '../../apps/api/src/domain/design/DesignGraph.js'
 import { RuleEvaluator } from '../../apps/api/src/evaluation/rules/RuleEvaluator.js'
+import { actionVerbs, responsibilityClauses } from '../../apps/api/src/evaluation/rules/text.js'
 import { designCtx, godClassDesign, strongDesign } from '../fixtures.js'
 
 const context = designCtx
@@ -96,6 +97,29 @@ describe('RuleEvaluator', () => {
 
     it('passes a design where every class describes one job', async () => {
       expect(await score(strongDesign, 'class-responsibilities')).toBe(4)
+    })
+
+    it('does not read an "and" between two nouns as a second job', async () => {
+      // From the simulated study: these three sentences scored a careful design 0/4.
+      const [lot, cashier, vehicle] = [
+        'Manages floors and coordinates entry and exit operations.',
+        'Calculates fee based on vehicle type and duration, receives cash.',
+        'Base type for all vehicles, provides size and rate information.',
+      ]
+      expect(responsibilityClauses(lot)).toHaveLength(2)
+      expect(responsibilityClauses(cashier)).toHaveLength(2)
+      expect(responsibilityClauses(vehicle)).toHaveLength(2)
+      // Three verbs joined by conjunctions are still three jobs.
+      expect(responsibilityClauses('Finds spots, calculates fees and prints tickets')).toHaveLength(3)
+      expect(responsibilityClauses('Manages floors, owns pricing, records every ticket')).toHaveLength(3)
+      expect(responsibilityClauses('Manages floors and overall entry/exit flow')).toHaveLength(1)
+      // "payment" is a noun, not a third action.
+      expect(actionVerbs('Calculates fees and processes cash payment')).toHaveLength(2)
+      const worded: DesignModel = {
+        ...strongDesign,
+        classes: strongDesign.classes.map((c) => (c.name === 'ParkingLot' ? { ...c, responsibility: lot } : c)),
+      }
+      expect(await score(worded, 'class-responsibilities')).toBe(4)
     })
 
     it('flags a class list with no relationships at all', async () => {

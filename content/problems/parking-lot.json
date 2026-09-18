@@ -124,7 +124,7 @@
     {
       "id": "v1",
       "name": "pricing strategy",
-      "why": "Rate rules change constantly in the real world — hourly, daily cap, weekend, EV, validation stamps",
+      "why": "Rate rules change constantly in the real world — hourly, daily cap, weekend, validation stamps",
       "expectAbstraction": true,
       "acceptableShapes": [
         "interface",
@@ -159,7 +159,7 @@
     {
       "id": "v3",
       "name": "vehicle type",
-      "why": "New categories (EV, oversized, disabled-permit) arrive regularly",
+      "why": "New categories (oversized, compact, disabled-permit) arrive regularly",
       "expectAbstraction": true,
       "acceptableShapes": [
         "interface",

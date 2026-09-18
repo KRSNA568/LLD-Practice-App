@@ -14,7 +14,7 @@ import type { EvaluationContext, Evaluator } from './Evaluator.js'
 export type PipelineOutcome = {
   results: CriterionResult[]
   /** Evaluators that threw, with the reason. Drives the "AI review unavailable" banner. */
-  failures: Array<{ evaluatorId: string; reason: string }>
+  failures: Array<{ evaluatorId: string; reason: string; retryAfterMs?: number }>
   /** Criteria nobody managed to score, so the report can say so rather than imply a zero. */
   unscored: CriterionId[]
   /** What this run cost across every evaluator that reported it. Null when none did (the rules, the stub). */
@@ -37,9 +37,12 @@ export class EvaluationPipeline {
       if (outcome.status === 'fulfilled') {
         results.push(...outcome.value.results)
       } else {
+        const reason = outcome.reason as { message?: string; retryAfterMs?: number } | undefined
         failures.push({
           evaluatorId: evaluator.id,
           reason: outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason),
+          // A rate limit says when it clears; the queue can wait that long before retrying.
+          ...(typeof reason?.retryAfterMs === 'number' ? { retryAfterMs: reason.retryAfterMs } : {}),
         })
       }
     })

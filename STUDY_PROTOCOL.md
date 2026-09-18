@@ -121,6 +121,19 @@ sign; two who quit at the change stage is a product finding, not a participant p
 `secondsDefending` is the real attempt length against the 30 minutes budgeted. The token columns
 are what six real attempts cost — the first cost figures from people rather than scripts.
 
+## If there are no six people
+
+`npx tsx apps/api/scripts/simulated-study.ts` runs the six sessions with a model playing each
+engineer, through the real API. Read [FINDINGS-02.md](FINDINGS-02.md) before trusting anything
+it says about separation: it cannot answer that question, because the model draws the same design
+for every persona. What it is good for is the disagreements — every one it produced was a real
+bug — and a dry run of the tooling. `analyse-study.ts` runs the analysis above on any export;
+`rescore-study.ts` re-runs the measured checks on stored designs after a rubric change.
+
+**Consider a second problem.** Parking Lot is the canonical LLD answer everyone has seen. Three
+participants on vending machine (the next most calibrated) separates "knows the answer" from
+"can design".
+
 ## What to do with the result
 
 | Result | Next |

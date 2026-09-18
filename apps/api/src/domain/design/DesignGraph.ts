@@ -16,10 +16,19 @@ export class DesignGraph {
   private readonly byKey = new Map<string, DesignClass>()
   private readonly outgoing = new Map<string, Relationship[]>()
   private readonly incoming = new Map<string, Relationship[]>()
+  /** Classes named inside another class's attributes or methods, e.g. `size: SpotSize`. */
+  private readonly mentioned = new Set<string>()
 
   constructor(readonly model: DesignModel) {
     for (const cls of model.classes) {
       this.byKey.set(DesignGraph.key(cls.name), cls)
+    }
+    for (const cls of model.classes) {
+      const text = [...cls.attributes, ...cls.methods].join(' ')
+      for (const word of text.match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? []) {
+        const key = DesignGraph.key(word)
+        if (key !== DesignGraph.key(cls.name) && this.byKey.has(key)) this.mentioned.add(key)
+      }
     }
     for (const rel of model.relationships) {
       const from = DesignGraph.key(rel.from)
@@ -82,6 +91,20 @@ export class DesignGraph {
     return this.withStereotype('interface', 'abstract')
   }
 
+  /**
+   * Whether `a` structurally depends on `b`: a relationship out of `a` to `b`, or
+   * `b` named in `a`'s attributes or methods. The check behind "X references Y"
+   * claims in mentor prose.
+   */
+  dependsOn(a: string, b: string): boolean {
+    const target = DesignGraph.key(b)
+    if (this.outgoingFrom(a).some((r) => DesignGraph.key(r.to) === target)) return true
+    const cls = this.find(a)
+    if (!cls) return false
+    const text = [...cls.attributes, ...cls.methods].join(' ')
+    return (text.match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? []).some((w) => DesignGraph.key(w) === target)
+  }
+
   /** Classes that declare `implements` or `extends` against the given type. */
   implementersOf(name: string): DesignClass[] {
     return this.incomingTo(name)
@@ -91,14 +114,17 @@ export class DesignGraph {
   }
 
   /**
-   * Declared but wired to nothing — no inbound edges, no outbound edges.
+   * Declared but wired to nothing — no inbound edges, no outbound edges, and not
+   * named as a type in any other class's attributes or methods.
    *
    * Usually means the learner listed a noun from the brief without deciding what it
-   * does, which is worth surfacing precisely because it looks like progress.
+   * does, which is worth surfacing precisely because it looks like progress. The
+   * type-mention rule came from the simulated study: an enum used as `size: SpotSize`
+   * on Spot was called an orphan, and the engineer who wrote it was right to object.
    */
   orphans(): DesignClass[] {
     return this.model.classes.filter(
-      (c) => this.inDegree(c.name) === 0 && this.outDegree(c.name) === 0,
+      (c) => this.inDegree(c.name) === 0 && this.outDegree(c.name) === 0 && !this.mentioned.has(DesignGraph.key(c.name)),
     )
   }
 

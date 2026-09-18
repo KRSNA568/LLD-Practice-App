@@ -49,17 +49,45 @@ export function containsAny(haystack: string, hints: readonly string[]): boolean
  * about what it measures, and it matches how a reviewer reads the sentence.
  */
 export function responsibilityClauses(responsibility: string): string[] {
-  return responsibility
-    .split(/\s*(?:,|;|\band\b|\balso\b|\bplus\b|\bas well as\b|\/)\s*/i)
-    .map((c) => c.trim())
-    .filter((c) => c.length > 2)
+  // Split keeping the separator, so a comma and an "and" can be treated differently.
+  // ", and" is one separator: the end of a list, which always splits.
+  const parts = responsibility.split(/(\s*(?:,\s*and\b|,|;|\band\b|\balso\b|\bplus\b|\bas well as\b)\s*)/i)
+  const clauses: string[] = []
+  let separator = ''
+  for (let i = 0; i < parts.length; i += 1) {
+    const part = parts[i]!.trim()
+    if (i % 2 === 1) { separator = part; continue }
+    if (part.length <= 2) continue
+    // A comma-separated list is a list of jobs. A bare "and" between two nouns is
+    // not: "coordinates entry and exit operations" is one clause, and splitting it
+    // scored a careful design 0/4 in the simulated study. An "and" opens a new
+    // clause only when what follows starts with a verb.
+    const wordy = /^(and|also|plus|as well as)$/i.test(separator)
+    if (clauses.length === 0 || !wordy || startsWithVerb(part)) clauses.push(part)
+    else clauses[clauses.length - 1] += ` ${separator} ${part}`
+  }
+  return clauses
+}
+
+/** The action verbs that mark a class as doing something; also the second opinion below. */
+const VERB_HINT = /(manag|handl|process|creat|calculat|comput|find|search|assign|allocat|generat|print|validat|persist|stor|sav|updat|delet|remov|add|track|monitor|notif|send|receiv|book|reserv|cancel|pay|charg|dispens|park|schedul|rout|render|format|pars|convert|check|verif)/i
+/** Verbs that open a clause without being "actions" in the sense above. */
+const CLAUSE_VERB = /^(own|hold|keep|provid|expos|return|record|coordinat|decid|select|choos|appl|emit|rais|throw|report|maintain|represent|describ|defin|know|act|serv)/i
+
+/** "provides size" yes; "rate information" no; "spots" (one word) no. */
+function startsWithVerb(fragment: string): boolean {
+  const words = fragment.split(/\s+/)
+  const first = words[0] ?? ''
+  if (VERB_HINT.test(first) || CLAUSE_VERB.test(first)) return true
+  return words.length >= 2 && /[a-z]s$/i.test(first) && !/(ss|us|is)$/i.test(first)
 }
 
 /** Number of distinct action verbs, as a second opinion on clause counting. */
 export function actionVerbs(responsibility: string): string[] {
-  const VERB_HINT = /(manag|handl|process|creat|calculat|comput|find|search|assign|allocat|generat|print|validat|persist|stor|sav|updat|delet|remov|add|track|monitor|notif|send|receiv|book|reserv|cancel|pay|charg|dispens|park|schedul|rout|render|format|pars|convert|check|verif)/i
   const found = new Set<string>()
   for (const w of normalise(responsibility.replace(/([a-z0-9])([A-Z])/g, '$1 $2')).split(' ')) {
+    // "payment", "calculation", "processor" carry a verb stem but are nouns.
+    if (/(ment|tion|sion|ance|ence|ity|er|or)s?$/.test(w)) continue
     const m = VERB_HINT.exec(w)
     if (m) found.add(m[1]!.toLowerCase())
   }

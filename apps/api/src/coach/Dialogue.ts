@@ -81,6 +81,8 @@ export function followUpPrompt(ctx: EvaluationContext, probe: Probe, transcript:
     '- At most 40 words. Reference something the learner actually wrote.',
     '- Never attribute to the learner anything they did not write. If they did not address',
     '  something, ask about it rather than assume what they chose.',
+    '- If the learner argued that a class should NOT change, do not presuppose that it does.',
+    '  Press on the cost of their choice or the case where their argument breaks instead.',
     '- Name only classes from the list below or from the probe itself.',
     '',
     `PROBLEM: ${ctx.problem.title}`,

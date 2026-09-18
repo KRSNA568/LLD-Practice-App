@@ -1,0 +1,49 @@
+learnerId,learnerName,problemId,attemptNumber,attemptId,stage,criterionId,score,confidence,evaluatorId,evaluatorKind,rubricVersion,promptVersion,unchangedFromPrevious,evidenceCount
+0461c43b-8240-42b4-9198-f68b82057bcd,J1-sim,parking-lot,1,981a4ba4-a0cf-4b38-81e0-3e5f001e617d,design,requirement-coverage,3,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,4
+0461c43b-8240-42b4-9198-f68b82057bcd,J1-sim,parking-lot,1,981a4ba4-a0cf-4b38-81e0-3e5f001e617d,design,class-responsibilities,0,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,2
+0461c43b-8240-42b4-9198-f68b82057bcd,J1-sim,parking-lot,1,981a4ba4-a0cf-4b38-81e0-3e5f001e617d,design,coupling-cohesion,3,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,1
+0461c43b-8240-42b4-9198-f68b82057bcd,J1-sim,parking-lot,1,981a4ba4-a0cf-4b38-81e0-3e5f001e617d,design,abstraction-use,1,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,2
+0461c43b-8240-42b4-9198-f68b82057bcd,J1-sim,parking-lot,1,981a4ba4-a0cf-4b38-81e0-3e5f001e617d,design,behaviour,0,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,2
+0461c43b-8240-42b4-9198-f68b82057bcd,J1-sim,parking-lot,1,981a4ba4-a0cf-4b38-81e0-3e5f001e617d,design,edge-cases,2,medium,llm-evaluator:groq:openai/gpt-oss-120b:2.1.0,llm,2.0.0,2.1.0,false,3
+0461c43b-8240-42b4-9198-f68b82057bcd,J1-sim,parking-lot,1,981a4ba4-a0cf-4b38-81e0-3e5f001e617d,change,change-resilience,3,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,4
+0461c43b-8240-42b4-9198-f68b82057bcd,J1-sim,parking-lot,1,981a4ba4-a0cf-4b38-81e0-3e5f001e617d,defend,reasoning,3,low,llm-evaluator:groq:openai/gpt-oss-120b:2.1.0,llm,2.0.0,2.1.0,false,2
+27dca966-d26a-49ff-9efa-94c31bbbda30,S3-sim,parking-lot,1,f45a2d97-bc97-40a5-ae91-a7a0bee7053c,design,requirement-coverage,3,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,4
+27dca966-d26a-49ff-9efa-94c31bbbda30,S3-sim,parking-lot,1,f45a2d97-bc97-40a5-ae91-a7a0bee7053c,design,class-responsibilities,0,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,3
+27dca966-d26a-49ff-9efa-94c31bbbda30,S3-sim,parking-lot,1,f45a2d97-bc97-40a5-ae91-a7a0bee7053c,design,coupling-cohesion,2,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,2
+27dca966-d26a-49ff-9efa-94c31bbbda30,S3-sim,parking-lot,1,f45a2d97-bc97-40a5-ae91-a7a0bee7053c,design,abstraction-use,2,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,0
+27dca966-d26a-49ff-9efa-94c31bbbda30,S3-sim,parking-lot,1,f45a2d97-bc97-40a5-ae91-a7a0bee7053c,design,behaviour,2,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,2
+27dca966-d26a-49ff-9efa-94c31bbbda30,S3-sim,parking-lot,1,f45a2d97-bc97-40a5-ae91-a7a0bee7053c,design,edge-cases,3,medium,llm-evaluator:groq:openai/gpt-oss-120b:2.1.0,llm,2.0.0,2.1.0,false,3
+27dca966-d26a-49ff-9efa-94c31bbbda30,S3-sim,parking-lot,1,f45a2d97-bc97-40a5-ae91-a7a0bee7053c,change,change-resilience,3,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,4
+27dca966-d26a-49ff-9efa-94c31bbbda30,S3-sim,parking-lot,1,f45a2d97-bc97-40a5-ae91-a7a0bee7053c,defend,reasoning,3,medium,llm-evaluator:groq:openai/gpt-oss-120b:2.1.0,llm,2.0.0,2.1.0,false,2
+89ac7df1-b317-47b8-9775-0d323a4432c3,Krishna Mahajan,parking-lot,1,79c02c1d-38c6-401a-8372-e778ea7cc6b3,design,requirement-coverage,3,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,4
+89ac7df1-b317-47b8-9775-0d323a4432c3,Krishna Mahajan,parking-lot,1,79c02c1d-38c6-401a-8372-e778ea7cc6b3,design,class-responsibilities,4,medium,rule-evaluator,deterministic,2.0.0,2.1.0,false,0
+89ac7df1-b317-47b8-9775-0d323a4432c3,Krishna Mahajan,parking-lot,1,79c02c1d-38c6-401a-8372-e778ea7cc6b3,design,coupling-cohesion,4,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,0
+89ac7df1-b317-47b8-9775-0d323a4432c3,Krishna Mahajan,parking-lot,1,79c02c1d-38c6-401a-8372-e778ea7cc6b3,design,abstraction-use,2,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,1
+89ac7df1-b317-47b8-9775-0d323a4432c3,Krishna Mahajan,parking-lot,1,79c02c1d-38c6-401a-8372-e778ea7cc6b3,design,behaviour,4,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,1
+89ac7df1-b317-47b8-9775-0d323a4432c3,Krishna Mahajan,parking-lot,1,79c02c1d-38c6-401a-8372-e778ea7cc6b3,design,edge-cases,3,medium,llm-evaluator:groq:openai/gpt-oss-120b:2.1.0,llm,2.0.0,2.1.0,false,3
+89ac7df1-b317-47b8-9775-0d323a4432c3,Krishna Mahajan,parking-lot,1,79c02c1d-38c6-401a-8372-e778ea7cc6b3,change,change-resilience,1,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,3
+89ac7df1-b317-47b8-9775-0d323a4432c3,Krishna Mahajan,parking-lot,1,79c02c1d-38c6-401a-8372-e778ea7cc6b3,defend,reasoning,4,medium,llm-evaluator:groq:openai/gpt-oss-120b:2.1.0,llm,2.0.0,2.1.0,false,3
+948b7b7e-9751-400c-8e0c-83e365aa6d4e,S2-sim,parking-lot,1,ae7f3533-46f4-4f70-8b4e-161caed9e4b3,design,requirement-coverage,4,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,3
+948b7b7e-9751-400c-8e0c-83e365aa6d4e,S2-sim,parking-lot,1,ae7f3533-46f4-4f70-8b4e-161caed9e4b3,design,class-responsibilities,4,medium,rule-evaluator,deterministic,2.0.0,2.1.0,false,0
+948b7b7e-9751-400c-8e0c-83e365aa6d4e,S2-sim,parking-lot,1,ae7f3533-46f4-4f70-8b4e-161caed9e4b3,design,coupling-cohesion,4,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,0
+948b7b7e-9751-400c-8e0c-83e365aa6d4e,S2-sim,parking-lot,1,ae7f3533-46f4-4f70-8b4e-161caed9e4b3,design,abstraction-use,1,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,2
+948b7b7e-9751-400c-8e0c-83e365aa6d4e,S2-sim,parking-lot,1,ae7f3533-46f4-4f70-8b4e-161caed9e4b3,design,behaviour,2,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,4
+948b7b7e-9751-400c-8e0c-83e365aa6d4e,S2-sim,parking-lot,1,ae7f3533-46f4-4f70-8b4e-161caed9e4b3,design,edge-cases,4,medium,llm-evaluator:groq:openai/gpt-oss-120b:2.1.0,llm,2.0.0,2.1.0,false,3
+948b7b7e-9751-400c-8e0c-83e365aa6d4e,S2-sim,parking-lot,1,ae7f3533-46f4-4f70-8b4e-161caed9e4b3,change,change-resilience,3,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,4
+948b7b7e-9751-400c-8e0c-83e365aa6d4e,S2-sim,parking-lot,1,ae7f3533-46f4-4f70-8b4e-161caed9e4b3,defend,reasoning,4,high,llm-evaluator:groq:openai/gpt-oss-120b:2.1.0,llm,2.0.0,2.1.0,false,3
+be0dd1f0-bc47-4c9f-8bcd-56fc238ecb5f,J2-sim,parking-lot,1,1b3c0f62-57cf-4b6c-af26-730f29d41bae,design,requirement-coverage,3,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,3
+be0dd1f0-bc47-4c9f-8bcd-56fc238ecb5f,J2-sim,parking-lot,1,1b3c0f62-57cf-4b6c-af26-730f29d41bae,design,class-responsibilities,2,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,1
+be0dd1f0-bc47-4c9f-8bcd-56fc238ecb5f,J2-sim,parking-lot,1,1b3c0f62-57cf-4b6c-af26-730f29d41bae,design,coupling-cohesion,3,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,1
+be0dd1f0-bc47-4c9f-8bcd-56fc238ecb5f,J2-sim,parking-lot,1,1b3c0f62-57cf-4b6c-af26-730f29d41bae,design,abstraction-use,1,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,2
+be0dd1f0-bc47-4c9f-8bcd-56fc238ecb5f,J2-sim,parking-lot,1,1b3c0f62-57cf-4b6c-af26-730f29d41bae,design,behaviour,4,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,1
+be0dd1f0-bc47-4c9f-8bcd-56fc238ecb5f,J2-sim,parking-lot,1,1b3c0f62-57cf-4b6c-af26-730f29d41bae,design,edge-cases,3,medium,llm-evaluator:groq:openai/gpt-oss-120b:2.1.0,llm,2.0.0,2.1.0,false,3
+be0dd1f0-bc47-4c9f-8bcd-56fc238ecb5f,J2-sim,parking-lot,1,1b3c0f62-57cf-4b6c-af26-730f29d41bae,change,change-resilience,3,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,4
+be0dd1f0-bc47-4c9f-8bcd-56fc238ecb5f,J2-sim,parking-lot,1,1b3c0f62-57cf-4b6c-af26-730f29d41bae,defend,reasoning,4,medium,llm-evaluator:groq:openai/gpt-oss-120b:2.1.0,llm,2.0.0,2.1.0,false,2
+e06bf43a-3c75-4192-a94d-12fe731422f3,S1-sim,parking-lot,1,d5717928-fc3e-4c53-a7af-a2eb6de3b503,design,requirement-coverage,3,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,4
+e06bf43a-3c75-4192-a94d-12fe731422f3,S1-sim,parking-lot,1,d5717928-fc3e-4c53-a7af-a2eb6de3b503,design,class-responsibilities,4,medium,rule-evaluator,deterministic,2.0.0,2.1.0,false,0
+e06bf43a-3c75-4192-a94d-12fe731422f3,S1-sim,parking-lot,1,d5717928-fc3e-4c53-a7af-a2eb6de3b503,design,coupling-cohesion,3,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,1
+e06bf43a-3c75-4192-a94d-12fe731422f3,S1-sim,parking-lot,1,d5717928-fc3e-4c53-a7af-a2eb6de3b503,design,abstraction-use,1,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,2
+e06bf43a-3c75-4192-a94d-12fe731422f3,S1-sim,parking-lot,1,d5717928-fc3e-4c53-a7af-a2eb6de3b503,design,behaviour,2,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,3
+e06bf43a-3c75-4192-a94d-12fe731422f3,S1-sim,parking-lot,1,d5717928-fc3e-4c53-a7af-a2eb6de3b503,design,edge-cases,2,medium,llm-evaluator:groq:openai/gpt-oss-120b:2.1.0,llm,2.0.0,2.1.0,false,3
+e06bf43a-3c75-4192-a94d-12fe731422f3,S1-sim,parking-lot,1,d5717928-fc3e-4c53-a7af-a2eb6de3b503,change,change-resilience,3,high,rule-evaluator,deterministic,2.0.0,2.1.0,false,4
+e06bf43a-3c75-4192-a94d-12fe731422f3,S1-sim,parking-lot,1,d5717928-fc3e-4c53-a7af-a2eb6de3b503,defend,reasoning,3,medium,llm-evaluator:groq:openai/gpt-oss-120b:2.1.0,llm,2.0.0,2.1.0,false,3

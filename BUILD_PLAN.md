@@ -126,6 +126,13 @@ left is the hosting itself: the platform choice, secrets there, and a schedule f
 
 **Not in this phase:** scaling. One small instance is right for this stage.
 
+**19 Sept 2026 — the study, simulated.** With no six people available, the six sessions were run
+with a model playing each engineer ([FINDINGS-02.md](FINDINGS-02.md)). It cannot answer the
+separation question — the personas drew the same design six times — but it was the scorer's first
+meeting with designs it was not authored against, and it found four rubric bugs, two product
+bugs and a mentor falsehood, all fixed. The study with people is still the gate for Phase 4's
+bet; it will meet a better rubric.
+
 ---
 
 ## Phase 4 — Safe for strangers ⬜

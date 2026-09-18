@@ -34,9 +34,21 @@ export type ResolvedWalkthrough = {
   missesRequiredClass: boolean
 }
 
-/** `feeFor(ticket)` and `feeFor` are the same method; so are `fee_for` and `FeeFor`. */
+const CONSTRUCTOR_WORDS = new Set(['init', 'new', 'constructor', 'ctor'])
+
+/**
+ * `feeFor(ticket)` and `feeFor` are the same method; so are `fee_for` and `FeeFor`.
+ * So is `Receipt exitVehicle(String ticketId)` — the name is the identifier before
+ * the parenthesis, whatever return type or visibility marker sits in front of it.
+ * A Java-style class was scoring 0 on behaviour because every step "called a
+ * method the class does not declare".
+ */
 function normMethod(s: string): string {
-  return s.trim().toLowerCase().replace(/\(.*$/, '').replace(/[^a-z0-9]/g, '')
+  const beforeParen = /([A-Za-z_][A-Za-z0-9_]*)\s*\(/.exec(s)
+  const name = beforeParen
+    ? beforeParen[1]!
+    : (s.replace(/:.*$/, '').match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? []).at(-1) ?? ''
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
 export function resolveWalkthrough(
@@ -48,7 +60,12 @@ export function resolveWalkthrough(
     const canonical = graph.canonicalName(step.className)
     const cls = canonical ? graph.find(canonical) : undefined
     const wanted = normMethod(step.method)
-    const methodFound = !!cls && cls.methods.some((m) => normMethod(m) === wanted)
+    // Every class has a constructor whether or not it is listed. `Ticket.<init>`,
+    // `Ticket.new`, `Ticket.constructor` and `Ticket.Ticket` all mean "a Ticket is
+    // created here" — a step a careful learner writes, and one the walkthrough
+    // check was calling a method the class does not declare.
+    const isConstructor = !!cls && (CONSTRUCTOR_WORDS.has(wanted) || wanted === normMethod(cls.name))
+    const methodFound = !!cls && (isConstructor || cls.methods.some((m) => normMethod(m) === wanted))
     return {
       index,
       step,

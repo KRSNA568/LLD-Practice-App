@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { MAX_LEARNER_TURNS, type DialogueTurn, type Probe } from '@lld/contracts'
+import { MAX_LEARNER_TURNS, type DialogueTurn, type AskedProbe } from '@lld/contracts'
 import { riseIn, stagger } from './motion'
 
 /**
@@ -24,7 +24,7 @@ export function ProbePanel({
   disabled,
   live,
 }: {
-  probes: Probe[]
+  probes: AskedProbe[]
   dialogue: Record<string, DialogueTurn[]>
   onTurn: (probeId: string, text: string) => Promise<void>
   disabled?: boolean
@@ -48,7 +48,7 @@ function ProbeThread({
   live,
 }: {
   index: number
-  probe: Probe
+  probe: AskedProbe
   transcript: DialogueTurn[]
   onTurn: (probeId: string, text: string) => Promise<void>
   disabled?: boolean

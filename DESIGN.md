@@ -355,8 +355,10 @@ world at all — is the reviewer's job, and `content/PROVENANCE.md` records what
   over the same prompt the real model sees, and the mentor's note is a template over the lowest
   finding. It separates strong from weak reliably enough to demo and to calibrate, and does not
   pretend to be a language model — the UI labels it a stand-in.
-- **Prose grounding checks names, not claims.** A sentence that names only real classes can still
-  say something wrong about them. Evidence grounding is exact; prose grounding is a filter.
+- **Prose grounding checks names and dependencies, not what a class does.** Every class named
+  exists; every "A references / depends on / uses B" is checked against the graph (FINDINGS-02
+  §5); but a sentence saying a class "bundles ticket validation" when it has no such method
+  passes. Evidence grounding is exact; prose grounding is a filter.
 - **Walkthrough checks trust the walkthrough.** A learner can write steps that resolve and still be
   wrong about the order. Order is not judged; existence and distribution are.
 - **Eight problems; a name is not an account.** Twelve more are catalogued but not yet drafted.

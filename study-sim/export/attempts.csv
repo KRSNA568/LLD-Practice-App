@@ -1,0 +1,18 @@
+learnerId,learnerName,problemId,attemptNumber,attemptId,startedAt,finalStage,finalState,abandoned,stagesSubmitted,stagesEvaluated,secondsDesigning,secondsRevising,secondsDefending,secondsWaitingForLastReport,evaluatorInputTokens,evaluatorOutputTokens,mentorInputTokens,mentorOutputTokens,mentorNotes,mentorFollowUps
+0461c43b-8240-42b4-9198-f68b82057bcd,J1-sim,parking-lot,1,981a4ba4-a0cf-4b38-81e0-3e5f001e617d,2026-09-18T18:48:58.638Z,defend,COMPLETED,false,3,3,0,149,131,20,8325,2110,10299,649,3,2
+07749195-22e6-4508-8d4c-87d23752bcad,Krish,parking-lot,1,3daf8197-1f21-43d4-95ee-0a5213b1494a,2026-09-18T18:29:58.246Z,design,DRAFT,true,0,0,,,,,0,0,0,0,0,0
+07749195-22e6-4508-8d4c-87d23752bcad,Krish,parking-lot,1,6bb537b2-6021-420f-9871-74906938e852,2026-09-18T18:29:58.246Z,design,DRAFT,true,0,0,,,,,0,0,0,0,0,0
+27dca966-d26a-49ff-9efa-94c31bbbda30,S3-sim,parking-lot,1,f45a2d97-bc97-40a5-ae91-a7a0bee7053c,2026-09-18T18:41:03.198Z,defend,COMPLETED,false,3,3,0,150,154,36,8456,1829,7853,649,2,3
+5f0f548f-742d-402c-802d-5115835dbebf,Krishna Mahajan,parking-lot,1,530699f2-e578-4ab5-8e49-b719b86eba99,2026-09-17T19:03:09.469Z,design,DRAFT,true,0,0,,,,,0,0,0,0,0,0
+5f0f548f-742d-402c-802d-5115835dbebf,Krishna Mahajan,vending-machine,1,d82772fc-0d91-4a1f-a352-936b1d1729d3,2026-09-17T19:09:34.322Z,design,DRAFT,true,0,0,,,,,0,0,0,0,0,0
+5f0f548f-742d-402c-802d-5115835dbebf,Krishna Mahajan,vending-machine,1,b00044cf-1dd3-404e-af26-4073a739a9c0,2026-09-17T19:09:34.322Z,design,DRAFT,true,0,0,,,,,0,0,0,0,0,0
+5f0f548f-742d-402c-802d-5115835dbebf,Krishna Mahajan,parking-lot,2,986a3dd3-9c6a-4f75-9a33-199d081b51c4,2026-09-17T19:24:31.428Z,design,DRAFT,true,0,0,,,,,0,0,0,0,0,0
+89ac7df1-b317-47b8-9775-0d323a4432c3,Krishna Mahajan,parking-lot,1,cf963627-31c1-4229-8c4c-86af9cf072ab,2026-09-17T20:01:43.725Z,design,DRAFT,true,0,0,,,,,0,0,0,0,0,0
+89ac7df1-b317-47b8-9775-0d323a4432c3,Krishna Mahajan,parking-lot,1,79c02c1d-38c6-401a-8372-e778ea7cc6b3,2026-09-17T20:01:43.729Z,defend,COMPLETED,false,3,3,11,328,61,3,6081,1455,11254,1125,6,3
+89ac7df1-b317-47b8-9775-0d323a4432c3,Krishna Mahajan,library-management,1,7dab5311-2b53-43f9-b685-2897e863fc9b,2026-09-17T20:06:19.505Z,design,DRAFT,true,0,0,,,,,0,0,0,0,0,0
+89ac7df1-b317-47b8-9775-0d323a4432c3,Krishna Mahajan,library-management,1,73110fda-fdaa-4a4b-9e6c-6c2ff7a377d7,2026-09-17T20:06:19.505Z,design,DRAFT,true,0,0,,,,,0,0,0,0,0,0
+89ac7df1-b317-47b8-9775-0d323a4432c3,Krishna Mahajan,logging-framework,1,9b8424be-4200-45ec-b6ed-cb24b711f32f,2026-09-17T20:17:12.647Z,design,DRAFT,true,0,0,,,,,0,0,0,0,0,0
+948b7b7e-9751-400c-8e0c-83e365aa6d4e,S2-sim,parking-lot,1,ae7f3533-46f4-4f70-8b4e-161caed9e4b3,2026-09-18T18:34:37.307Z,defend,COMPLETED,false,3,3,0,95,145,2,8375,1680,4622,670,1,3
+9b91e9f7-05ea-4019-9dec-b4d94978a01a,Krishna,parking-lot,1,a90b48c9-ce92-4b9b-95f8-84fef2fd9e4e,2026-09-15T19:36:50.532Z,design,DRAFT,true,0,0,,,,,0,0,0,0,0,0
+be0dd1f0-bc47-4c9f-8bcd-56fc238ecb5f,J2-sim,parking-lot,1,1b3c0f62-57cf-4b6c-af26-730f29d41bae,2026-09-18T18:56:20.705Z,defend,COMPLETED,false,3,3,0,150,115,40,8315,2147,6586,386,2,1
+e06bf43a-3c75-4192-a94d-12fe731422f3,S1-sim,parking-lot,1,d5717928-fc3e-4c53-a7af-a2eb6de3b503,2026-09-18T18:27:42.863Z,defend,COMPLETED,false,3,3,0,96,147,43,8419,1884,9698,789,3,3

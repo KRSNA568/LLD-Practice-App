@@ -17,6 +17,8 @@ import {
   type EvaluationReport,
   type FieldError,
   type HiddenChange,
+  type RevealedChange,
+  type AskedProbe,
   type NextProblemSuggestion,
   type Probe,
   type ProbeAnswer,
@@ -33,7 +35,7 @@ import { DesignGraph } from '../domain/design/DesignGraph.js'
 import { scoresByCriterion, summarise } from '../domain/feedback/ScoreAggregator.js'
 import { detectRecurringWeaknesses } from '../domain/feedback/RecurringWeakness.js'
 import { conceptMastery, streakDays } from '../domain/feedback/ConceptMastery.js'
-import { selectProbes } from '../domain/feedback/ProbeSelector.js'
+import { selectProbes, type SelectedProbe } from '../domain/feedback/ProbeSelector.js'
 import { suggestNextProblem } from '../domain/feedback/NextProblem.js'
 import {
   StructuredDesignParser,
@@ -245,7 +247,7 @@ export class PracticeService {
       include: WITH_ALL,
     })
 
-    this.queue.enqueue(() => this.evaluate(attemptId, stage, unchanged), { id: `${attemptId}:${stage}` })
+    this.queue.enqueue((run) => this.evaluate(attemptId, stage, unchanged, run.final), { id: `${attemptId}:${stage}` })
 
     return this.toAttempt(updated, problem)
   }
@@ -262,7 +264,7 @@ export class PracticeService {
       include: WITH_ALL,
     })
     const stage = row.stage as Stage
-    this.queue.enqueue(() => this.evaluate(attemptId, stage, false), { id: `${attemptId}:${stage}` })
+    this.queue.enqueue((run) => this.evaluate(attemptId, stage, false, run.final), { id: `${attemptId}:${stage}` })
     return this.toAttempt(updated, this.requireProblem(row.problemId))
   }
 
@@ -351,7 +353,7 @@ export class PracticeService {
   /* Evaluating                                                             */
   /* --------------------------------------------------------------------- */
 
-  private async evaluate(attemptId: string, stage: Stage, unchanged: boolean): Promise<void> {
+  private async evaluate(attemptId: string, stage: Stage, unchanged: boolean, final = true): Promise<void> {
     const row = await this.prisma.attempt.findUnique({ where: { id: attemptId }, include: WITH_ALL })
     if (!row || row.stage !== stage) return
     const submission = row.submissions.find((s) => s.stage === stage)
@@ -371,16 +373,24 @@ export class PracticeService {
     const outcome = await this.pipeline.run({ ...ctx, rubric })
 
     // Nothing scored at all is a real failure. Anything scored is a report worth
-    // showing, with an honest note about what is missing.
+    // showing, with an honest note about what is missing. The queue retries a
+    // thrown job, so the attempt is marked FAILED only on the last run — seen live,
+    // a rate-limited first run flashed a failure screen at the learner for the
+    // seconds until the retry completed.
     if (outcome.results.length === 0) {
-      await this.prisma.attempt.update({
-        where: { id: attemptId },
-        data: {
-          state: 'FAILED' satisfies AttemptState,
-          failureReason: outcome.failures.map((f) => f.reason).join('; ') || 'No evaluator produced a result',
-        },
-      })
-      throw new Error('Evaluation produced no results')
+      if (final) {
+        await this.prisma.attempt.update({
+          where: { id: attemptId },
+          data: {
+            state: 'FAILED' satisfies AttemptState,
+            failureReason: outcome.failures.map((f) => f.reason).join('; ') || 'No evaluator produced a result',
+          },
+        })
+      }
+      const error = new Error('Evaluation produced no results') as Error & { retryAfterMs?: number }
+      const hinted = outcome.failures.map((f) => f.retryAfterMs).filter((n): n is number => typeof n === 'number')
+      if (hinted.length > 0) error.retryAfterMs = Math.max(...hinted)
+      throw error
     }
 
     const summary = summarise(outcome.results, rubric, [stage])
@@ -810,7 +820,7 @@ export class PracticeService {
     return problem.hiddenChanges.find((c) => c.id === row.changeId) ?? problem.hiddenChanges[0]!
   }
 
-  private probesFor(row: AttemptRow, problem: Problem): Probe[] {
+  private probesFor(row: AttemptRow, problem: Problem): SelectedProbe[] {
     return selectProbes(problem.probes, resultsOf(row))
   }
 
@@ -862,8 +872,9 @@ export class PracticeService {
         : null,
       answers: payloads.defend?.answers ?? null,
       // The change is on the wire only once the design it tests has been evaluated.
-      revealedChange: designEvaluated ? this.changeFor(row, problem) : null,
-      probes: stage === 'defend' ? this.probesFor(row, problem) : null,
+      // Public projections: the prompt travels, the scoring signals do not.
+      revealedChange: designEvaluated ? publicChange(this.changeFor(row, problem)) : null,
+      probes: stage === 'defend' ? this.probesFor(row, problem).map(publicProbe) : null,
       dialogue: stage === 'defend' ? ((await this.transcriptsOf?.(row.id)) ?? {}) : null,
       exemplar: designEvaluated ? (problem.goldDesigns['strong'] ?? null) : null,
       report,
@@ -919,6 +930,15 @@ function parseDrafts(json: string | null): Partial<Record<Stage, RawStageInput>>
   } catch {
     return {}
   }
+}
+
+/** The learner's view of a change: what it asks, not what the scorer checks. */
+function publicChange(change: HiddenChange): RevealedChange {
+  return { id: change.id, prompt: change.prompt, targetsConcept: change.targetsConcept }
+}
+
+function publicProbe(probe: SelectedProbe): AskedProbe {
+  return { id: probe.id, prompt: probe.prompt, targetsConcept: probe.targetsConcept, triggered: probe.triggered, aboutClass: probe.aboutClass }
 }
 
 function fingerprintOf(payload: SubmissionPayload): string {

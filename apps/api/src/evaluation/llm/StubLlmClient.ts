@@ -20,7 +20,9 @@ export class StubLlmClient implements LlmClient {
   readonly id = 'stub-heuristic-v3'
 
   async complete(request: LlmRequest): Promise<LlmResponse> {
-    if (process.env.LLD_STUB_FAIL === '1') {
+    if (process.env.LLD_STUB_FAIL === '1' || process.env.LLD_STUB_FAIL === 'once') {
+      // 'once' fails the next call only — the retry path, deterministically.
+      if (process.env.LLD_STUB_FAIL === 'once') delete process.env.LLD_STUB_FAIL
       throw new LlmUnavailableError('Stub evaluator failing deliberately (LLD_STUB_FAIL=1)')
     }
 

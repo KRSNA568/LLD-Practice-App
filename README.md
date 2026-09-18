@@ -72,6 +72,9 @@ so a new one is a row in a table.
 npx tsx apps/api/scripts/live-llm.ts god-class defend   # exercise the live provider end to end
 npx tsx apps/api/scripts/export-study.ts                 # scores.csv + attempts.csv — every score, timing and token
 npx tsx apps/api/scripts/reset-study.ts                  # dry run; --learner <name> --yes or --all --yes to clear
+npx tsx apps/api/scripts/analyse-study.ts --in study-export   # the protocol's separation and activation analysis
+npx tsx apps/api/scripts/simulated-study.ts              # the six sessions with a model in each chair (see FINDINGS-02)
+npx tsx apps/api/scripts/rescore-study.ts --in study-sim # re-run the measured checks on stored designs
 ```
 
 Scripts and `curl` without an `x-learner-id` header act as the demo learner; the export excludes

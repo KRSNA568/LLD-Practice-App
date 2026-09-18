@@ -139,6 +139,9 @@ describe('the design stage', () => {
     const settled = await service.getAttempt(LEARNER, attempt.id)
     expect(settled.revealedChange).not.toBeNull()
     expect(settled.revealedChange!.id).toBe('hc-ev')
+    // The prompt travels; what the scorer looks for does not. On the wire those
+    // fields would be the answer key for anyone who opens the network tab.
+    expect(Object.keys(settled.revealedChange!).sort()).toEqual(['id', 'prompt', 'targetsConcept'])
   })
 
   it('pins the rubric and prompt version onto the evaluation', async () => {
@@ -276,6 +279,11 @@ describe('the defend stage', () => {
     expect(opened.probes).not.toBeNull()
     expect(opened.probes!.length).toBeGreaterThan(0)
     expect(opened.probes!.length).toBeLessThanOrEqual(3)
+    for (const probe of opened.probes!) {
+      expect(probe).not.toHaveProperty('goodSignal')
+      expect(probe).not.toHaveProperty('badSignal')
+      expect(probe).not.toHaveProperty('triggerWhen')
+    }
     // The god class scored low on abstraction-use, so the pricing probe is asked
     // about the class that absorbed pricing.
     const pricing = opened.probes!.find((p) => p.id === 'p-pricing')
@@ -329,6 +337,30 @@ describe('the defend stage', () => {
     expect(done.state).toBe('FAILED')
     expect(done.report!.results.filter((r) => r.evaluatorKind === 'deterministic')).toHaveLength(6)
     expect(done.report!.stagesCompleted).toEqual(['design', 'change'])
+  })
+
+  it('does not show FAILED while the queue still has retries left', async () => {
+    const changed = await throughChange(strongDesign, energyRevision)
+    const opened = await service.advance(LEARNER, changed.id)
+    // The stub fails exactly once; the queue's retry then succeeds. A learner
+    // polling in between must see EVALUATING — not a failure that un-happens.
+    process.env.LLD_STUB_FAIL = 'once'
+    const seen = new Set<string>()
+    let drained = false
+    const watcher = (async () => {
+      while (!drained) seen.add((await service.getAttempt(LEARNER, opened.id)).state)
+    })()
+    try {
+      await service.submit(LEARNER, opened.id, { stage: 'defend', answers: [] }, crypto.randomUUID())
+      await queue.drain()
+    } finally {
+      drained = true
+      delete process.env.LLD_STUB_FAIL
+    }
+    await watcher
+    const done = await service.getAttempt(LEARNER, opened.id)
+    expect(done.state).toBe('COMPLETED')
+    expect([...seen]).not.toContain('FAILED')
   })
 })
 

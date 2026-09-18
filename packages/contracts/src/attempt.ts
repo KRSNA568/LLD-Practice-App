@@ -147,6 +147,15 @@ export type Revision = {
   rationale: string
 }
 
+/**
+ * What the learner may see of a hidden change: the prompt, and the concept it is
+ * about. `mustIntroduce`, `expectedSeam` and the signals are what the scorer looks
+ * for and stay on the server — on the wire they would be the answer key.
+ */
+export type RevealedChange = Pick<HiddenChange, 'id' | 'prompt' | 'targetsConcept'>
+/** Same rule for a probe: the question as filled in for this learner, never its signals. */
+export type AskedProbe = Pick<Probe, 'id' | 'prompt' | 'targetsConcept'> & { triggered: boolean; aboutClass: string | null }
+
 export type Attempt = {
   id: string
   problemId: string
@@ -164,9 +173,9 @@ export type Attempt = {
    * Before that it is null on the wire — the whole point is that the learner designs
    * without knowing what is about to change.
    */
-  revealedChange: HiddenChange | null
+  revealedChange: RevealedChange | null
   /** The probes chosen for this learner, exposed once the defend stage opens. */
-  probes: Probe[] | null
+  probes: AskedProbe[] | null
   /** The defend dialogue so far, per probe — server-held, so a refresh loses nothing. */
   dialogue: Record<string, DialogueTurn[]> | null
   /**

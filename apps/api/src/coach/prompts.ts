@@ -9,7 +9,7 @@ import type { EvaluationContext } from '../evaluation/Evaluator.js'
  * Each prompt starts with a `TASK:` line. The stub reads it to decide which
  * template to answer with; real models ignore it.
  */
-export const COACH_PROMPT_VERSION = '1.1.0'
+export const COACH_PROMPT_VERSION = '1.2.0'
 
 export const MENTOR_SYSTEM = [
   'You are a design mentor on a Low-Level Design practice platform, writing to one learner',
@@ -83,6 +83,10 @@ export function reviewerPrompt(ctx: EvaluationContext, results: CriterionResult[
     'Write 3 to 5 sentences. Pick the single finding that would change this design the most',
     'if fixed, explain in the learner\'s own class names why it matters for THIS problem, and',
     'say what to do first. If everything is at par, say what would make it stronger still.',
+    '"What to do first" is the smallest step toward that finding\'s own suggestion. Do not',
+    'propose a different architecture from the one the findings describe, and do not undo a',
+    'structure the findings did not object to — the learner should never be told to remove',
+    'a class that no finding cited.',
     '',
     'Return exactly: {"note": "..."}',
   ].join('\n')

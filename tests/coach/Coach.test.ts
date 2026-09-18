@@ -48,6 +48,22 @@ describe('prose grounding', () => {
     expect(g.text).not.toContain('PaymentGateway')
   })
 
+  it('drops a sentence claiming a dependency the design does not have', () => {
+    // From the simulated study: "ParkingLot, Spot, Vehicle, Ticket and VehicleType
+    // all reference it [ChargingSpot]" — every name existed; none of the claims held.
+    const truthful = groundProse('ParkingLot uses SpotAllocator to pick a spot.', graph)
+    expect(truthful.kept).toBe(1)
+    const half = groundProse('Every class now has to know about PricingStrategy – ParkingLot, Spot and Ticket all reference it.', graph)
+    expect(half.kept).toBe(0)
+    expect(half.dropped[0]!.unknown).toEqual(['Spot→PricingStrategy', 'Ticket→PricingStrategy'])
+    const backticked = groundProse('`Ticket` depends on `Spot`, which is fine.', graph)
+    expect(backticked.kept).toBe(1)
+    const wrong = groundProse('Spot depends on Ticket, which is fine.', graph)
+    expect(wrong.kept).toBe(0)
+    // A claim about a name the learner does not have is the identifier rule's job.
+    expect(groundProse('Spot references PaymentGateway.', graph).dropped[0]!.unknown).toEqual(['PaymentGateway'])
+  })
+
   it('accepts names the caller vouches for, like the problem title', () => {
     expect(groundProse('This is the Parking Lot problem.', graph, ['Parking Lot']).kept).toBe(1)
     expect(groundProse('ParkingLot is here.', graph).kept).toBe(1)

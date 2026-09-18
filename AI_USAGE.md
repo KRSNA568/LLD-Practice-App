@@ -399,3 +399,27 @@ The prompt says the rule too. Four tests, one of them the live transcript verbat
 check by design: it catches the mentor asserting what the learner chose, which is the case that
 damages trust, and leaves general claims to study V5, the truthfulness audit, which this is the
 first exhibit for.
+
+## 18. Six engineers played by a model found four rubric bugs and could not answer the question
+
+**Where:** [FINDINGS-02.md](FINDINGS-02.md), 18–19 Sept 2026. The six-person study run with a
+model in every chair, because there were no six people.
+
+**What happened:** the model, asked to be six different engineers, drew the same eleven classes
+six times and varied the prose. The separation question is unanswered, and §2 of the findings
+says why before anything else. What the run did produce was the scorer's first meeting with
+designs it was not authored against — and it lost four times: a used enum called an orphan
+(`size: SpotSize`), a Java-style signature never matching its step (`Receipt exitVehicle(String
+ticketId)` → 0/4 on behaviour), "coordinates entry **and** exit operations" counted as three jobs
+(0/4 on responsibilities), and constructor steps called undeclared methods — the last of which
+FINDINGS-01 §4 had blamed on the model. The mentor lost too: "ParkingLot, Spot, Vehicle, Ticket
+and VehicleType all reference ChargingSpot" passed grounding because every name existed, and not
+one of the five claims was true.
+
+**What changed:** every case has a test that quotes it; the gate still passes with two
+calibration bands re-authored, because those bands had been held in place by "notification" and
+"payment" counting as verbs. Prose grounding now checks dependency claims against the graph. The
+rule this adds to `lld-content-authoring-review`: a calibration suite written by the author of the
+checks measures agreement with the author, and the first unseen design is worth more than the
+whole suite.
+

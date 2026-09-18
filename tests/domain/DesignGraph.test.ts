@@ -39,6 +39,21 @@ describe('DesignGraph', () => {
     expect(g.orphans().map((c) => c.name)).toEqual(['Receipt'])
   })
 
+  it('does not call a class an orphan when another class names it as a type', () => {
+    // No relationship row for SpotSize, but Spot declares `size: SpotSize` — that
+    // is a connection, whatever the relationships table says.
+    const g = new DesignGraph({
+      ...strongDesign,
+      classes: [
+        ...strongDesign.classes.map((c) => (c.name === 'Spot' ? { ...c, attributes: [...c.attributes, 'size: SpotSize'] } : c)),
+        { name: 'SpotSize', stereotype: 'enum', responsibility: 'Size categories', attributes: ['SMALL', 'MEDIUM', 'LARGE'], methods: [] },
+        { name: 'Receipt', stereotype: 'class', responsibility: 'A receipt', attributes: [], methods: [] },
+      ],
+      relationships: strongDesign.relationships.filter((r) => r.to !== 'SpotSize' && r.from !== 'SpotSize'),
+    })
+    expect(g.orphans().map((c) => c.name)).toEqual(['Receipt'])
+  })
+
   it('detects relationships pointing at undeclared classes', () => {
     const g = new DesignGraph({
       ...godClassDesign,
